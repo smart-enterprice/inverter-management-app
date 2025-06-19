@@ -18,6 +18,9 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   flutter_svg: ^2.1.0
   fl_chart: ^1.0.0
+  sidebarx: ^0.17.1
+  google_nav_bar: ^5.0.7
+
 #----------------------dev_dependencies----------------------#
 dev_dependencies:
   flutter_test:
@@ -31,8 +34,8 @@ flutter:
   uses-material-design: true
 
   #----------------------assets----------------------#
-  # assets:
-  #   - images/a_dot_burr.jpeg
+  assets:
+    - assets/icons/
   #   - images/a_dot_ham.jpeg
 
 

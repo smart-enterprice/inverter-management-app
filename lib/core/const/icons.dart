@@ -1,0 +1,25 @@
+class AppIcons{
+  static const String dashBoard = 'assets/icons/dashboard.svg';
+  static const String search = 'assets/icons/search.svg';
+  static const String settings = 'assets/icons/settings.svg';
+  static const String bills = 'assets/icons/bills.svg';
+  static const String notification = 'assets/icons/notification.svg';
+  static const String orders = 'assets/icons/orders.svg';
+  static const String shop = 'assets/icons/shop.svg';
+  static const String close = 'assets/icons/close.svg';
+  static const String product = 'assets/icons/product.svg';
+  static const String menu = 'assets/icons/menu.svg';
+  static const String delivery = 'assets/icons/delivery.svg';
+  static const String dealers = 'assets/icons/dealers.svg';
+  static const String box = 'assets/icons/box.svg';
+  static const String home = 'assets/icons/home.svg';
+  static const String chart = 'assets/icons/chart.svg';
+  static const String alert = 'assets/icons/alert.svg';
+  static const String menu_2 = 'assets/icons/menu_2.svg';
+  static const String edit = 'assets/icons/edit.svg';
+  static const String delete = 'assets/icons/delete.svg';
+  static const String up_Arrow = 'assets/icons/up.svg';
+  static const String down_Arrow = 'assets/icons/down.svg';
+  static const String back_Arrow = 'assets/icons/back.svg';
+  static const String add = 'assets/icons/add.svg';
+}

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:inverter_management_app/core/const/icons.dart';
 import 'package:inverter_management_app/core/media_query/media_query.dart';
 import 'package:inverter_management_app/core/theme/theme.dart';
 
@@ -8,42 +10,36 @@ class DataCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.all(screenWidth * 0.02),
       padding: EdgeInsets.all(screenWidth * 0.04),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(screenWidth * 0.012),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            spreadRadius: 0.2,
-            blurRadius: 5,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Left side: Order ID & Dealer
+          // ✅ Left: Order Info
+          CircleAvatar(
+              backgroundColor: Colors.grey.shade200,
+              radius: screenWidth * 0.06, // 48px
+              child: SvgPicture.asset(AppIcons.box)),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Order ID #12345',
-                style: AppTheme.normalText3,
+                style: AppTheme.normalText1, // 16sp, w700
               ),
               SizedBox(height: screenHeight * 0.008),
               Text(
                 'Dealer: Green Energy Solutions',
-                style: AppTheme.smallText1,
+                style: AppTheme.smallText1, // 14sp, w400
               ),
             ],
           ),
-          // Right side: Priority
+
+          // ✅ Right: Priority Badge
           Container(
-            width: screenWidth * 0.2,
-            height: screenHeight * 0.028,
+            padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.03,
+              vertical: screenHeight * 0.004,
+            ),
             decoration: BoxDecoration(
               color: Colors.red,
               borderRadius: BorderRadius.circular(5),
@@ -51,7 +47,7 @@ class DataCard extends StatelessWidget {
             child: Center(
               child: Text(
                 'High',
-                style: AppTheme.smallText2,
+                style: AppTheme.labelText.copyWith(color: Colors.white), // 12sp, w500
               ),
             ),
           ),

@@ -18,19 +18,14 @@ class BoxCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: screenHeight * 0.05,
-      ),
       width: width,
       height: height,
+      padding:  EdgeInsets.all(screenWidth*0.03),
       decoration: BoxDecoration(
-        color: Colors.white, // white background
-        borderRadius: BorderRadius.circular(
-          MediaQuery.of(context).size.width * 0.04,
-        ),
+        color:Colors.white,
+        borderRadius: BorderRadius.circular(screenWidth*0.03),
         border: Border.all(
-          color: Colors.grey.shade300, // light grey border
+          color: Colors.grey.shade300,
           width: 1,
         ),
       ),

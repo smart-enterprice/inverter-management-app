@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:inverter_management_app/core/const/icons.dart';
 import 'package:inverter_management_app/core/media_query/media_query.dart';
 import 'package:inverter_management_app/core/theme/theme.dart';
 
@@ -17,9 +19,12 @@ class InfoCard extends StatelessWidget {
               child: BoxCard(
                 color: Colors.black,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Total Dealers',style: AppTheme.normalText3,),
-                    Text('50',style: AppTheme.normalText3,)
+                    SvgPicture.asset(AppIcons.shop),
+                    SizedBox(height: screenHeight*0.01,),
+                    Text('50',style: AppTheme.appTitle1,),
+                    Text('Active Dealers',style: AppTheme.normalText3)
                   ],
                 ),
               ),
@@ -28,32 +33,31 @@ class InfoCard extends StatelessWidget {
             Expanded(child: BoxCard(
               color: Colors.black,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Total Orders',style: AppTheme.normalText3,),
-                  Text('200',style: AppTheme.normalText3,)
+                  SvgPicture.asset(AppIcons.box),
+                  SizedBox(height: screenHeight*0.01,),
+                  Text('200',style: AppTheme.appTitle1,),
+                  Text('Total Orders placed',style: AppTheme.normalText3,)
                 ],
               ),))
           ],
         ),
         SizedBox(height: screenHeight*0.01,),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: BoxCard(
                 color: Colors.black,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    SvgPicture.asset(AppIcons.chart),
+                    SizedBox(height: screenHeight*0.01,),
+                    Text('50/200',style: AppTheme.appTitle1,),
+                    Text('25%',style: AppTheme.appTitle1,),
                     Text('This Month\'s Goal ',style: AppTheme.normalText3,),
-                    Padding(
-                      padding:  EdgeInsets.symmetric(horizontal: screenWidth*0.04),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('50/200',style: AppTheme.normalText3,),
-                          Text('25%',style: AppTheme.normalText3,),
-                        ],
-                      ),
-                    )
                   ],
                 ),
               ),
@@ -62,9 +66,12 @@ class InfoCard extends StatelessWidget {
             Expanded(child: BoxCard(
               color: Colors.black,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ongoing Orders',style: AppTheme.normalText3,),
-                  Text('20',style: AppTheme.normalText3,)
+                  SvgPicture.asset(AppIcons.delivery),
+                  SizedBox(height: screenHeight*0.01,),
+                  Text('200',style: AppTheme.appTitle1,),
+                  Text('Deliveries completed',style: AppTheme.normalText3,)
                 ],
               ),))
           ],
@@ -76,9 +83,12 @@ class InfoCard extends StatelessWidget {
               child: BoxCard(
                 color: Colors.black,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Low Stock Products',style: AppTheme.normalText3,),
-                    Text('50',style: AppTheme.normalText3,)
+                    SvgPicture.asset(AppIcons.alert),
+                    SizedBox(height: screenHeight*0.01,),
+                    Text('2',style: AppTheme.appTitle1,),
+                    Text('Low Stock',style: AppTheme.normalText3,)
                   ],
                 ),
               ),
