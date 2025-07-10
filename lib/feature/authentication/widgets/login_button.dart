@@ -6,8 +6,8 @@ class LoginButton extends StatelessWidget {
 final void Function()? onTap;
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+    return ElevatedButton(
+      onPressed: onTap,
       child: Container(
         width: double.infinity,
         height: 50,

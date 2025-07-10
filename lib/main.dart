@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/screen/splash_screen.dart';
 
 import 'core/media_query/media_query.dart';
 import 'core/theme/theme.dart';
 
 void main() {
-  runApp( MyApp());
+  runApp(const ProviderScope(child: MyApp())); // Wrap with ProviderScope
 }
 
 class MyApp extends StatelessWidget {

@@ -4,6 +4,7 @@ import 'package:inverter_management_app/core/media_query/media_query.dart';
 import 'package:inverter_management_app/widgets/card.dart';
 
 import '../../../screen/home_screen.dart';
+import '../controller/login_controller.dart';
 import '../widgets/email_controller.dart';
 import '../widgets/login_button.dart';
 import '../widgets/password_controller.dart';
@@ -12,6 +13,7 @@ import '../widgets/password_controller.dart';
 class AuthenticationScreen extends ConsumerWidget {
    AuthenticationScreen({super.key});
    final TextEditingController _emailController = TextEditingController();
+   final TextEditingController _passwordController = TextEditingController();
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
@@ -35,16 +37,38 @@ class AuthenticationScreen extends ConsumerWidget {
                     height: screenHeight*0.03,
                   ),
                   PasswordTextFormField(
-                    controller: _emailController,
+                    controller: _passwordController,
                   ),
                   SizedBox(
                     height: screenHeight*0.07,
                   ),
                   LoginButton(
-                    onTap:(){
-                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen(),));
-                    }
+                    onTap: () async {
+                      final controller = ref.read(loginControllerProvider);
+                      final email = _emailController.text.trim();
+                      final password = _passwordController.text.trim();
+                      final result = await controller.login(email, password);
+                      if (result == "Login successful") {
+                        // navigate to home screen
+                        if (context.mounted) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => HomeScreen()),
+                          );
+                          print(result);
+                        }
+                      } else {
+                        // show error message
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(result)),
+                          );
+                          print(result);
+                        }
+                      }
+                    },
                   )
+
                 ],
               ))
         ),
