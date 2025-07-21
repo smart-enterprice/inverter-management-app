@@ -92,7 +92,7 @@ class DealersScreen extends StatelessWidget {
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search by name or town',
-                hintStyle: AppTheme.labelText1,
+                hintStyle: Theme.of(context).textTheme.labelLarge,
                 prefixIcon: Icon(Icons.search_outlined, color: Colors.grey),
                 filled: true,
                 fillColor: Color(0xFFF2F2F2),
@@ -112,12 +112,12 @@ class DealersScreen extends StatelessWidget {
                 final dealer = dealers[index];
                 return GestureDetector(
                   onTap: (){
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DealerView(dealer: dealer),
-                      ),
-                    );
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //     builder: (_) => DealerView(dealer: dealer),
+                    //   ),
+                    // );
                   },
                   child: Container(
                     margin: EdgeInsets.only(bottom: screenHeight * 0.015),
@@ -145,18 +145,18 @@ class DealersScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Dealer: ${dealer['name']}', style: AppTheme.normalText1),
-                              SizedBox(height: screenHeight* 0.005),
-                              Text('Shop: ${dealer['shop']}', style: AppTheme.labelText1),
-                              SizedBox(height: screenHeight* 0.003),
-                              Text('Phone: ${dealer['phone']}', style: AppTheme.labelText1),
+                              // Text('Dealer: ${dealer['name']}', style: AppTheme.normalText1),
+                              // SizedBox(height: screenHeight* 0.005),
+                              // Text('Shop: ${dealer['shop']}', style: AppTheme.labelText1),
+                              // SizedBox(height: screenHeight* 0.003),
+                              // Text('Phone: ${dealer['phone']}', style: AppTheme.labelText1),
                             ],
                           ),
                         ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('ID: ${dealer['id']}', style:AppTheme.normalText1),
+                            // Text('ID: ${dealer['id']}', style:AppTheme.normalText1),
                           ],
                         ),
                       ],

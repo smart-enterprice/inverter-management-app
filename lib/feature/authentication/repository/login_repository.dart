@@ -10,4 +10,7 @@ class LoginRepository {
   Future<Response> login(LoginRequest request) async {
     return await _dio.post('/auth/signin', data: request.toJson());
   }
+  Future<Response> logout() async {
+    return await _dio.post('/auth/logout');
+  }
 }

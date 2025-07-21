@@ -22,6 +22,7 @@ class LoginController {
       );
 
       final response = await _repository.login(request);
+      print(response);
       if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
         final role = response.data['data']['employee']['role'];
@@ -33,8 +34,10 @@ class LoginController {
         await prefs.setBool('is_logged_in', true);
         print('logged in success');
         return "Login successful";
-      } else {
-        return "Login failed: ${response.statusCode}";
+      } else if(response.statusCode == 401) {
+        return "Email or password invalid";
+      }else{
+        return "Something wrong";
       }
     } catch (e) {
       return "Login error: $e";
@@ -48,8 +51,26 @@ class LoginController {
   }
 
   // ✅ To log out
-  Future<void> logout() async {
+  Future<void> isLogout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_logged_in', false);
+  }
+
+  Future<String> logout() async {
+    try {
+      final response = await _repository.logout();
+      if (response.statusCode == 200) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('token');
+        await prefs.remove('user_role');
+        await prefs.setBool('is_logged_in', false);
+        print("Logged out successfully");
+        return "Logout successful";
+      } else {
+        return "Logout failed";
+      }
+    } catch (e) {
+      return "Logout error: $e";
+    }
   }
 }

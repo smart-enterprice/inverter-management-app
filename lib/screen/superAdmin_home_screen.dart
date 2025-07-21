@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:inverter_management_app/core/const/icons.dart';
@@ -6,21 +7,23 @@ import 'package:inverter_management_app/core/media_query/media_query.dart';
 import 'package:inverter_management_app/core/theme/theme.dart';
 import 'package:inverter_management_app/screen/products_screen.dart';
 import 'package:inverter_management_app/screen/settings_screen.dart';
-import 'package:inverter_management_app/screen/users_screen.dart';
+import 'package:inverter_management_app/feature/user_signup/screen/users_screen.dart';
+import '../feature/authentication/controller/login_controller.dart';
+import '../feature/authentication/screen/login_screen.dart';
 import 'bills_screen.dart';
 import 'dashboard_screen.dart';
 import 'dealers_screen.dart';
 import 'delivery_screen.dart';
 import 'orders_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class SuperAdminHomeScreen extends ConsumerStatefulWidget {
+  const SuperAdminHomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<SuperAdminHomeScreen> createState() => _SuperAdminHomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
@@ -28,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
     OrdersScreen(),
     BillsScreen(),
     DeliveryScreen(),
+    IconButton(onPressed: (){}, icon: Icon(Icons.logout))
   ];
 
   void _onNavItemTap(int index) {
@@ -153,11 +157,21 @@ class _HomeScreenState extends State<HomeScreen> {
               // Notification action
             },
           ),
+          IconButton(onPressed: ()async{
+            final message = await ref.read(loginControllerProvider).logout();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(message)),
+            );
+            if (message == "Logout successful") {
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>LoginScreen())); // navigate to login screen
+            }
+          }, icon: Icon(Icons.logout)),
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
             child: GestureDetector(
               onTap: () {
                 // Profile action
+
               },
               child: const CircleAvatar(
                 radius: 16,

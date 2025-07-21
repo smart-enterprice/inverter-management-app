@@ -133,7 +133,7 @@ class _AddDealerScreenState extends State<AddDealerScreen> {
         icon: SvgPicture.asset(AppIcons.back_Arrow,width: screenWidth*0.07,),
         onPressed: () => Navigator.pop(context),
       ),
-      title: const Text('Add Dealer', style: AppTheme.appTitle1),
+      // title: const Text('Add Dealer', style: AppTheme.appTitle1),
       centerTitle: true,
       actions: [
         IconButton(
@@ -181,7 +181,7 @@ class _AddDealerScreenState extends State<AddDealerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTheme.normalText1),
+          // Text(label, style: AppTheme.normalText1),
           SizedBox(height: screenHeight * 0.008),
           TextFormField(
             controller: controller,
@@ -201,7 +201,7 @@ class _AddDealerScreenState extends State<AddDealerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Address', style: AppTheme.normalText1),
+          // Text('Address', style: AppTheme.normalText1),
           SizedBox(height: screenHeight * 0.008),
           TextFormField(
             controller: _addressController,
@@ -221,14 +221,14 @@ class _AddDealerScreenState extends State<AddDealerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('District', style: AppTheme.normalText1),
+          // Text('District', style: AppTheme.normalText1),
           SizedBox(height: screenHeight * 0.008),
           DropdownButtonFormField<String>(
             value: _selectedDistrict,
             decoration: _getInputDecoration('Select district'),
             icon: const Icon(Icons.expand_more, color: _dropdownIconColor),
             dropdownColor: _whiteColor,
-            style: AppTheme.normalText1,
+            // style: AppTheme.normalText1,
             items: _districts.map((String district) {
               return DropdownMenuItem<String>(
                 value: district,
@@ -267,14 +267,14 @@ class _AddDealerScreenState extends State<AddDealerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Select Brands', style: AppTheme.normalText1),
+          // Text('Select Brands', style: AppTheme.normalText1),
           SizedBox(height: screenHeight * 0.008),
           DropdownButtonFormField<String>(
             value: _selectedBrand,
             decoration: _getInputDecoration('Select brand to add'),
             icon: const Icon(Icons.expand_more, color: _dropdownIconColor),
             dropdownColor: _whiteColor,
-            style: AppTheme.normalText1,
+            // style: AppTheme.normalText1,
             items: _brands.map((String brand) {
               return DropdownMenuItem<String>(
                 value: brand,
@@ -301,13 +301,13 @@ class _AddDealerScreenState extends State<AddDealerScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Selected Brands (${_selectedBrands.length})',
-          style: AppTheme.normalText1.copyWith(
-            fontWeight: FontWeight.w600,
-            color: _primaryColor,
-          ),
-        ),
+        // Text(
+        //   'Selected Brands (${_selectedBrands.length})',
+        //   style: AppTheme.normalText1.copyWith(
+        //     fontWeight: FontWeight.w600,
+        //     color: _primaryColor,
+        //   ),
+        // ),
         SizedBox(height: screenHeight * 0.008),
         Container(
           width: double.infinity,

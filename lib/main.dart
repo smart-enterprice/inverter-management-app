@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:inverter_management_app/core/theme/theme.dart';
 import 'package:inverter_management_app/screen/splash_screen.dart';
 
 import 'core/media_query/media_query.dart';
@@ -18,7 +19,8 @@ class MyApp extends StatelessWidget {
     screenWidth = MediaQuery.of(context).size.width;
     return MaterialApp(
       theme: AppTheme.lightTheme,
-        themeMode: ThemeMode.light,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: SplashScreen());
   }

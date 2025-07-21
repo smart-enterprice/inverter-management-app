@@ -6,11 +6,11 @@ class LoginButton extends StatelessWidget {
 final void Function()? onTap;
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onTap,
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
         width: double.infinity,
-        height: 50,
+        height: screenHeight*0.05,
         decoration: BoxDecoration(
           color: Theme.of(context).primaryColor,
           borderRadius: BorderRadius.circular(screenWidth*0.04),
