@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inverter_management_app/feature/user_signup/controller/user_signUp_controller.dart';
 import 'dart:io';
+import '../core/const/icons.dart';
 import '../core/media_query/media_query.dart';
 import '../core/theme/theme.dart';
 import '../model/user_model.dart';
-import '../widgets/add_button.dart';
+
 
 class EditUserScreen extends ConsumerStatefulWidget {
   final EmployeeRegisterRequest user;
@@ -131,12 +133,8 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text('Edit User', style: Theme.of(context).textTheme.displayLarge),
-        centerTitle: true,
-        backgroundColor: AppTheme.backgroundColor,
-      ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: _buildAppBar(),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
         child: Form(
@@ -151,12 +149,8 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
                 _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
                 _buildRoleDropdown(),
                 SizedBox(height: screenHeight * 0.03),
-                SizedBox(
-                  width: screenWidth * 0.33,
-                  child: AddButton(
-                    text: 'Update',
-                    onTap: _handleSubmit,
-                  ),
+                _buildSubmitButton(
+                    _handleSubmit
                 ),
                 SizedBox(height: screenHeight * 0.02),
               ],
@@ -166,6 +160,22 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
       ),
     );
   }
+
+
+  Widget _buildSubmitButton(onTap) {
+    return SizedBox(
+      width: screenWidth * 0.5,
+      height: screenHeight*0.06,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).primaryColor,
+        ),
+        child:  Text('Submit',style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500),),
+      ),
+    );
+  }
+
 
   Widget _buildProfileImageSection() {
     return Padding(
@@ -244,12 +254,12 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
             validator: (value) {
               if (value == null || value.trim().isEmpty) return 'Please enter $label';
               if (label == 'Email' && !_isValidEmail(value)) return 'Please enter a valid email';
-              if (label == 'Phone' && value.length < 10) return 'Please enter a valid phone number';
+              if (label == 'Phone' && value.length != 10) return 'Please enter a valid phone number';
               return null;
             },
             decoration: InputDecoration(
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor:Theme.of(context).focusColor,
               hintText: hint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
@@ -257,11 +267,15 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                borderSide:BorderSide(color: Theme.of(context).scaffoldBackgroundColor, width: 1),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
+                borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderSide: const BorderSide(color: Colors.red, width: 1),
               ),
               contentPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.018),
               hintStyle: TextStyle(fontSize: screenWidth * 0.038, color: Colors.grey[500]),
@@ -276,43 +290,58 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
     return Padding(
       padding: EdgeInsets.only(bottom: screenHeight * 0.02),
       child: Column(
+
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Role', style: Theme.of(context).textTheme.bodyLarge),
           SizedBox(height: screenHeight * 0.008),
-          DropdownButtonFormField<String>(
-            value: _selectedRole,
-            items: _roles.map((role) => DropdownMenuItem(
-              value: role,
-              child: Text(role.replaceAll('ROLE_', '').replaceAll('_', ' '), style: TextStyle(fontSize: screenWidth * 0.038)),
-            )).toList(),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.grey[50],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.018),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).focusColor,
+              borderRadius: BorderRadius.circular(screenWidth * 0.03),
+              border: Border.all(color: Theme.of(context).scaffoldBackgroundColor),
             ),
-            onChanged: (value) => setState(() => _selectedRole = value),
-            validator: (value) => value == null ? 'Please select a role' : null,
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+            child: DropdownButtonFormField<String>(
+              value: _selectedRole,
+              icon: const Icon(Icons.arrow_drop_down),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+              ),
+              items: _roles
+                  .map((role) => DropdownMenuItem(
+                value: role,
+                child: Text(
+                  role.replaceAll('ROLE_', '').replaceAll('_', ' '),
+                  style: TextStyle(fontSize: screenWidth * 0.038),
+                ),
+              ))
+                  .toList(),
+              onChanged: (value) => setState(() => _selectedRole = value),
+              validator: (value) => value == null ? 'Please select a role' : null,
+            ),
           ),
         ],
       ),
     );
   }
 
+  AppBar _buildAppBar() {
+    return AppBar(
+      surfaceTintColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      elevation: 0,
+      leading: IconButton(
+        icon: SvgPicture.asset(AppIcons.back_Arrow, width: screenWidth * 0.06,colorFilter:ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn) ,),
+        onPressed: () => Navigator.pop(context),
+      ),
+      centerTitle: true,
+      title:  Text('Edit user', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+    );
+  }
+
   bool _isValidEmail(String email) {
-    return RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$').hasMatch(email);
+    return RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$').hasMatch(email);
   }
 
   void _handleSubmit() async {
@@ -370,3 +399,4 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
   }
 
 }
+

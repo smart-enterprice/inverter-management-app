@@ -1,220 +1,145 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:inverter_management_app/core/theme/theme.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:inverter_management_app/core/const/icons.dart';
 import 'package:inverter_management_app/feature/user_signup/controller/user_signUp_controller.dart';
 import 'package:inverter_management_app/feature/user_signup/screen/sign_up_screen.dart';
+import 'package:inverter_management_app/feature/user_signup/screen/user_view_screen.dart';
 import '../../../core/media_query/media_query.dart';
-import '../../../screen/edit_user_screen.dart';
+
+
+final selectedRoleProvider = StateProvider<String?>((ref) => null);
 
 class UsersScreen extends ConsumerWidget {
   const UsersScreen({super.key});
 
-  void _showDeleteDialog(BuildContext context,ref, String userName, String employeeId) {
-    final TextEditingController _reasonController = TextEditingController();
-    int secondsRemaining = 10;
-    bool canDelete = false;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            // Start countdown
-            if (secondsRemaining > 0) {
-              Future.delayed(const Duration(seconds: 1), () {
-                setState(() {
-                  secondsRemaining--;
-                  if (secondsRemaining == 0) canDelete = true;
-                });
-              });
-            }
-
-            return AlertDialog(
-              backgroundColor: AppTheme.backgroundColor,
-              title: const Text('Delete User', style: TextStyle(color: Colors.black)),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Are you sure you want to delete "$userName"?'),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _reasonController,
-                    maxLines: 5,
-                    decoration: const InputDecoration(
-                      hintText: 'Enter reason for deleting',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (!canDelete)
-                    Text(
-                      'Please wait $secondsRemaining seconds...',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: canDelete
-                      ? () async {
-                    final reason = _reasonController.text.trim();
-                    if (reason.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Reason is required'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Call delete from controller
-                    final error = await ref.read(signupControllerProvider.notifier)
-                        .deleteUser(employeeId, reason);
-
-                    if (error != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(error), backgroundColor: Colors.red),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('User deleted successfully'), backgroundColor: Colors.green),
-                      );
-                      Navigator.pop(context); // Close dialog
-                      // Navigator.pop(context); // Go back to previous screen
-                    }
-                  }
-                      : null,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: Text(
-                    canDelete ? 'Delete' : 'Wait...',
-                    style: TextStyle(color: AppTheme.backgroundColor),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final employeesAsync = ref.watch(employeeListProvider);
+    final selectedRole = ref.watch(selectedRoleProvider);
+
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Users', style: Theme.of(context).textTheme.bodyLarge),
-        backgroundColor: AppTheme.backgroundColor,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const AddUserScreen()));
-            },
-            icon: const Icon(Icons.add_box_rounded, size: 30),
-          )
-        ],
-      ),
+      appBar: _buildAppBar(context),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
         child: employeesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, st) => Center(child: Text('Error: $e')),
           data: (users) {
-            final filteredUsers = users
-                .where((user) => user.role != 'ROLE_DEALER' && user.role != 'ROLE_SUPER_ADMIN')
-                .toList();
-            return Column
-              (
+            String formatRole(String role) {
+              if (role.startsWith('ROLE_')) {
+                final cleaned = role.replaceFirst('ROLE_', '');
+                return cleaned[0].toUpperCase() + cleaned.substring(1).toLowerCase();
+              }
+              return role;
+            }
+
+            final allRoles = [
+              'All',
+              ...{
+                for (var user in users)
+                  if (user.role != 'ROLE_DEALER' && user.role != 'ROLE_SUPER_ADMIN')
+                    formatRole(user.role)
+              }
+            ];
+
+
+            final filteredUsers = users.where((user) {
+              final formatted = formatRole(user.role);
+              if (user.role == 'ROLE_DEALER' || user.role == 'ROLE_SUPER_ADMIN') return false;
+              if (selectedRole == null || selectedRole == 'All') return true;
+              return formatted == selectedRole;
+            }).toList();
+
+
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ✅ Role filter buttons
+                SizedBox(
+                  height: screenWidth * 0.1,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: allRoles.length,
+                    itemBuilder: (context, index) {
+                      final role = allRoles[index];
+                      final isSelected = role == selectedRole || (role == 'All' && selectedRole == null);
+
+                      return Padding(
+                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                        child: ChoiceChip(
+                          backgroundColor:Theme.of(context).cardColor,
+                          selectedColor: Theme.of(context).primaryColor,
+                          label: Text(role),
+                          selected: isSelected,
+                          onSelected: (_) {
+                            ref.read(selectedRoleProvider.notifier).state = role == 'All' ? null : role;
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(height: screenWidth * 0.04),
+
+                // ✅ User list
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async {
-                      ref.invalidate(
-                          employeeListProvider); // 👈 This will re-call the API
+                      await Future.delayed(const Duration(seconds: 2));
+                      ref.invalidate(employeeListProvider);
                     },
                     child: ListView.builder(
                       itemCount: filteredUsers.length,
                       itemBuilder: (context, index) {
                         final user = filteredUsers[index];
-                        return Card(
-                          margin:
-                          EdgeInsets.symmetric(vertical: screenWidth * 0.02),
-                          elevation: 2,
-                          color: AppTheme.backgroundColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.all(screenWidth * 0.04),
-                            title: Row(
-                              children: [
-                                Text(
-                                  user.employeeName,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  icon:
-                                  const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () {
-                                    _showDeleteDialog(
-                                        context,ref,user.employeeName,user.employeeId.toString());
-                                  },
-                                ),
-                                SizedBox(width: screenWidth * 0.03),
-                                IconButton(
-                                  icon:
-                                  const Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            EditUserScreen(
-                                             user: user,
-                                            ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => UserViewScreen(user: user)),
+                            );
+                          },
+                          child: Card(
+                            margin:
+                            EdgeInsets.symmetric(vertical: screenWidth * 0.02),
+                            elevation: 0,
+                            color: Theme.of(context).cardColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                              BorderRadius.circular(screenWidth * 0.08),
                             ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(height: screenWidth * 0.01),
-                                Text(
-                                  'Email: ${user.employeeEmail}',
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.grey),
-                                ),
-                                SizedBox(height: screenWidth * 0.01),
-                                _buildInfoRow(
-                                  Icons.phone_outlined,
-                                  'Phone',
-                                  user.employeePhone,
-                                ),
-                                SizedBox(height: screenWidth * 0.01),
-                                Text(
-                                  'Role: ${user.role}',
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.black),
-                                ),
-                              ],
+                            child: ListTile(
+                              contentPadding:
+                              EdgeInsets.all(screenWidth * 0.04),
+                              leading: CircleAvatar(
+                                radius: screenWidth * 0.07,
+                                backgroundImage:
+                                NetworkImage(user.photo),
+                                backgroundColor: Colors.grey[200],
+                              ),
+                              title: Text(
+                                user.employeeName,
+                                style:
+                                Theme.of(context).textTheme.displayLarge,
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: screenWidth * 0.01),
+                                  _buildInfoRow(Icons.email, user.employeeEmail, context),
+                                  SizedBox(height: screenWidth * 0.01),
+                                  _buildInfoRow(Icons.phone_outlined, user.employeePhone, context),
+                                  SizedBox(height: screenWidth * 0.01),
+                                  Text(
+                                    'Role: ${formatRole(user.role)}',
+                                    style: Theme.of(context).textTheme.labelSmall,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );
@@ -224,35 +149,49 @@ class UsersScreen extends ConsumerWidget {
                 ),
               ],
             );
-          }
+          },
         ),
       ),
     );
   }
+  AppBar _buildAppBar(BuildContext context){
+    return AppBar(
+      title: Text('Users', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      surfaceTintColor: Colors.transparent,
+      centerTitle: true,
+      leading: IconButton(
+        icon: SvgPicture.asset(AppIcons.back_Arrow, width: screenWidth * 0.06,colorFilter:ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn) ,),
+        onPressed: () => Navigator.pop(context),
+      ),
+      actions: [
+        IconButton(
+          onPressed: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const AddUserScreen()));
+          },
+          icon: SvgPicture.asset(width: screenWidth*0.06,AppIcons.add,colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),),
+        )
+      ],
+    );
+  }
+
 }
-Widget _buildInfoRow(IconData icon, String label, String value) {
+
+
+Widget _buildInfoRow(IconData icon, String value, BuildContext context) {
   return Row(
     children: [
-      Icon(icon, size: 16, color: Colors.grey[600]),
+      Icon(icon, size: screenWidth * 0.05, color: Theme.of(context).primaryColor),
       SizedBox(width: screenWidth * 0.02),
-      Text(
-        '$label: ',
-        style: TextStyle(
-          fontSize: 14,
-          color: Colors.grey[600],
-          fontWeight: FontWeight.w500,
-        ),
-      ),
       Expanded(
         child: Text(
           value,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-          ),
+          style: Theme.of(context).textTheme.labelSmall,
         ),
       ),
     ],
   );
 }
-
