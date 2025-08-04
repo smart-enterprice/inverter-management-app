@@ -3,45 +3,68 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart';
+import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
+import 'package:multi_select_flutter/util/multi_select_item.dart';
+import 'package:multi_select_flutter/util/multi_select_list_type.dart';
 import 'dart:io';
-import '../../../../../core/media_query/media_query.dart';
-import '../../../../../core/theme/theme.dart';
-import '../../../../../core/const/icons.dart';
-import '../../../core/theme/theme.dart';
-import '../controller/user_signUp_controller.dart';
-import '../../../model/user_model.dart';
+import '../../../../../../core/media_query/media_query.dart';
+import '../../../../../../core/theme/theme.dart';
+import '../../../../../../core/const/icons.dart';
+import '../../../../core/theme/theme.dart';
+import '../../controller/signUp_controller.dart';
+import '../../../../model/user_model.dart';
 
-class AddUserScreen extends ConsumerStatefulWidget {
-  const AddUserScreen({super.key});
+class AddDealerScreen extends ConsumerStatefulWidget {
+  const AddDealerScreen({super.key});
 
   @override
-  ConsumerState<AddUserScreen> createState() => _AddUserScreenState();
+  ConsumerState<AddDealerScreen> createState() => _AddUserScreenState();
 }
 
-class _AddUserScreenState extends ConsumerState<AddUserScreen> {
+class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
+  // final _passwordController = TextEditingController();
+  final _townController = TextEditingController();
   final _addressController = TextEditingController();
 
-  final List<String> _roles = [
-    'ROLE_ADMIN',
-    'ROLE_SALESMAN',
-    'ROLE_PRODUCTION',
-    'ROLE_PACKING',
-    'ROLE_ACCOUNTS',
-    'ROLE_DELIVERY',
+  final List<String> _districts = [
+    'Alappuzha',
+    'Ernakulam',
+    'Idukki',
+    'Kannur',
+    'Kasaragod',
+    'Kollam',
+    'Kottayam',
+    'Kozhikode',
+    'Malappuram',
+    'Palakkad',
+    'Pathanamthitta',
+    'Thrissur',
+    'Thiruvananthapuram',
+    'Wayanad',
   ];
-  String? _selectedRole;
+
+  final List<String> _brands = [
+    'SAMSUNG',
+    'HTC',
+    'APPLE',
+    'VIVO',
+    'OPPO',
+    'MI',
+  ];
+  List<String> _selectedBrands = [];
+  String? _selectedDistrict;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    _selectedRole = _roles.first;
+    _selectedDistrict = _districts.first;
   }
 
   @override
@@ -49,8 +72,9 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _passwordController.dispose();
+    // _passwordController.dispose();
     _addressController.dispose();
+    _townController.dispose();
     super.dispose();
   }
   Future<void> _pickImage(ImageSource source) async {
@@ -141,19 +165,11 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
                 _buildInputField(label: 'Name', hint: 'Enter full name', controller: _nameController),
                 _buildInputField(label: 'Email', hint: 'Enter email address', controller: _emailController, keyboardType: TextInputType.emailAddress),
                 _buildInputField(label: 'Phone', hint: 'Enter phone number', controller: _phoneController, keyboardType: TextInputType.phone, digitsOnly: true),
-                _buildInputField(label: 'Password', hint: 'Enter password', controller: _passwordController, obscureText: isPasswordHidden,suffixIcon:IconButton(
-                  icon: Icon(
-                    isPasswordHidden ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      isPasswordHidden = !isPasswordHidden;
-                    });
-                  },
-                ), ),
-                _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
                 _buildRoleDropdown(),
+                _buildInputField(label: 'Town', hint: 'Enter Town name', controller: _townController),
+                _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
+                _buildBrandMultiSelect(),
+
                 SizedBox(height: screenHeight * 0.03),
                 _buildSubmitButton(
                     _handleSubmit
@@ -177,7 +193,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
         onPressed: () => Navigator.pop(context),
       ),
       centerTitle: true,
-      title:  Text('Add user', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+      title:  Text('Add Dealer', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
     );
   }
 
@@ -296,7 +312,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
 
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Role', style: Theme.of(context).textTheme.bodyLarge),
+          Text('District', style: Theme.of(context).textTheme.bodyLarge),
           SizedBox(height: screenHeight * 0.008),
           Container(
             decoration: BoxDecoration(
@@ -306,12 +322,12 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
             ),
             padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
             child: DropdownButtonFormField<String>(
-              value: _selectedRole,
+              value: _selectedDistrict,
               icon: const Icon(Icons.arrow_drop_down),
               decoration: const InputDecoration(
                 border: InputBorder.none,
               ),
-              items: _roles
+              items: _districts
                   .map((role) => DropdownMenuItem(
                 value: role,
                 child: Text(
@@ -320,7 +336,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
                 ),
               ))
                   .toList(),
-              onChanged: (value) => setState(() => _selectedRole = value),
+              onChanged: (value) => setState(() => _selectedDistrict = value),
               validator: (value) => value == null ? 'Please select a role' : null,
             ),
           ),
@@ -328,6 +344,66 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       ),
     );
   }
+
+  Widget _buildBrandMultiSelect() {
+    return Padding(
+      padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Brands', style: Theme.of(context).textTheme.bodyLarge),
+          SizedBox(height: screenHeight * 0.008),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).focusColor, // #393E46
+              borderRadius: BorderRadius.circular(screenWidth * 0.03),
+              border: Border.all(color: Theme.of(context).scaffoldBackgroundColor), // #222831
+            ),
+            child: MultiSelectDialogField(
+              items: _brands.map((brand) => MultiSelectItem<String>(brand, brand)).toList(),
+              title: const Text("Select Brands"),
+              selectedColor: Theme.of(context).primaryColor,
+              // unselectedColor: Colors.transparent,
+              selectedItemsTextStyle: Theme.of(context).textTheme.bodyLarge,
+              itemsTextStyle: Theme.of(context).textTheme.bodyLarge,
+              decoration: BoxDecoration(
+                color: Theme.of(context).focusColor,
+                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                border: Border.all(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                ),
+              ),
+              buttonIcon: Icon(
+                Icons.arrow_drop_down,
+                color: Theme.of(context).primaryColor,
+              ),
+              buttonText: Text(
+                "Select Brands",
+                style: TextStyle(
+                  color: Color(0xFFB0B0B0),
+                  fontSize: screenWidth * 0.038,
+                ),
+              ),
+              dialogHeight: screenHeight * 0.5, // Scrollable height
+              listType: MultiSelectListType.LIST,
+              chipDisplay: MultiSelectChipDisplay(
+                chipColor: Theme.of(context).primaryColor,
+                textStyle: Theme.of(context).textTheme.bodyMedium,
+              ),
+              onConfirm: (values) {
+                setState(() {
+                  _selectedBrands = List<String>.from(values);
+                });
+              },
+              validator: (values) =>
+              (values == null || values.isEmpty) ? 'Please select at least one brand' : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
 
   Widget _buildSubmitButton(onTap) {
@@ -347,7 +423,6 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
 
   bool _isValidEmail(String email) {
     return  RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$').hasMatch(email);
-
   }
 
   void _handleSubmit() async {
@@ -361,14 +436,18 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       );
 
       final error = await controller.signup(
-        EmployeeRegisterRequest(
+        UserModel(
           employeeName: _nameController.text,
           employeeEmail: _emailController.text,
           employeePhone: _phoneController.text,
-          password: _passwordController.text,
+          password: 'Shahul@123',
           address: _addressController.text,
-          role: _selectedRole!,
+          role: 'ROLE_DEALER',
           photo: _selectedImage?.path ?? '',
+          district: _selectedDistrict!,
+          town: _townController.text,
+          brand: _selectedBrands
+
         ),
       );
 
@@ -394,8 +473,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       }
     }
   }
-  }
-
+}
 
 
 

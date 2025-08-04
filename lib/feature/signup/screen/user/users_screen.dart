@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:inverter_management_app/core/const/icons.dart';
-import 'package:inverter_management_app/feature/user_signup/controller/user_signUp_controller.dart';
-import 'package:inverter_management_app/feature/user_signup/screen/sign_up_screen.dart';
-import 'package:inverter_management_app/feature/user_signup/screen/user_view_screen.dart';
-import '../../../core/media_query/media_query.dart';
+import 'package:inverter_management_app/feature/signup/screen/user/sign_up_screen.dart';
+import 'package:inverter_management_app/feature/signup/screen/user/user_view_screen.dart';
+import '../../../../core/media_query/media_query.dart';
+import '../../controller/signUp_controller.dart';
 
 
 final selectedRoleProvider = StateProvider<String?>((ref) => null);
@@ -15,10 +15,8 @@ class UsersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final employeesAsync = ref.watch(employeeListProvider);
+    final employeesAsync = ref.watch(userListProvider);
     final selectedRole = ref.watch(selectedRoleProvider);
-
-
     return Scaffold(
       appBar: _buildAppBar(context),
       body: Padding(
@@ -89,7 +87,7 @@ class UsersScreen extends ConsumerWidget {
                   child: RefreshIndicator(
                     onRefresh: () async {
                       await Future.delayed(const Duration(seconds: 2));
-                      ref.invalidate(employeeListProvider);
+                      ref.invalidate(userListProvider);
                     },
                     child: ListView.builder(
                       itemCount: filteredUsers.length,
@@ -124,7 +122,7 @@ class UsersScreen extends ConsumerWidget {
                               title: Text(
                                 user.employeeName,
                                 style:
-                                Theme.of(context).textTheme.displayLarge,
+                                Theme.of(context).textTheme.bodyLarge,
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

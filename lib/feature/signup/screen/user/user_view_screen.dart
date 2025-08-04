@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:inverter_management_app/core/const/icons.dart';
-import 'package:inverter_management_app/screen/edit_user_screen.dart';
-import '../../../core/media_query/media_query.dart';
-import '../../../core/theme/theme.dart';
-import '../../../model/user_model.dart';
-import '../controller/user_signUp_controller.dart';
+import 'package:inverter_management_app/feature/signup/screen/user/edit_user_screen.dart';
+import '../../../../core/media_query/media_query.dart';
+import '../../../../core/theme/theme.dart';
+import '../../../../model/user_model.dart';
+import '../../controller/signUp_controller.dart';
 
 
 class UserViewScreen extends ConsumerWidget {
   const UserViewScreen({super.key, required this.user});
-  final EmployeeRegisterRequest user;
+  final UserModel user;
   @override
   Widget build(BuildContext context,WidgetRef ref) {
     return Scaffold(
