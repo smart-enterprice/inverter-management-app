@@ -3,31 +3,45 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/user_model.dart';
 import '../../../network/dio_client.dart';
 
-final employeeSignupRepositoryProvider = Provider<EmployeeSignupRepository>((ref) {
-  return EmployeeSignupRepository();
+final signupRepositoryProvider =
+    Provider<SignupRepository>((ref) {
+  return SignupRepository();
 });
 
-class EmployeeSignupRepository {
+class SignupRepository {
   final Dio _dio = DioClient.instance;
 
-
-  ///---------------------------- Signup function
-  Future<Response> signup(EmployeeRegisterRequest request) async {
+  ///---------------------------- User Signup function
+  Future<Response> userSignup(UserModel request) async {
     return await _dio.post('/employees/signup', data: request.toJson());
   }
 
-  //  Get list of employees
-  Future<List<EmployeeRegisterRequest>> getEmployees({int page = 1, int limit = 20}) async {
+  /// -------------------------  Get list of employees
+  Future<List<UserModel>> getEmployees(
+      {int page = 1, int limit = 20}) async {
     final response = await _dio.get('/employees?page=$page&limit=$limit');
 
     final employeeList = (response.data['data']['employees'] as List)
-        .map((e) => EmployeeRegisterRequest.fromJson(e))
+        .map((e) => UserModel.fromJson(e)).where((user)=>user.role !='ROLE_DEALER')
         .toList();
 
     return employeeList;
   }
-  ///---------------------------- update function
-  Future<void> updateEmployee(String employeeId, EmployeeRegisterRequest updatedData) async {
+
+  /// ------------------------- Get list of dealers
+  Future<List<UserModel>> getDealers(
+      {int page = 1, int limit = 20}) async {
+    final response = await _dio.get('/employees?page=$page&limit=$limit');
+
+    final dealerList = (response.data['data']['employees'] as List)
+        .map((e) => UserModel.fromJson(e)).where((user)=>user.role =='ROLE_DEALER')
+        .toList();
+    return dealerList;
+  }
+
+  ///---------------------------- user update function
+  Future<void> updateUser(
+      String employeeId, UserModel updatedData) async {
     try {
       final response = await DioClient.instance.put(
         '/employees/$employeeId',
@@ -59,9 +73,13 @@ class EmployeeSignupRepository {
       throw Exception('Update error: $e');
     }
   }
-///--------------------------------delete function
 
-  Future<void> deleteEmployee(String employeeId, String reason) async {
+
+
+
+  ///--------------------------------user delete function
+
+  Future<void> deleteUser(String employeeId, String reason) async {
     try {
       final response = await DioClient.instance.put(
         '/employees/update/delete-employee',
@@ -80,7 +98,5 @@ class EmployeeSignupRepository {
       throw Exception('Delete error: $e');
     }
   }
-
-
 
 }

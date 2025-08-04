@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:inverter_management_app/feature/user_signup/controller/user_signUp_controller.dart';
 import 'dart:io';
-import '../core/media_query/media_query.dart';
-import '../core/theme/theme.dart';
-import '../model/user_model.dart';
-import '../widgets/add_button.dart';
+import '../../../../core/const/icons.dart';
+import '../../../../core/media_query/media_query.dart';
+import '../../../../core/theme/theme.dart';
+import '../../controller/signUp_controller.dart';
+import '../../../../model/user_model.dart';
 
 class EditUserScreen extends ConsumerStatefulWidget {
-  final EmployeeRegisterRequest user;
+  final UserModel user;
 
   const EditUserScreen({
     super.key,
@@ -18,7 +19,7 @@ class EditUserScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<EditUserScreen>  createState() => _EditUserScreenState();
+  ConsumerState<EditUserScreen> createState() => _EditUserScreenState();
 }
 
 class _EditUserScreenState extends ConsumerState<EditUserScreen> {
@@ -46,7 +47,8 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.user.employeeName);
     _emailController = TextEditingController(text: widget.user.employeeEmail);
-    _phoneController = TextEditingController(text: widget.user.employeePhone.toString());
+    _phoneController =
+        TextEditingController(text: widget.user.employeePhone.toString());
     _addressController = TextEditingController(text: widget.user.address);
     _selectedRole = widget.user.role;
   }
@@ -75,7 +77,9 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: ${e.toString()}'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Error picking image: ${e.toString()}'),
+            backgroundColor: Colors.red),
       );
     }
   }
@@ -91,7 +95,8 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(screenWidth * 0.04)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(screenWidth * 0.04)),
           title: const Text('Select Photo'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -131,12 +136,8 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text('Edit User', style: Theme.of(context).textTheme.displayLarge),
-        centerTitle: true,
-        backgroundColor: AppTheme.backgroundColor,
-      ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: _buildAppBar(),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
         child: Form(
@@ -145,23 +146,53 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
             child: Column(
               children: [
                 _buildProfileImageSection(),
-                _buildInputField(label: 'Name', hint: 'Enter full name', controller: _nameController),
-                _buildInputField(label: 'Email', hint: 'Enter email address', controller: _emailController, keyboardType: TextInputType.emailAddress),
-                _buildInputField(label: 'Phone', hint: 'Enter phone number', controller: _phoneController, keyboardType: TextInputType.phone, digitsOnly: true),
-                _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
+                _buildInputField(
+                    label: 'Name',
+                    hint: 'Enter full name',
+                    controller: _nameController),
+                _buildInputField(
+                    label: 'Email',
+                    hint: 'Enter email address',
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress),
+                _buildInputField(
+                    label: 'Phone',
+                    hint: 'Enter phone number',
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    digitsOnly: true),
+                _buildInputField(
+                    label: 'Address',
+                    hint: 'Enter address',
+                    controller: _addressController,
+                    maxLines: 3),
                 _buildRoleDropdown(),
                 SizedBox(height: screenHeight * 0.03),
-                SizedBox(
-                  width: screenWidth * 0.33,
-                  child: AddButton(
-                    text: 'Update',
-                    onTap: _handleSubmit,
-                  ),
-                ),
+                _buildSubmitButton(_handleSubmit),
                 SizedBox(height: screenHeight * 0.02),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton(onTap) {
+    return SizedBox(
+      width: screenWidth * 0.5,
+      height: screenHeight * 0.06,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).primaryColor,
+        ),
+        child: Text(
+          'Submit',
+          style: Theme.of(context)
+              .textTheme
+              .labelSmall
+              ?.copyWith(fontWeight: FontWeight.w500),
         ),
       ),
     );
@@ -181,8 +212,9 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
                   backgroundImage: _selectedImage != null
                       ? FileImage(_selectedImage!)
                       : (widget.user.photo.isNotEmpty
-                      ? NetworkImage(widget.user.photo)
-                      : const AssetImage('assets/images/profile.jpg')) as ImageProvider,
+                              ? NetworkImage(widget.user.photo)
+                              : const AssetImage('assets/images/profile.jpg'))
+                          as ImageProvider,
                 ),
                 Positioned(
                   bottom: 0,
@@ -194,7 +226,8 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
-                    child: Icon(Icons.camera_alt, color: Colors.white, size: screenWidth * 0.04),
+                    child: Icon(Icons.camera_alt,
+                        color: Colors.white, size: screenWidth * 0.04),
                   ),
                 ),
               ],
@@ -205,11 +238,18 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Profile Image', style: TextStyle(fontSize: screenWidth * 0.04, fontWeight: FontWeight.w600, color: Colors.black87)),
+                Text('Profile Image',
+                    style: TextStyle(
+                        fontSize: screenWidth * 0.04,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87)),
                 SizedBox(height: screenHeight * 0.005),
                 Text(
-                  _selectedImage != null ? 'Tap to change photo' : 'Tap to add photo',
-                  style: TextStyle(fontSize: screenWidth * 0.032, color: Colors.grey[600]),
+                  _selectedImage != null
+                      ? 'Tap to change photo'
+                      : 'Tap to add photo',
+                  style: TextStyle(
+                      fontSize: screenWidth * 0.032, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -240,16 +280,20 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
             keyboardType: keyboardType,
             obscureText: obscureText,
             maxLines: maxLines,
-            inputFormatters: digitsOnly ? [FilteringTextInputFormatter.digitsOnly] : null,
+            inputFormatters:
+                digitsOnly ? [FilteringTextInputFormatter.digitsOnly] : null,
             validator: (value) {
-              if (value == null || value.trim().isEmpty) return 'Please enter $label';
-              if (label == 'Email' && !_isValidEmail(value)) return 'Please enter a valid email';
-              if (label == 'Phone' && value.length < 10) return 'Please enter a valid phone number';
+              if (value == null || value.trim().isEmpty)
+                return 'Please enter $label';
+              if (label == 'Email' && !_isValidEmail(value))
+                return 'Please enter a valid email';
+              if (label == 'Phone' && value.length != 10)
+                return 'Please enter a valid phone number';
               return null;
             },
             decoration: InputDecoration(
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor: Theme.of(context).focusColor,
               hintText: hint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
@@ -257,14 +301,23 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                borderSide: BorderSide(
+                    color: Theme.of(context).scaffoldBackgroundColor, width: 1),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
+                borderSide:
+                    BorderSide(color: Theme.of(context).primaryColor, width: 2),
               ),
-              contentPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.018),
-              hintStyle: TextStyle(fontSize: screenWidth * 0.038, color: Colors.grey[500]),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderSide: const BorderSide(color: Colors.red, width: 1),
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.04,
+                  vertical: screenHeight * 0.018),
+              hintStyle: TextStyle(
+                  fontSize: screenWidth * 0.038, color: Colors.grey[500]),
             ),
           ),
         ],
@@ -280,66 +333,93 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
         children: [
           Text('Role', style: Theme.of(context).textTheme.bodyLarge),
           SizedBox(height: screenHeight * 0.008),
-          DropdownButtonFormField<String>(
-            value: _selectedRole,
-            items: _roles.map((role) => DropdownMenuItem(
-              value: role,
-              child: Text(role.replaceAll('ROLE_', '').replaceAll('_', ' '), style: TextStyle(fontSize: screenWidth * 0.038)),
-            )).toList(),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.grey[50],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.018),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).focusColor,
+              borderRadius: BorderRadius.circular(screenWidth * 0.03),
+              border:
+                  Border.all(color: Theme.of(context).scaffoldBackgroundColor),
             ),
-            onChanged: (value) => setState(() => _selectedRole = value),
-            validator: (value) => value == null ? 'Please select a role' : null,
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+            child: DropdownButtonFormField<String>(
+              value: _selectedRole,
+              icon: const Icon(Icons.arrow_drop_down),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+              ),
+              items: _roles
+                  .map((role) => DropdownMenuItem(
+                        value: role,
+                        child: Text(
+                          role.replaceAll('ROLE_', '').replaceAll('_', ' '),
+                          style: TextStyle(fontSize: screenWidth * 0.038),
+                        ),
+                      ))
+                  .toList(),
+              onChanged: (value) => setState(() => _selectedRole = value),
+              validator: (value) =>
+                  value == null ? 'Please select a role' : null,
+            ),
           ),
         ],
       ),
     );
   }
 
-  bool _isValidEmail(String email) {
-    return RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$').hasMatch(email);
+  AppBar _buildAppBar() {
+    return AppBar(
+      surfaceTintColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      elevation: 0,
+      leading: IconButton(
+        icon: SvgPicture.asset(
+          AppIcons.back_Arrow,
+          width: screenWidth * 0.06,
+          colorFilter:
+              ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
+        ),
+        onPressed: () => Navigator.pop(context),
+      ),
+      centerTitle: true,
+      title: Text('Edit user',
+          style: Theme.of(context)
+              .textTheme
+              .bodyLarge
+              ?.copyWith(fontWeight: FontWeight.bold)),
+    );
   }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$').hasMatch(email.trim());
+  }
+
 
   void _handleSubmit() async {
     if (_formKey.currentState!.validate()) {
-      final controller =  ref.read(signupControllerProvider.notifier);
+      final controller = ref.read(signupControllerProvider.notifier);
       // 1. Create updated model
       final updatedUser = widget.user.copyWith(
-        employeeName: _nameController.text.trim(),
-        employeeEmail: _emailController.text.trim(),
-        employeePhone: _phoneController.text.trim(),
-        role: _selectedRole,
-        photo: _selectedImage?.path ?? widget.user.photo,
-        address: _addressController.text.trim(),
-        password: widget.user.password
-      );
+          employeeName: _nameController.text.trim(),
+          employeeEmail: _emailController.text.trim(),
+          employeePhone: _phoneController.text.trim(),
+          role: _selectedRole,
+          photo: _selectedImage?.path ?? widget.user.photo,
+          address: _addressController.text.trim(),
+          password: widget.user.password);
 
       try {
         // 2. Call update through your controller/provider
 
-           final error = await controller.updateUser(
-        address: updatedUser.address,
-        email: updatedUser.employeeEmail,
-        name: updatedUser.employeeName,
-        phone: updatedUser.employeePhone,
-        photo: updatedUser.photo,
-        role: updatedUser.role
-        , oldUser: widget.user,);
+        final error = await controller.updateUser(
+          oldUser: widget.user,
+          name: _nameController.text,
+          email: _emailController.text,
+          phone: _phoneController.text,
+          address: _addressController.text,
+          photo: _selectedImage?.path ?? widget.user.photo,
+          role: widget.user.role,
+        );
+
 
         // 3. Show success feedback
         if (error != null) {
@@ -359,14 +439,14 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
             ),
           );
           Navigator.pop(context); // Go back
-        }// Go back after success
+        } // Go back after success
       } catch (e) {
         // 4. Handle error
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Update failed: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Update failed: $e'), backgroundColor: Colors.red),
         );
       }
     }
   }
-
 }

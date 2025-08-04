@@ -1,14 +1,20 @@
-class EmployeeRegisterRequest {
+class UserModel {
   final String? employeeId;
   final String employeeName;
   final String employeeEmail;
   final String password;
-  final String employeePhone; // Changed to String to avoid conversion issues
+  final String employeePhone;
   final String role;
   final String photo;
   final String address;
 
-  EmployeeRegisterRequest({
+  // Optional fields for ROLE_DEALER
+  final String? shopName;
+  final String? district;
+  final String? town;
+  final List<String>? brand;
+
+  UserModel({
     this.employeeId,
     required this.employeeName,
     required this.employeeEmail,
@@ -17,47 +23,61 @@ class EmployeeRegisterRequest {
     required this.role,
     required this.photo,
     required this.address,
+    this.shopName,
+    this.district,
+    this.town,
+    this.brand,
   });
 
-  /// Convert Dart object to JSON (for sending to backend)
   Map<String, dynamic> toJson() {
     return {
+      'employee_id': employeeId,
       'employee_name': employeeName,
       'employee_email': employeeEmail,
       'password': password,
-      'employee_phone': employeePhone, // No conversion needed
+      'employee_phone': employeePhone,
       'role': role,
       'photo': photo,
       'address': address,
+      if (shopName != null) 'shop_name': shopName,
+      if (district != null) 'district': district,
+      if (town != null) 'town': town,
+      if (brand != null) 'brand': brand,
     };
   }
 
-  /// Create Dart object from JSON (for reading backend response)
-  factory EmployeeRegisterRequest.fromJson(Map<String, dynamic> json) {
-    return EmployeeRegisterRequest(
-      employeeId: json['employee_id']?.toString() ?? '',
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      employeeId: json['employee_id']?.toString(),
       employeeName: json['employee_name']?.toString() ?? '',
       employeeEmail: json['employee_email']?.toString() ?? '',
       password: json['password']?.toString() ?? '',
-      employeePhone: json['employee_phone']?.toString() ?? '', // Safe string conversion
+      employeePhone: json['employee_phone']?.toString() ?? '',
       role: json['role']?.toString() ?? '',
       photo: json['photo']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
+      shopName: json['shop_name']?.toString(),
+      district: json['district']?.toString(),
+      town: json['town']?.toString(),
+      brand: (json['brand'] as List?)?.map((e) => e.toString()).toList(),
     );
   }
 
-  /// Create a modified copy of this object
-  EmployeeRegisterRequest copyWith({
+  UserModel copyWith({
     String? employeeId,
     String? employeeName,
     String? employeeEmail,
     String? password,
-    String? employeePhone, // Changed to String
+    String? employeePhone,
     String? role,
     String? photo,
     String? address,
+    String? shopName,
+    String? district,
+    String? town,
+    List<String>? brand,
   }) {
-    return EmployeeRegisterRequest(
+    return UserModel(
       employeeId: employeeId ?? this.employeeId,
       employeeName: employeeName ?? this.employeeName,
       employeeEmail: employeeEmail ?? this.employeeEmail,
@@ -66,6 +86,10 @@ class EmployeeRegisterRequest {
       role: role ?? this.role,
       photo: photo ?? this.photo,
       address: address ?? this.address,
+      shopName: shopName ?? this.shopName,
+      district: district ?? this.district,
+      town: town ?? this.town,
+      brand: brand ?? this.brand,
     );
   }
 }

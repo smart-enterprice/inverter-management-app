@@ -7,12 +7,12 @@ import 'package:inverter_management_app/core/media_query/media_query.dart';
 import 'package:inverter_management_app/core/theme/theme.dart';
 import 'package:inverter_management_app/screen/products_screen.dart';
 import 'package:inverter_management_app/screen/settings_screen.dart';
-import 'package:inverter_management_app/feature/user_signup/screen/users_screen.dart';
 import '../feature/authentication/controller/login_controller.dart';
 import '../feature/authentication/screen/login_screen.dart';
+import '../feature/signup/screen/user/users_screen.dart';
 import 'bills_screen.dart';
 import 'dashboard_screen.dart';
-import 'dealers_screen.dart';
+import '../feature/signup/screen/dealer/dealers_screen.dart';
 import 'delivery_screen.dart';
 import 'orders_screen.dart';
 

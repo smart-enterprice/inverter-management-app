@@ -63,7 +63,7 @@ class AppTheme {
       titleSmall: normalText6,
       labelLarge: labelText1,
       labelMedium: labelText,
-      labelSmall: smallText2,
+      labelSmall: smallText1,
       headlineSmall: smallText1,
     ),
   );
@@ -73,7 +73,7 @@ class AppTheme {
     brightness: Brightness.dark,
     primaryColor: softIndigo,
     scaffoldBackgroundColor: darkGray,
-    cardColor: darkGray,
+    cardColor: darkGrey,
     focusColor: darkGrey,
     textTheme: const TextTheme(
       displayLarge: appTitle1,
@@ -86,7 +86,7 @@ class AppTheme {
       titleSmall: normalText6,
       labelLarge: labelText,
       labelMedium: labelText1,
-      labelSmall: smallText1,
+      labelSmall: smallText2,
       headlineSmall: smallText2,
     ),
   );
