@@ -24,12 +24,12 @@ class DataCard extends StatelessWidget {
             children: [
               Text(
                 'Order ID #12345',
-                style: AppTheme.normalText1, // 16sp, w700
+                style: Theme.of(context).textTheme.bodyLarge, // 16sp, w700
               ),
               SizedBox(height: screenHeight * 0.008),
               Text(
                 'Dealer: Green Energy Solutions',
-                style: AppTheme.smallText1, // 14sp, w400
+                style: Theme.of(context).textTheme.labelSmall, // 14sp, w400
               ),
             ],
           ),
@@ -47,7 +47,8 @@ class DataCard extends StatelessWidget {
             child: Center(
               child: Text(
                 'High',
-                style: AppTheme.labelText.copyWith(color: Colors.white), // 12sp, w500
+                style: AppTheme.labelText
+                    .copyWith(color: Colors.white), // 12sp, w500
               ),
             ),
           ),

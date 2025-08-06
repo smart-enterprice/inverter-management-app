@@ -22,4 +22,5 @@ class AppIcons{
   static const String down_Arrow = 'assets/icons/down.svg';
   static const String back_Arrow = 'assets/icons/back.svg';
   static const String add = 'assets/icons/add.svg';
+  static const String brand = 'assets/icons/brand.svg';
 }

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:inverter_management_app/core/theme/theme.dart';
 import '../core/media_query/media_query.dart';
-import '../core/theme/theme.dart';
 import '../widgets/data_card.dart';
 import '../widgets/info_card.dart';
 

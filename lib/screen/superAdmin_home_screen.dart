@@ -5,6 +5,7 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:inverter_management_app/core/const/icons.dart';
 import 'package:inverter_management_app/core/media_query/media_query.dart';
 import 'package:inverter_management_app/core/theme/theme.dart';
+import 'package:inverter_management_app/feature/brand/screen/brands_page.dart';
 import 'package:inverter_management_app/screen/products_screen.dart';
 import 'package:inverter_management_app/screen/settings_screen.dart';
 import '../feature/authentication/controller/login_controller.dart';
@@ -46,11 +47,12 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: Drawer(
-        backgroundColor: Colors.white,
+        width: screenWidth*0.7,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         shape:  RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
-            topRight: Radius.circular(screenWidth * 0.1),
-            bottomRight: Radius.circular(screenWidth*0.1),
+            topRight: Radius.circular(screenWidth * 0.03),
+            bottomRight: Radius.circular(screenWidth*0.03),
           ),
         ),
         child: Column(
@@ -59,21 +61,24 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
             // Logo & Integration Header
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children:  [
                 Icon(Icons.all_inclusive, color: Colors.purple),
                 SizedBox(width: 8),
-                Text("Integration", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                Text("Integration", style: Theme.of(context).textTheme.displayLarge),
               ],
             ),
              SizedBox(height: screenHeight* 0.03),
-            _drawerItem(AppIcons.shop, "Dealers", onTap: () {
+            _drawerItem(AppIcons.dealers, "Users", context,onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const UsersScreen()));
+            }),
+            _drawerItem(AppIcons.shop, "Dealers", context,onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const DealersScreen()));
             }),
-            _drawerItem(AppIcons.product, "Products", onTap: () {
+            _drawerItem(AppIcons.product, "Products",context, onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductsScreen()));
             }),
-            _drawerItem(AppIcons.dealers, "Users", onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const UsersScreen()));
+            _drawerItem(AppIcons.brand, "Brands", context,onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const BrandsScreen()));
             }),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -84,7 +89,7 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
             ),
             // Settings after Users (swapped)
 
-            _drawerItem(AppIcons.settings, "Settings", onTap: () {
+            _drawerItem(AppIcons.settings, "Settings",context, onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
             }),
 
@@ -101,6 +106,7 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
               AppIcons.menu_2, // your custom SVG path
               height: screenHeight * 0.03,
               width: screenWidth * 0.03,
+              colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
             ),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
@@ -122,7 +128,7 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
                 hintText: 'Search...',
                 hintStyle: TextStyle(color: Colors.grey[600]),
                 filled: true,
-                fillColor: Colors.grey[200],
+                fillColor: Theme.of(context).focusColor,
                 contentPadding:  EdgeInsets.symmetric(horizontal: screenWidth* 0.04, vertical: screenHeight * 0.01),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(screenWidth* 0.045),
@@ -139,6 +145,7 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
       _showSearchBar ?AppIcons.close: AppIcons.search,
         height: screenHeight* 0.03,
         width: screenWidth* 0.03,
+              colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
       ),
             onPressed: () {
               setState(() {
@@ -152,20 +159,12 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
               AppIcons.notification,
               height: screenHeight* 0.03,
               width: screenWidth* 0.03,
+              colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
             ),
             onPressed: () {
               // Notification action
             },
           ),
-          IconButton(onPressed: ()async{
-            final message = await ref.read(loginControllerProvider).logout();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(message)),
-            );
-            if (message == "Logout successful") {
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>LoginScreen())); // navigate to login screen
-            }
-          }, icon: Icon(Icons.logout)),
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
             child: GestureDetector(
@@ -173,8 +172,8 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
                 // Profile action
 
               },
-              child: const CircleAvatar(
-                radius: 16,
+              child:  CircleAvatar(
+                radius: screenWidth*0.05,
                 // backgroundImage: AssetImage(''),
               ),
             ),
@@ -259,7 +258,7 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
     );
   }
 }
-Widget _drawerItem(String icon, String label, {VoidCallback? onTap}) {
+Widget _drawerItem(String icon, String label,context, {VoidCallback? onTap}) {
   return Padding(
     padding:  EdgeInsets.symmetric(horizontal: screenWidth*0.04, vertical: screenHeight* 0.01),
     child: InkWell(
@@ -272,17 +271,14 @@ Widget _drawerItem(String icon, String label, {VoidCallback? onTap}) {
           SvgPicture.asset(icon,
           height: screenHeight* 0.03,
           width: screenWidth* 0.03,
-          // colorFilter: ColorFilter.mode(
-          // ),
+          colorFilter: ColorFilter.mode(
+            Theme.of(context).primaryColor,BlendMode.srcIn
+          ),
           ),
              SizedBox(width: screenWidth*0.03),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.normal,
-                color: Colors.black87,
-              ),
+              style:Theme.of(context).textTheme.bodyLarge,
             ),
           ],
         ),
