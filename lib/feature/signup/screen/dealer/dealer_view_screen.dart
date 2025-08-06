@@ -55,7 +55,7 @@ class DealerView extends ConsumerWidget {
           context: context,
           icon: AppIcons.delete,
           color: _deleteColor,
-          onPressed: () => _showDeleteDialog(context, dealer.employeeName ?? 'Unknown', dealer.employeeId ?? ''),
+          onPressed: () => _showDeleteDialog(context, ref, dealer.employeeName ?? 'Unknown', dealer.employeeId ?? ''),
         ),
         SizedBox(width: screenWidth * 0.02),
       ],
@@ -258,113 +258,16 @@ class DealerView extends ConsumerWidget {
     Navigator.push(context, MaterialPageRoute(builder: (context) => EditDealerScreen(dealer: dealer)));
   }
 
-  void _showDeleteDialog(BuildContext context, String userName, String employeeId) {
-    final TextEditingController reasonController = TextEditingController();
-    int secondsRemaining = 10;
-    bool canDelete = false;
-
+  void _showDeleteDialog(BuildContext context, WidgetRef ref, String userName, String employeeId) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        return Consumer(
-          builder: (context, ref, _) {
-            return StatefulBuilder(
-              builder: (context, setState) {
-                if (secondsRemaining > 0) {
-                  Future.delayed(const Duration(seconds: 1), () {
-                    if (context.mounted) {
-                      setState(() {
-                        secondsRemaining--;
-                        if (secondsRemaining == 0) canDelete = true;
-                      });
-                    }
-                  });
-                }
-
-                return AlertDialog(
-                  backgroundColor: Theme.of(context).focusColor,
-                  title: Text('Delete User', style: Theme.of(context).textTheme.labelSmall),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Are you sure you want to delete "$userName"?',
-                          style: Theme.of(context).textTheme.labelSmall),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: reasonController,
-                        maxLines: 5,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter reason for deleting',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (!canDelete)
-                        Text(
-                          'Please wait $secondsRemaining seconds...',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        reasonController.dispose();
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: canDelete
-                          ? () async {
-                        final reason = reasonController.text.trim();
-                        if (reason.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Reason is required'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-
-                        final error = await ref
-                            .read(signupControllerProvider.notifier)
-                            .deleteUser(employeeId, reason);
-
-                        if (context.mounted) {
-                          if (error != null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(error), backgroundColor: Colors.red),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('User deleted successfully'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                            reasonController.dispose();
-                            Navigator.pop(context);
-                            Navigator.pop(context);
-                          }
-                        }
-                      }
-                          : null,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: Text(
-                        canDelete ? 'Delete' : 'Wait...',
-                        style: TextStyle(color: AppTheme.backgroundColor),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
+      builder: (dialogContext) => _DeleteDialogWidget(
+        context: context,
+        ref: ref,
+        userName: userName,
+        employeeId: employeeId,
+      ),
     );
   }
 
@@ -375,6 +278,166 @@ class DealerView extends ConsumerWidget {
     } else {
       debugPrint('No phone number available');
     }
+  }
+}
+
+// Separate StatefulWidget for the delete dialog to handle state properly
+class _DeleteDialogWidget extends StatefulWidget {
+  final BuildContext context;
+  final WidgetRef ref;
+  final String userName;
+  final String employeeId;
+
+  const _DeleteDialogWidget({
+    required this.context,
+    required this.ref,
+    required this.userName,
+    required this.employeeId,
+  });
+
+  @override
+  State<_DeleteDialogWidget> createState() => _DeleteDialogWidgetState();
+}
+
+class _DeleteDialogWidgetState extends State<_DeleteDialogWidget> {
+  late final TextEditingController _reasonController;
+  int _secondsRemaining = 10;
+  bool _canDelete = false;
+  bool _isDeleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _reasonController = TextEditingController();
+    _startCountdown();
+  }
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  void _startCountdown() {
+    if (_secondsRemaining > 0) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          setState(() {
+            _secondsRemaining--;
+            if (_secondsRemaining == 0) _canDelete = true;
+          });
+          _startCountdown();
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Theme.of(context).focusColor,
+      title: Text('Delete User', style: Theme.of(context).textTheme.labelSmall),
+      content: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Are you sure you want to delete "${widget.userName}"?',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+              const SizedBox(height: 16),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 120),
+                child: TextFormField(
+                  controller: _reasonController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter reason for deleting',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (!_canDelete)
+                Text(
+                  'Please wait $_secondsRemaining seconds...',
+                  style: const TextStyle(color: Colors.grey),
+                ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isDeleting ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: (_canDelete && !_isDeleting) ? _handleDelete : null,
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          child: _isDeleting
+              ? const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          )
+              : Text(
+            _canDelete ? 'Delete' : 'Wait...',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleDelete() async {
+    final reason = _reasonController.text.trim();
+    if (reason.isEmpty) {
+      _showSnackBar('Reason is required', Colors.red);
+      return;
+    }
+
+    setState(() => _isDeleting = true);
+
+    try {
+      final error = await widget.ref
+          .read(signupControllerProvider.notifier)
+          .deleteUser(widget.employeeId, reason);
+
+      if (mounted) {
+        if (error != null) {
+          setState(() => _isDeleting = false);
+          _showSnackBar(error, Colors.red);
+        } else {
+          _showSnackBar('User deleted successfully', Colors.green);
+          Navigator.pop(context); // Close dialog
+          Navigator.pop(widget.context); // Go back to previous screen
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+        _showSnackBar('An error occurred: ${e.toString()}', Colors.red);
+      }
+    }
+  }
+
+  void _showSnackBar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(widget.context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 }
 

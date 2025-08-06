@@ -49,9 +49,6 @@ class UsersScreen extends ConsumerWidget {
               if (selectedRole == null || selectedRole == 'All') return true;
               return formatted == selectedRole;
             }).toList();
-
-
-
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

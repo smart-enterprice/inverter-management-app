@@ -3,8 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/user_model.dart';
 import '../../../network/dio_client.dart';
 
-final signupRepositoryProvider =
-    Provider<SignupRepository>((ref) {
+final signupRepositoryProvider = Provider<SignupRepository>((ref) {
   return SignupRepository();
 });
 
@@ -16,32 +15,38 @@ class SignupRepository {
     return await _dio.post('/employees/signup', data: request.toJson());
   }
 
-  /// -------------------------  Get list of employees
-  Future<List<UserModel>> getEmployees(
-      {int page = 1, int limit = 20}) async {
+  /// ------------------------- Get list of employees
+  Future<List<UserModel>> getEmployees({int page = 1, int limit = 20}) async {
     final response = await _dio.get('/employees?page=$page&limit=$limit');
 
     final employeeList = (response.data['data']['employees'] as List)
-        .map((e) => UserModel.fromJson(e)).where((user)=>user.role !='ROLE_DEALER')
+        .map((e) => UserModel.fromJson(e))
+        .where((user) => user.role != 'ROLE_DEALER')
         .toList();
 
     return employeeList;
   }
 
   /// ------------------------- Get list of dealers
-  Future<List<UserModel>> getDealers(
-      {int page = 1, int limit = 20}) async {
+  Future<List<UserModel>> getDealers({int page = 1, int limit = 20}) async {
     final response = await _dio.get('/employees?page=$page&limit=$limit');
 
     final dealerList = (response.data['data']['employees'] as List)
-        .map((e) => UserModel.fromJson(e)).where((user)=>user.role =='ROLE_DEALER')
+        .map((e) => UserModel.fromJson(e))
+        .where((user) => user.role == 'ROLE_DEALER')
         .toList();
+
     return dealerList;
   }
 
-  ///---------------------------- user update function
-  Future<void> updateUser(
-      String employeeId, UserModel updatedData) async {
+  /// ------------------------- Get single employee by ID ✅
+  Future<UserModel> getEmployeeById(String id) async {
+    final response = await _dio.get('/employees/$id');
+    return UserModel.fromJson(response.data['data']);
+  }
+
+  /// ---------------------------- user update function
+  Future<void> updateUser(String employeeId, UserModel updatedData) async {
     try {
       final response = await DioClient.instance.put(
         '/employees/$employeeId',
@@ -55,7 +60,6 @@ class SignupRepository {
         return response.data['message'];
       }
     } on DioException catch (e) {
-      // Extract the error message from DioException and throw a custom exception
       final statusCode = e.response?.statusCode;
       String errorMessage = 'Update failed';
 
@@ -67,18 +71,14 @@ class SignupRepository {
       }
 
       print('Repository DioException: $errorMessage');
-      throw Exception(errorMessage); // Throw with the extracted message
+      throw Exception(errorMessage);
     } catch (e) {
       print('Repository non-Dio exception: $e');
       throw Exception('Update error: $e');
     }
   }
 
-
-
-
-  ///--------------------------------user delete function
-
+  /// ------------------------- user delete function
   Future<void> deleteUser(String employeeId, String reason) async {
     try {
       final response = await DioClient.instance.put(
@@ -98,5 +98,4 @@ class SignupRepository {
       throw Exception('Delete error: $e');
     }
   }
-
 }

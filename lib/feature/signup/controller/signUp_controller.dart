@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/user_model.dart';
@@ -16,10 +18,16 @@ final userListProvider = FutureProvider<List<UserModel>>((ref) async {
 });
 
 /// Optional: Provider to get dealer list
-final dealerListProvider = FutureProvider<List<UserModel>>((ref) async {
+final dealerListProvider = FutureProvider.autoDispose<List<UserModel>>((ref) async {
   final repository = ref.read(signupRepositoryProvider);
+  // Keeps the provider alive even if widgets using it are disposed
+  final keepAlive = ref.keepAlive();
+  // Cancel autoDispose after some time if needed (optional)
+  final timer = Timer(const Duration(minutes: 5), () => keepAlive.close());
+  ref.onDispose(() => timer.cancel());
   return repository.getDealers();
 });
+
 
 class SignupController extends StateNotifier<AsyncValue<void>> {
   final SignupRepository _repository;
@@ -60,6 +68,17 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
       return 'Something went wrong';
     }
   }
+
+  /// Get employee by ID
+  Future<UserModel?> getEmployeeById(String id) async {
+    try {
+      return await _repository.getEmployeeById(id);
+    } catch (e) {
+      print('Error fetching user by ID: $e');
+      return null;
+    }
+  }
+
 
   /// Get users
   Future<List<UserModel>> getEmployees() async {
