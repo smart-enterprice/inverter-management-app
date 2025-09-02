@@ -18,9 +18,8 @@ class MyApp extends StatelessWidget {
     screenHeight= MediaQuery.of(context).size.height;
     screenWidth = MediaQuery.of(context).size.width;
     return MaterialApp(
-      theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
+      theme: AppTheme.theme,
+        themeMode: ThemeMode.light,
         debugShowCheckedModeBanner: false,
         home: SplashScreen());
   }

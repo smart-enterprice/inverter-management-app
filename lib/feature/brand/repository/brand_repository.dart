@@ -12,21 +12,10 @@ class BrandRepository {
 
   /// ------------------------- ✅ Create a new brand
   Future<void> createBrand(BrandModel request) async {
-    try {
       final response = await _dio.post(
         '/product-details/create/brands',
         data: [request.toJsonCreate()], // ✅ Flat object, not wrapped
       );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✅ Brand created successfully');
-      } else {
-        throw Exception('❌ Failed to create brand');
-      }
-    } catch (e) {
-      print('❌ Create error: $e');
-      throw Exception('Create error: $e');
-    }
   }
 
   /// ------------------------- Get list of all brands
@@ -70,6 +59,15 @@ class BrandRepository {
       print('❌ Non-Dio exception in updateBrand: $e');
       throw Exception('Update error: $e');
     }
+  }
+  /// ------------------------- Get active Brand
+  Future<List<BrandModel>> getActiveBrands() async {
+    final response = await _dio.get('/product-details/getActive/brands');
+    final brandList = (response.data['data'] as List)
+        .map((e) => BrandModel.fromJson(e))
+        .toList();
+
+    return brandList;
   }
 
   /// ------------------------- Delete brand by ID

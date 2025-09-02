@@ -7,7 +7,8 @@ import 'dart:io';
 import '../../../../../../core/media_query/media_query.dart';
 import '../../../../../../core/theme/theme.dart';
 import '../../../../../../core/const/icons.dart';
-import '../../../../core/theme/theme.dart';
+import '../../../../widgets/expandedSectionDropdown.dart';
+import '../../../../widgets/scrollbar.dart';
 import '../../controller/signUp_controller.dart';
 import '../../../../model/user_model.dart';
 
@@ -19,13 +20,15 @@ class AddUserScreen extends ConsumerStatefulWidget {
 }
 
 class _AddUserScreenState extends ConsumerState<AddUserScreen> {
+  late bool isRoleDropdownOpen = false;
   final _formKey = GlobalKey<FormState>();
+  final scrollController = ScrollController();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _addressController = TextEditingController();
-
+  late ScrollController _roleScrollController; // define at State level
   final List<String> _roles = [
     'ROLE_ADMIN',
     'ROLE_SALESMAN',
@@ -42,6 +45,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
   void initState() {
     super.initState();
     _selectedRole = _roles.first;
+    _roleScrollController = ScrollController();
   }
 
   @override
@@ -51,6 +55,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _addressController.dispose();
+    _roleScrollController.dispose();
     super.dispose();
   }
   Future<void> _pickImage(ImageSource source) async {
@@ -124,7 +129,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor:AppTheme.background,
       // bottomNavigationBar: Padding(
       //   padding: EdgeInsets.only(left: screenWidth * 0.04,right: screenWidth * 0.04,bottom:  screenWidth * 0.04),
       //   child: _buildSubmitButton(),
@@ -261,16 +266,16 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
             },
             decoration: InputDecoration(
               suffixIcon: suffixIcon,
-              filled: true,
+              filled: false,
               fillColor: Theme.of(context).focusColor,
               hintText: hint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: Colors.grey),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: Theme.of(context).scaffoldBackgroundColor, width: 1),
+                borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
@@ -293,41 +298,95 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
     return Padding(
       padding: EdgeInsets.only(bottom: screenHeight * 0.02),
       child: Column(
-
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Role', style: Theme.of(context).textTheme.bodyLarge),
           SizedBox(height: screenHeight * 0.008),
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).focusColor,
-              borderRadius: BorderRadius.circular(screenWidth * 0.03),
-              border: Border.all(color: Theme.of(context).scaffoldBackgroundColor),
-            ),
-            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-            child: DropdownButtonFormField<String>(
-              value: _selectedRole,
-              icon: const Icon(Icons.arrow_drop_down),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-              ),
-              items: _roles
-                  .map((role) => DropdownMenuItem(
-                value: role,
-                child: Text(
-                  role.replaceAll('ROLE_', '').replaceAll('_', ' '),
-                  style: TextStyle(fontSize: screenWidth * 0.038),
-                ),
-              ))
-                  .toList(),
-              onChanged: (value) => setState(() => _selectedRole = value),
-              validator: (value) => value == null ? 'Please select a role' : null,
-            ),
+          FormField<String>(
+            validator: (value) => value == null ? 'Please select a role' : null,
+            builder: (state) {
+              return Column(
+                children: [
+                  GestureDetector(
+                    onTap: () => setState(() => isRoleDropdownOpen = !isRoleDropdownOpen),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).focusColor,
+                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        border: Border.all(
+                          color: state.hasError
+                              ? Colors.red
+                              : Theme.of(context).scaffoldBackgroundColor,
+                        ),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                      height: screenHeight * 0.065,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _selectedRole != null
+                                ? _selectedRole!.replaceAll('ROLE_', '').replaceAll('_', ' ')
+                                : 'Select Role',
+                            style: TextStyle(fontSize: screenWidth * 0.038),
+                          ),
+                          Icon(
+                            isRoleDropdownOpen
+                                ? Icons.arrow_upward
+                                : Icons.arrow_downward,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  ExpandedSection(
+                    expand: isRoleDropdownOpen,
+                    height: screenHeight*0.01,
+                    child: MyScrollbar(
+                      builder: (context, scrollController) => ListView.builder(
+                        controller: _roleScrollController,
+                        shrinkWrap: true,
+                        itemCount: _roles.length,
+                        itemBuilder: (context, index) {
+                          final role = _roles[index];
+                          return RadioListTile<String>(
+                            title: Text(
+                              role.replaceAll('ROLE_', '').replaceAll('_', ' '),
+                              style: TextStyle(fontSize: screenWidth * 0.038),
+                            ),
+                            value: role,
+                            groupValue: _selectedRole,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedRole = value;
+                                isRoleDropdownOpen = false;
+                                state.didChange(value); // updates FormField validation
+                              });
+                            },
+                          );
+                        },
+                      ), scrollController:scrollController ,
+                    ),
+                  ),
+                  if (state.hasError)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 5),
+                      child: Text(
+                        state.errorText!,
+                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
     );
   }
+
 
 
   Widget _buildSubmitButton(onTap) {
@@ -339,7 +398,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).primaryColor,
         ),
-        child:  Text('Submit',style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500),),
+        child:  Text('Submit',style: TextStyle(color: Colors.white,fontSize: 16,fontWeight: FontWeight.bold),),
       ),
     );
   }

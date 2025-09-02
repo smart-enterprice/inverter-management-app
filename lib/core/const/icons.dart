@@ -15,7 +15,6 @@ class AppIcons{
   static const String home = 'assets/icons/home.svg';
   static const String chart = 'assets/icons/chart.svg';
   static const String alert = 'assets/icons/alert.svg';
-  static const String menu_2 = 'assets/icons/menu_2.svg';
   static const String edit = 'assets/icons/edit.svg';
   static const String delete = 'assets/icons/delete.svg';
   static const String up_Arrow = 'assets/icons/up.svg';
@@ -23,4 +22,5 @@ class AppIcons{
   static const String back_Arrow = 'assets/icons/back.svg';
   static const String add = 'assets/icons/add.svg';
   static const String brand = 'assets/icons/brand.svg';
+  static const String filter = 'assets/icons/filter.svg';
 }

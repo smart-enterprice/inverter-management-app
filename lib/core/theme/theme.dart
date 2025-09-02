@@ -1,93 +1,70 @@
 import 'package:flutter/material.dart';
+import 'package:inverter_management_app/core/media_query/media_query.dart';
 
 class AppTheme {
-  // ✅ Colors
-  static const Color primaryColorLight = Color(0x669333EA);
-  static const Color primaryColor = Color(0xFF9333EA);
-  static const Color backgroundColor = Colors.white;
-  static const Color cardColor = Colors.white;
-  static const Color textPrimary = Colors.black;
-  static const Color textSecondary = Color(0xFF979797);
-  static const Color buttonTextColor = Colors.white;
+  // Color Palette
+  static const Color primaryColor = Color(0xFF256DEB);
+  static const Color accentBlue     = Color(0xFF3B82F6); // Light Blue
+  static const Color accentGreen    = Color(0xFF10B981); // Green
+  static const Color accentYellow   = Color(0xFFF59E0B); // Yellow
+  static const Color accentRed      = Color(0xFFEF4444); // Red
+  static const Color background     = Color(0xFFF9FAFB); // White
+  static const Color cardColor      = Color(0xFFFFFFFF); // White
+  static const Color textPrimary    = Color(0xFF111827); // Dark Grey
+  static const Color textSecondary  = Color(0xFF6B7280); // Soft Grey
 
-  // ✅ Light Colors
-  static const Color skyBlue = Color(0xFFE8F7FD);
-  static const Color darkGrey = Color(0xFF0C1011);
-  static const Color softIndigo = Color(0xFF7573C3);
-  static const Color pureWhite = Color(0xFFFFFFFF);
-  static const Color softLavender = Color(0xFFF4EDFF);
-  static const Color mintWhite = Color(0xFFEBFFFD);
-  static const Color softGreen = Color(0xFFEDFFE5);
-  static const Color lightPink = Color(0xFFFDF0F7);
-  static const Color lightBlue = Color(0xFFE6F2FE);
-  static const Color paleYellow = Color(0xFFFFFBDD);
-  static const Color softBlueWhite = Color(0xFFF3FBFF);
-  static const Color paleBlue = Color(0xFFF5F6FF);
-  static const Color softPink = Color(0xFFFAE1EE);
-  static const Color lightGrey = Color(0xFFF3F3F6);
+  // Fixed Font Sizes
+  static const double fontSizeAppBarTitle = 18.0;
+  static const double fontSizeBodyLarge   = 16.0;
+  static const double fontSizeBodyMedium  = 14.0;
+  static const double fontSizeLabelLarge  = 14.0;
 
-  // ✅ Dark Colors
-  static const Color darkGray = Color(0xFF111111);
-  static const Color deepGray = Color(0xFF222222);
-  static const Color darkGreyOpposite = Color(0xFF0C0C09);
-
-  // ✅ Text Styles
-  static const TextStyle appTitle1 = TextStyle(fontSize: 18, color: Colors.white);
-  static const TextStyle appTitle2 = TextStyle(fontSize: 18, color: Colors.black);
-  static const TextStyle normalText1 = TextStyle(fontSize: 16, color: Colors.white);
-  static const TextStyle normalText2 = TextStyle(fontSize: 16, color: Colors.black);
-  static const TextStyle normalText3 = TextStyle(fontSize: 10, color: Colors.white);
-  static const TextStyle normalText6 = TextStyle(fontSize: 10, color: Colors.black);
-  static const TextStyle normalText4 = TextStyle(fontSize: 22, color: Colors.white);
-  static const TextStyle normalText5 = TextStyle(fontSize: 22, color: Colors.black);
-  static const TextStyle smallText1 = TextStyle(fontSize: 14, color: Colors.black);
-  static const TextStyle smallText2 = TextStyle(fontSize: 14, color: Colors.white);
-  static const TextStyle labelText = TextStyle(fontSize: 12, color: Colors.white);
-  static const TextStyle labelText1 = TextStyle(fontSize: 12, color: Colors.black);
-
-  // ✅ Light Theme
-  static final ThemeData lightTheme = ThemeData(
+  static final ThemeData theme = ThemeData(
     brightness: Brightness.light,
-    primaryColor: softIndigo,
-    scaffoldBackgroundColor: pureWhite,
-    cardColor: paleBlue,
-    focusColor: lightGrey,
-    textTheme: const TextTheme(
-      displayLarge: appTitle2,
-      displayMedium: appTitle1,
-      bodyLarge: normalText2,
-      bodyMedium: normalText1,
-      bodySmall: normalText3,
-      titleLarge: normalText4,
-      titleMedium: normalText5,
-      titleSmall: normalText6,
-      labelLarge: labelText1,
-      labelMedium: labelText,
-      labelSmall: smallText1,
-      headlineSmall: smallText1,
-    ),
-  );
+    primaryColor: primaryColor,
+    scaffoldBackgroundColor: background,
 
-  // ✅ Dark Theme
-  static final ThemeData darkTheme = ThemeData(
-    brightness: Brightness.dark,
-    primaryColor: softIndigo,
-    scaffoldBackgroundColor: darkGray,
-    cardColor: darkGrey,
-    focusColor: darkGrey,
+    appBarTheme: AppBarTheme(
+      backgroundColor: background,
+      elevation: 1,
+      iconTheme: const IconThemeData(color: primaryColor),
+      titleTextStyle: TextStyle(
+        color: textPrimary,
+        fontSize: fontSizeAppBarTitle,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+
     textTheme: const TextTheme(
-      displayLarge: appTitle1,
-      displayMedium: appTitle2,
-      bodyLarge: normalText1,
-      bodyMedium: normalText2,
-      bodySmall: normalText3,
-      titleLarge: normalText5,
-      titleMedium: normalText4,
-      titleSmall: normalText6,
-      labelLarge: labelText,
-      labelMedium: labelText1,
-      labelSmall: smallText2,
-      headlineSmall: smallText2,
+      bodyLarge: TextStyle(color: textPrimary, fontSize: fontSizeBodyLarge),
+      bodyMedium: TextStyle(color: textSecondary, fontSize: fontSizeBodyMedium),
+      labelLarge: TextStyle(color: Colors.white, fontSize: fontSizeLabelLarge),
+    ),
+
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(screenWidth*0.04)),
+      ),
+    ),
+
+    // outlinedButtonTheme: OutlinedButtonThemeData(
+    //   style: OutlinedButton.styleFrom(
+    //     foregroundColor: primaryColor,
+    //     side: const BorderSide(color: Colors.grey),
+    //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    //   ),
+    // ),
+
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      hintStyle: TextStyle(color: textSecondary, fontSize: fontSizeBodyMedium),
     ),
   );
 }

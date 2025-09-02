@@ -29,7 +29,6 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final brand = widget.brand;
-
     return Scaffold(
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
@@ -146,7 +145,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen> {
                 ),
                 SizedBox(height: screenHeight * 0.005),
                 Text(
-                  brand.description,
+                  brand.description.toString(),
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 SizedBox(height: screenHeight * 0.025),
