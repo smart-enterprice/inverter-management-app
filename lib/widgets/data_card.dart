@@ -15,25 +15,31 @@ class DataCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // ✅ Left: Order Info
-          CircleAvatar(
-              backgroundColor: Colors.grey.shade200,
-              radius: screenWidth * 0.06, // 48px
-              child: SvgPicture.asset(AppIcons.box)),
+          Container(
+            padding: EdgeInsets.all(screenWidth*0.025),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(screenWidth*0.03)),
+                color: Colors.greenAccent.withValues(alpha: 0.25)
+            ),
+            child: SvgPicture.asset(
+              AppIcons.box,
+              colorFilter: ColorFilter.mode(Colors.green, BlendMode.srcIn),
+            ),
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Order ID #12345',
-                style: Theme.of(context).textTheme.bodyLarge, // 16sp, w700
+                style: TextStyle(fontSize: 14,fontWeight: FontWeight.bold,color: Colors.black), // 16sp, w700
               ),
               SizedBox(height: screenHeight * 0.008),
               Text(
                 'Dealer: Green Energy Solutions',
-                style: Theme.of(context).textTheme.labelSmall, // 14sp, w400
+                style: TextStyle(fontSize: 12,fontWeight: FontWeight.w500), // 14sp, w400
               ),
             ],
           ),
-
           // ✅ Right: Priority Badge
           Container(
             padding: EdgeInsets.symmetric(
@@ -47,8 +53,8 @@ class DataCard extends StatelessWidget {
             child: Center(
               child: Text(
                 'High',
-                style: AppTheme.labelText
-                    .copyWith(color: Colors.white), // 12sp, w500
+                style: TextStyle(fontSize: 14,color: Colors.white,fontWeight: FontWeight.bold)
+                    , // 12sp, w500
               ),
             ),
           ),

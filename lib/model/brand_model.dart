@@ -2,7 +2,7 @@ class BrandModel {
   final String? brandId; // optional for create, needed for update/list
   final String brandName;
   final List<String> brandModels;
-  final String description;
+  final String? description;
   final String? status;
   final String? createdBy;
   final DateTime? createdAt;

@@ -1,0 +1,66 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../core/media_query/media_query.dart';
+
+class CreateCard extends StatelessWidget {
+  final String iconPath;
+  final String title;
+  final Color color;
+  final Color backgroundColor;
+  final Color iconColor;
+  final VoidCallback onTap;
+
+  const CreateCard({
+    super.key,
+    required this.iconPath,
+    required this.title,
+    required this.color,
+    required this.iconColor,
+    required this.onTap,
+    required this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: screenHeight * 0.15,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              backgroundColor: backgroundColor,
+              radius: screenWidth*0.09,
+              child: SvgPicture.asset(
+                iconPath,
+                colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+                height: screenWidth * 0.1,
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.01),
+            Text(
+              title,
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

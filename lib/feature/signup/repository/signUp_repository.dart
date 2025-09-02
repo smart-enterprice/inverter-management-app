@@ -9,24 +9,19 @@ final signupRepositoryProvider = Provider<SignupRepository>((ref) {
 
 class SignupRepository {
   final Dio _dio = DioClient.instance;
-
   ///---------------------------- User Signup function
   Future<Response> userSignup(UserModel request) async {
     return await _dio.post('/employees/signup', data: request.toJson());
   }
-
   /// ------------------------- Get list of employees
   Future<List<UserModel>> getEmployees({int page = 1, int limit = 20}) async {
     final response = await _dio.get('/employees?page=$page&limit=$limit');
-
     final employeeList = (response.data['data']['employees'] as List)
         .map((e) => UserModel.fromJson(e))
         .where((user) => user.role != 'ROLE_DEALER')
         .toList();
-
     return employeeList;
   }
-
   /// ------------------------- Get list of dealers
   Future<List<UserModel>> getDealers({int page = 1, int limit = 20}) async {
     final response = await _dio.get('/employees?page=$page&limit=$limit');
@@ -38,13 +33,11 @@ class SignupRepository {
 
     return dealerList;
   }
-
   /// ------------------------- Get single employee by ID ✅
   Future<UserModel> getEmployeeById(String id) async {
     final response = await _dio.get('/employees/$id');
     return UserModel.fromJson(response.data['data']);
   }
-
   /// ---------------------------- user update function
   Future<void> updateUser(String employeeId, UserModel updatedData) async {
     try {
@@ -52,12 +45,11 @@ class SignupRepository {
         '/employees/$employeeId',
         data: updatedData.toJson(),
       );
-
       if (response.statusCode == 200 || response.statusCode == 204) {
         print('------------------update success-------------------');
         return;
       } else {
-        return response.data['message'];
+        // return response.data['message'];
       }
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode;
@@ -77,7 +69,6 @@ class SignupRepository {
       throw Exception('Update error: $e');
     }
   }
-
   /// ------------------------- user delete function
   Future<void> deleteUser(String employeeId, String reason) async {
     try {
@@ -88,7 +79,6 @@ class SignupRepository {
           'reason': reason,
         },
       );
-
       if (response.statusCode == 200 || response.statusCode == 204) {
         print('Employee deleted successfully');
       } else {
