@@ -6,6 +6,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/const/icons.dart';
 import '../../../../core/media_query/media_query.dart';
@@ -22,7 +23,6 @@ class AddDealerScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<AddDealerScreen> createState() => _AddUserScreenState();
 }
-
 class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
   late bool isRoleDropdownOpen = false;
   final _formKey = GlobalKey<FormState>();
@@ -33,6 +33,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
   final _passwordController = TextEditingController();
   final _addressController = TextEditingController();
   final _townController = TextEditingController();
+  final _shopController = TextEditingController();
   late ScrollController _roleScrollController; // define at State level
   final List<String> _keralaDistricts = [
     "Kasaragod",
@@ -50,7 +51,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
     "Kollam",
     "Thiruvananthapuram",
   ];
-  String? _selectedRole;
+  String? _selectedDistrict;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
   List<String> _selectedBrands = [];
@@ -60,7 +61,6 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedRole = _keralaDistricts.first;
     _roleScrollController = ScrollController();
   }
 
@@ -82,7 +82,6 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
         maxHeight: 512,
         imageQuality: 85,
       );
-
       if (pickedFile != null) {
         setState(() {
           _selectedImage = File(pickedFile.path);
@@ -94,7 +93,6 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       );
     }
   }
-
   void _removeImage() {
     setState(() {
       _selectedImage = null;
@@ -143,41 +141,106 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
   }
   bool isPasswordHidden = true;
   @override
+  @override
   Widget build(BuildContext context) {
+    final brandState = ref.watch(brandControllerProvider); // ✅ add this here
+
     return Scaffold(
-      backgroundColor:AppTheme.background,
-      // bottomNavigationBar: Padding(
-      //   padding: EdgeInsets.only(left: screenWidth * 0.04,right: screenWidth * 0.04,bottom:  screenWidth * 0.04),
-      //   child: _buildSubmitButton(),
-      // ),
+      backgroundColor: AppTheme.background,
       appBar: _buildAppBar(),
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildProfileImageSection(),
-                _buildInputField(label: 'Name', hint: 'Enter full name', controller: _nameController),
-                _buildInputField(label: 'Email', hint: 'Enter email address', controller: _emailController, keyboardType: TextInputType.emailAddress),
-                _buildInputField(label: 'Phone', hint: 'Enter phone number', controller: _phoneController, keyboardType: TextInputType.phone, digitsOnly: true),
-                _buildDistrictDropdown(),
-                _buildInputField(label: 'Town', hint: 'Enter Town', controller: _townController,),
-                _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
-                _buildBrandDropdown(ref),
-                SizedBox(height: screenHeight * 0.03),
-                Center(
-                  child: _buildSubmitButton(
-                      _handleSubmit
-                  ),
+      body: brandState.when(
+        data: (brands) {
+          // ✅ Full form when brands are loaded
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildProfileImageSection(),
+                    _buildInputField(label: 'Name', hint: 'Enter full name', controller: _nameController),
+                    _buildInputField(label: 'Email', hint: 'Enter email address', controller: _emailController, keyboardType: TextInputType.emailAddress),
+                    _buildInputField(label: 'Phone', hint: 'Enter phone number', controller: _phoneController, keyboardType: TextInputType.phone, digitsOnly: true),
+                    _buildInputField(label: 'Shop', hint: 'Enter shop name', controller: _shopController,),
+                    _buildDistrictDropdown(),
+                    _buildInputField(label: 'Town', hint: 'Enter Town', controller: _townController),
+                    _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
+                    _buildBrandDropdown(ref), // ✅ brands loaded here
+                    SizedBox(height: screenHeight * 0.03),
+                    Center(child: _buildSubmitButton(_handleSubmit)),
+                    SizedBox(height: screenHeight * 0.02),
+                  ],
                 ),
-                SizedBox(height: screenHeight * 0.02),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
+        loading: () {
+          // ⏳ Show shimmer placeholders for whole body
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _shimmerCircle(), // profile image placeholder
+                  SizedBox(height: 20),
+                  ...List.generate(6, (_) => _shimmerBox()), // input fields shimmer
+                  SizedBox(height: 20),
+                  _shimmerButton(), // submit button shimmer
+                ],
+              ),
+            ),
+          );
+        },
+        error: (e, st) {
+          // ❌ Retry option if brands not loaded
+          return FutureBuilder(
+            future: Future.delayed(const Duration(seconds: 2), () => true),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                // Show shimmer placeholders during 2 sec delay
+                    return  Padding(
+                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _shimmerCircle(), // profile image placeholder
+                          SizedBox(height: screenHeight*0.01),
+                          ...List.generate(
+                              7, (_) => _shimmerBox()), // input fields shimmer
+                          SizedBox(height: screenHeight*0.13),
+                          Center(child: _shimmerButton()), // submit button shimmer
+                        ],
+                      ),
+                    );
+              }
+              // After shimmer delay -> show No Internet
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off, size: 50, color: Colors.grey),
+                    SizedBox(height: 10),
+                    Text(
+                      "No Internet Connection",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                    SizedBox(height: screenHeight * 0.01),
+                    ElevatedButton(
+                      onPressed: () {
+                        ref.invalidate(brandControllerProvider); // retry
+                      },
+                      child: const Text("Retry"),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -201,12 +264,14 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: ()=>_showImagePickerDialog,
+            onTap: _showImagePickerDialog, // ✅ fixed
             child: Stack(
               children: [
                 CircleAvatar(
                   radius: screenWidth * 0.08,
-                  backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : const NetworkImage('https://i.pravatar.cc/150?img=3') as ImageProvider,
+                  backgroundImage: _selectedImage != null
+                      ? FileImage(_selectedImage!)
+                      : const NetworkImage('https://i.pravatar.cc/150?img=3') as ImageProvider,
                 ),
                 Positioned(
                   bottom: 0,
@@ -218,12 +283,17 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
-                    child: Icon(Icons.camera_alt, color: Colors.white, size: screenWidth * 0.04),
+                    child: Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: screenWidth * 0.04,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
+
           SizedBox(width: screenWidth * 0.04),
           Expanded(
             child: Column(
@@ -316,67 +386,69 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
           return null;
         },
         builder: (fieldState) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Brands', style: Theme.of(context).textTheme.bodyLarge),
-              SizedBox(height: screenHeight * 0.008),
-              brandState.when(
-                data: (brands) {
-                  return InkWell(
-                    onTap: () => _showBrandDialog(context, brands),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                        border: Border.all(
-                          color: fieldState.hasError
-                              ? Colors.red
-                              : Colors.grey.shade400,
-                          width: 1,
+          return Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text('Brands', style: Theme.of(context).textTheme.bodyLarge),
+                SizedBox(height: screenHeight * 0.008),
+                brandState.when(
+                  data: (brands) {
+                    return InkWell(
+                      onTap: () => _showBrandDialog(context, brands),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                          border: Border.all(
+                            color: fieldState.hasError
+                                ? Colors.red
+                                : Colors.grey.shade400,
+                            width: 1,
+                          ),
+                        ),
+                        child: _selectedBrands.isEmpty
+                            ? const Text("Select Brands")
+                            : Wrap(
+                          spacing: 6,
+                          children: _selectedBrands.map((id) {
+                            final brand = brands.firstWhere(
+                                    (b) => b.brandId.toString() == id);
+                            return Chip(
+                              deleteIconColor: Colors.white,
+                              backgroundColor:
+                              Theme.of(context).primaryColor,
+                              label: Text(
+                                brand.brandName,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              deleteIcon: const Icon(Icons.cancel),
+                              onDeleted: () {
+                                setState(() {
+                                  _selectedBrands.remove(id);
+                                  fieldState.didChange(_selectedBrands);
+                                });
+                              },
+                            );
+                          }).toList(),
                         ),
                       ),
-                      child: _selectedBrands.isEmpty
-                          ? const Text("Select Brands")
-                          : Wrap(
-                        spacing: 6,
-                        children: _selectedBrands.map((id) {
-                          final brand = brands.firstWhere(
-                                  (b) => b.brandId.toString() == id);
-                          return Chip(
-                            deleteIconColor: Colors.white,
-                            backgroundColor:
-                            Theme.of(context).primaryColor,
-                            label: Text(
-                              brand.brandName,
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            deleteIcon: const Icon(Icons.cancel),
-                            onDeleted: () {
-                              setState(() {
-                                _selectedBrands.remove(id);
-                                fieldState.didChange(_selectedBrands);
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  );
-                },
-                loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text('Error: $e',
-                    style: const TextStyle(color: Colors.red)),
-              ),
-              if (fieldState.hasError)
-                Padding(
-                  padding: const EdgeInsets.only(top: 5, left: 5),
-                  child: Text(
-                    fieldState.errorText ?? '',
-                    style: const TextStyle(color: Colors.red, fontSize: 12),
-                  ),
+                    );
+                  },
+                  loading: () => const LinearProgressIndicator(),
+                  error: (e, _) => Text('Error: $e',
+                      style: const TextStyle(color: Colors.red)),
                 ),
-            ],
+                if (fieldState.hasError)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 5, left: 5),
+                    child: Text(
+                      fieldState.errorText ?? '',
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ),
+              ],
+            ),
           );
         },
       ),
@@ -534,8 +606,8 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            _selectedRole != null
-                                ? _selectedRole!.replaceAll('District', '').replaceAll('_', ' ')
+                            _selectedDistrict != null
+                                ? _selectedDistrict!.replaceAll('District', '').replaceAll('_', ' ')
                                 : 'Select District',
                             style: TextStyle(fontSize: screenWidth * 0.038),
                           ),
@@ -565,10 +637,10 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                               style: TextStyle(fontSize: screenWidth * 0.038),
                             ),
                             value: role,
-                            groupValue: _selectedRole,
+                            groupValue: _selectedDistrict,
                             onChanged: (value) {
                               setState(() {
-                                _selectedRole = value;
+                                _selectedDistrict = value;
                                 isRoleDropdownOpen = false;
                                 state.didChange(value); // updates FormField validation
                               });
@@ -594,7 +666,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       ),
     );
   }
-  Widget _buildSubmitButton(onTap) {
+  Widget _buildSubmitButton(VoidCallback onTap) {
     return SizedBox(
       width: screenWidth * 0.5,
       height: screenHeight*0.06,
@@ -632,9 +704,12 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
           password: 'Shahulvm@123',
           address: _addressController.text,
           role: 'ROLE_DEALER',
-          photo: _selectedImage?.path ?? '',
-          brand:_selectedBrands
+          brand:_selectedBrands, photo: '',
+          town: _townController.text,
+          shopName: _shopController.text,
+          district: _selectedDistrict
         ),
+        photoFile: _selectedImage, // ✅ send picked image for upload
       );
 
       Navigator.pop(context); // Remove loader
@@ -659,5 +734,51 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       }
     }
   }
+
+  /// Shimmer placeholder widget
+  /// Rectangle shimmer (input fields)
+  Widget _shimmerBox() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 8),
+        height: screenHeight * 0.06,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
+  /// Circle shimmer (profile image)
+  Widget _shimmerCircle() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: CircleAvatar(
+        radius: screenWidth * 0.1,
+        backgroundColor: Colors.white,
+      ),
+    );
+  }
+
+  /// Button shimmer
+  Widget _shimmerButton() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(
+        width: screenWidth * 0.5,
+        height: screenHeight * 0.06,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
 }
 

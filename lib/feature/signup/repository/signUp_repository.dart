@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/user_model.dart';
@@ -24,13 +27,9 @@ class SignupRepository {
   }
   /// ------------------------- Get list of dealers
   Future<List<UserModel>> getDealers({int page = 1, int limit = 20}) async {
-    final response = await _dio.get('/employees?page=$page&limit=$limit');
-
+    final response = await _dio.get('/employees/dealers/get/?page=$page&limit=$limit');
     final dealerList = (response.data['data']['employees'] as List)
-        .map((e) => UserModel.fromJson(e))
-        .where((user) => user.role == 'ROLE_DEALER')
-        .toList();
-
+        .map((e) => UserModel.fromJson(e)).toList();
     return dealerList;
   }
   /// ------------------------- Get single employee by ID ✅
@@ -88,4 +87,30 @@ class SignupRepository {
       throw Exception('Delete error: $e');
     }
   }
+
+  /// photo upload
+  Future<String?> uploadFile(File file) async {
+    final fileName = file.path.split('/').last;
+
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(file.path, filename: fileName),
+    });
+
+    final response = await _dio.post('/upload-files', data: formData);
+
+    print('response raw: ${response.data}');
+
+    final data = response.data;
+
+    final success = data['success'].toString().toLowerCase() == 'true';
+
+    print('response raw is ooooooji : ${data} : ${success} : ${data['success']} : ${response.statusCode}');
+
+    if ((response.statusCode == 200 || response.statusCode == 201) && success) {
+      return Uri.decodeFull(data['fileUrl'].toString());
+    } else {
+      throw Exception('File upload failed: ${data['message']}');
+    }
+  }
+
 }

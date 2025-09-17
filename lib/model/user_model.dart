@@ -5,7 +5,7 @@ class UserModel {
   final String password;
   final String employeePhone;
   final String role;
-  final String photo;
+  final String? photo;
   final String address;
 
   // Optional fields for ROLE_DEALER
@@ -21,7 +21,7 @@ class UserModel {
     required this.password,
     required this.employeePhone,
     required this.role,
-    required this.photo,
+    this.photo,
     required this.address,
     this.shopName,
     this.district,
@@ -39,9 +39,9 @@ class UserModel {
       'role': role,
       'photo': photo,
       'address': address,
-      if (shopName != null) 'shop_name': shopName,
-      if (district != null) 'district': district,
-      if (town != null) 'town': town,
+      'shop_name': shopName,
+      'district': district,
+      'town': town,
       if (brand != null) 'brand': brand,
     };
   }
@@ -54,7 +54,7 @@ class UserModel {
       password: json['password']?.toString() ?? '',
       employeePhone: json['employee_phone']?.toString() ?? '',
       role: json['role']?.toString() ?? '',
-      photo: json['photo']?.toString() ?? '',
+      photo: json['photo']?.toString().toString() ?? '',
       address: json['address']?.toString() ?? '',
       shopName: json['shop_name']?.toString(),
       district: json['district']?.toString(),

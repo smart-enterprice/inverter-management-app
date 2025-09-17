@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,10 +36,19 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
   SignupController(this._repository) : super(const AsyncData(null));
 
   /// Signup user
-  Future<String?> signup(UserModel request) async {
+  Future<String?> signup(UserModel request,{File? photoFile}) async {
     state = const AsyncLoading();
     try {
+      // ✅ Step 1: Upload photo if selected
+      if (photoFile != null) {
+        final fileUrl = await _repository.uploadFile(photoFile);
+
+        request = request.copyWith(photo: fileUrl); // replace local path with URL
+      }
+
+      // ✅ Step 2: Call signup API
       await _repository.userSignup(request);
+
       state = const AsyncData(null);
       return null;
     } on DioException catch (e, st) {
@@ -96,6 +106,7 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
     String? name,
     String? email,
     String? phone,
+    String? shopName,
     String? role,
     String? photo,
     String? address,
@@ -110,6 +121,7 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
         employeeName: name,
         employeeEmail: email,
         employeePhone: phone,
+        shopName:shopName,
         role: role,
         photo: photo,
         address: address,
@@ -123,6 +135,7 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
       }
 
       await _repository.updateUser(updatedUser.employeeId!, updatedUser);
+      // await getEmployeeById(oldUser.employeeId!);
       state = const AsyncData(null);
       return null;
     } catch (e, st) {

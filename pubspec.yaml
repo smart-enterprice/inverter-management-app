@@ -25,6 +25,8 @@ dependencies:
   cool_dropdown: ^2.1.1
   dropdown_search: ^5.0.6
   shimmer: ^3.0.0
+  connectivity_plus: ^6.0.3
+  cached_network_image: ^3.4.1
 #----------------------dev_dependencies----------------------#
 dev_dependencies:
   flutter_test:

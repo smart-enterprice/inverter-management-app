@@ -8,7 +8,7 @@ import '../feature/authentication/screen/login_screen.dart';
 import 'createSection.dart';
 import 'dashboard_screen.dart';
 import 'delivery_screen.dart';
-import 'orders_screen.dart';
+import 'ControlPanel.dart';
 
 class SuperAdminHomeScreen extends ConsumerStatefulWidget {
   const SuperAdminHomeScreen({super.key});
@@ -21,12 +21,12 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
   int _currentIndex  = 0;
   List<Widget> body = const[
     DashboardScreen(),
-    Icon(Icons.dashboard),
+    ControlPanel(),
     CreateSection(),
     Icon(Icons.settings)
   ];
   final List<Widget> _screens = [
-    OrdersScreen(),
+    ControlPanel(),
     // BillsScreen(),
     DeliveryScreen(),
     IconButton(onPressed: (){}, icon: Icon(Icons.logout)),
@@ -171,16 +171,8 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
                 label: 'Home',
               ),
               BottomNavigationBarItem(
-                icon: SvgPicture.asset(
-                  AppIcons.orders,
-                  colorFilter: ColorFilter.mode(
-                    _currentIndex == 1
-                        ? Theme.of(context).primaryColor
-                        : Colors.black,
-                    BlendMode.srcIn,
-                  ),
-                ),
-                label: 'Orders',
+                icon: Icon(Icons.dashboard),
+                label: 'Control Panel',
               ),
               BottomNavigationBarItem(
                 icon: SvgPicture.asset(

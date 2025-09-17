@@ -115,4 +115,7 @@ class BrandController extends StateNotifier<AsyncValue<List<BrandModel>>> {
       },
     );
   }
+
+
+
 }
