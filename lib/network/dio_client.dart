@@ -5,7 +5,7 @@ import 'package:curl_logger_dio_interceptor/curl_logger_dio_interceptor.dart';
 class DioClient {
   static final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://16.170.230.20:1280/api/v1',
+      baseUrl: 'https://api.smartenterprises.online/api/v1',
       connectTimeout: Duration(seconds: 10),
       receiveTimeout: Duration(seconds: 10),
       headers: {
