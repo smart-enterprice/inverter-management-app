@@ -6,7 +6,7 @@ import '../repository/brand_repository.dart';
 final brandControllerProvider =
 StateNotifierProvider<BrandController, AsyncValue<List<BrandModel>>>((ref) {
   final repository = ref.read(brandRepositoryProvider);
-  return BrandController(repository)..loadActiveBrands();
+  return BrandController(repository)..loadBrands();
 });
 
 class BrandController extends StateNotifier<AsyncValue<List<BrandModel>>> {
@@ -67,6 +67,18 @@ class BrandController extends StateNotifier<AsyncValue<List<BrandModel>>> {
       print('Unexpected error: $e');
       state = AsyncError(e, st);
       return 'Something went wrong';
+    }
+  }
+
+  ///  Get brand by ID
+  Future<BrandModel?> getBrandById(String brandId) async {
+    try {
+      return await _repository.getBrandById(brandId);
+    } on DioException {
+      rethrow; // pass error to UI layer
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
     }
   }
 

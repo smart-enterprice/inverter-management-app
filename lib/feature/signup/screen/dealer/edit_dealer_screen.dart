@@ -161,7 +161,8 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
         phone: _phoneController.text,
         shopName: _shopController.text,
         address: _addressController.text,
-        photo: _selectedImage?.path ?? widget.dealer.photo,
+        photo: widget.dealer.photo,
+        photoFile: _selectedImage,
         role: widget.dealer.role,
         town: _townController.text,
         district: _selectedDistrict,
@@ -186,7 +187,6 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final brandState = ref.watch(brandControllerProvider);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(

@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/user_model.dart';
 import '../repository/signUp_repository.dart';
+import '../screen/dealer/dealers_screen.dart';
 
 final signupControllerProvider =
 StateNotifierProvider<SignupController, AsyncValue<void>>((ref) {
@@ -18,16 +19,12 @@ final userListProvider = FutureProvider<List<UserModel>>((ref) async {
   return repository.getEmployees();
 });
 
-/// Optional: Provider to get dealer list
-final dealerListProvider = FutureProvider.autoDispose<List<UserModel>>((ref) async {
-  final repository = ref.read(signupRepositoryProvider);
-  // Keeps the provider alive even if widgets using it are disposed
-  final keepAlive = ref.keepAlive();
-  // Cancel autoDispose after some time if needed (optional)
-  final timer = Timer(const Duration(minutes: 5), () => keepAlive.close());
-  ref.onDispose(() => timer.cancel());
-  return repository.getDealers();
-});
+/// Provider to get dealer list
+final dealerListProvider =
+StateNotifierProvider<DealerListNotifier, AsyncValue<List<UserModel>>>(
+      (ref) => DealerListNotifier(ref.read(signupRepositoryProvider)),
+);
+
 
 
 class SignupController extends StateNotifier<AsyncValue<void>> {
@@ -108,22 +105,30 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
     String? phone,
     String? shopName,
     String? role,
-    String? photo,
+    String? photo, // This could be local path or existing URL
     String? address,
     String? town,
     String? district,
     List<String>? brand,
+    File? photoFile, // Add this parameter for new photo file
   }) async {
     state = const AsyncLoading();
 
     try {
+      String? finalPhotoUrl = photo;
+
+      // If a new photo file is provided, upload it first
+      if (photoFile != null) {
+        finalPhotoUrl = await _repository.uploadFile(photoFile);
+      }
+
       final updatedUser = oldUser.copyWith(
         employeeName: name,
         employeeEmail: email,
         employeePhone: phone,
-        shopName:shopName,
+        shopName: shopName,
         role: role,
-        photo: photo,
+        photo: finalPhotoUrl, // Use uploaded URL or existing URL
         address: address,
         town: town,
         district: district,
@@ -135,7 +140,6 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
       }
 
       await _repository.updateUser(updatedUser.employeeId!, updatedUser);
-      // await getEmployeeById(oldUser.employeeId!);
       state = const AsyncData(null);
       return null;
     } catch (e, st) {

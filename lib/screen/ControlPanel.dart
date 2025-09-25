@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../core/const/icons.dart';
 import '../core/media_query/media_query.dart';
+import '../feature/brand/screen/brands_page.dart';
 import '../feature/signup/screen/dealer/dealers_screen.dart';
+import '../feature/signup/screen/user/users_screen.dart';
 import '../widgets/create_card.dart';
 
 class ControlPanel extends StatelessWidget {
@@ -33,7 +35,7 @@ class ControlPanel extends StatelessWidget {
         "color": Colors.white,
         'backgroundColor': Colors.orangeAccent.withValues(alpha: 0.25),
         "iconColor": Colors.orange,
-        "onTap": (){}
+        "onTap": ()=> Navigator.push(context, MaterialPageRoute(builder: (context)=>BrandsScreen()))
       },
       {
         "icon": AppIcons.dealers,
@@ -49,7 +51,7 @@ class ControlPanel extends StatelessWidget {
         "color": Colors.white,
         'backgroundColor': Colors.deepPurpleAccent.withValues(alpha: 0.25),
         "iconColor": Colors.deepPurple,
-        "onTap": (){}
+        "onTap": ()=>Navigator.push(context, MaterialPageRoute(builder: (context)=>UsersScreen()))
       },
     ];
     return Scaffold(

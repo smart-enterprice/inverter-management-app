@@ -28,6 +28,22 @@ class BrandRepository {
 
     return brandList;
   }
+  /// ------------------------- ✅ Get brand by ID
+  Future<BrandModel?> getBrandById(String brandId) async {
+    try {
+      final response =
+      await _dio.get('/product-details/product-brand/$brandId');
+
+      if (response.statusCode == 200 && response.data['data'] != null) {
+        return BrandModel.fromJson(response.data['data']);
+      }
+      return null;
+    } on DioException catch(e) {
+      throw e.message!;
+    } catch (e) {
+      throw Exception("Unexpected error: $e");
+    }
+  }
 
   /// ------------------------- Update an existing brand
   Future<void> updateBrand(BrandModel updatedData,String name) async {

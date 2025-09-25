@@ -9,11 +9,84 @@ import 'package:inverter_management_app/feature/signup/controller/signUp_control
 import 'package:inverter_management_app/feature/signup/screen/dealer/dealer_view_screen.dart';
 import 'package:inverter_management_app/feature/signup/screen/dealer/dealers_sign_up_screen.dart';
 
-class DealersScreen extends ConsumerWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../model/user_model.dart';
+import '../../repository/signUp_repository.dart';
+
+
+// StateNotifier to handle pagination
+class DealerListNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
+  final SignupRepository _repo;
+  int _page = 1;
+  final int _limit = 20;
+  int _totalPages = 1; // update from API if backend gives it
+  bool _isLoadingMore = false;
+
+  DealerListNotifier(this._repo) : super(const AsyncLoading()) {
+    loadDealers(reset: true);
+  }
+
+  Future<void> loadDealers({bool reset = false}) async {
+    if (reset) {
+      _page = 1;
+      state = const AsyncLoading();
+    }
+
+    try {
+      final newData = await _repo.getDealers(page: _page, limit: _limit);
+
+      // If backend returns total pages, set it here
+      // Example:
+      // _totalPages = response.data['pages'];
+
+      if (reset) {
+        state = AsyncData(newData);
+      } else {
+        final current = state.value ?? [];
+        state = AsyncData([...current, ...newData]);
+      }
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (_isLoadingMore) return;
+    if (_page >= _totalPages) return;
+
+    _isLoadingMore = true;
+    _page++;
+    await loadDealers();
+    _isLoadingMore = false;
+  }
+}
+
+
+class DealersScreen extends ConsumerStatefulWidget {
   const DealersScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DealersScreen> createState() => _DealersScreenState();
+}
+
+class _DealersScreenState extends ConsumerState<DealersScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        // Load more when near the bottom
+        ref.read(dealerListProvider.notifier).loadMore();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context,) {
     final dealersAsync = ref.watch(dealerListProvider);
     return Scaffold(
       appBar: AppBar(
