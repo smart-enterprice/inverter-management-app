@@ -5,6 +5,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../../core/const/icons.dart';
+import '../../../../core/const/role.dart';
 import '../../../../core/media_query/media_query.dart';
 import '../../../../core/theme/theme.dart';
 import '../../controller/signUp_controller.dart';
@@ -33,14 +34,6 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
 
-  final List<String> _roles = [
-    'ROLE_ADMIN',
-    'ROLE_SALESMAN',
-    'ROLE_PRODUCTION',
-    'ROLE_PACKING',
-    'ROLE_ACCOUNTS',
-    'ROLE_DELIVERY',
-  ];
 
   @override
   void initState() {
@@ -351,9 +344,9 @@ class _EditUserScreenState extends ConsumerState<EditUserScreen> {
             width: double.maxFinite,
             height: screenHeight * 0.4,
             child: ListView.builder(
-              itemCount: _roles.length,
+              itemCount: roles.length,
               itemBuilder: (context, index) {
-                final role = _roles[index];
+                final role = roles[index];
                 final displayRole = role.replaceAll('ROLE_', '').replaceAll('_', ' ');
                 return RadioListTile<String>(
                   title: Text(displayRole),

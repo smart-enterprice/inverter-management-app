@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:inverter_management_app/screen/loadingScreen.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../core/const/icons.dart';
 import '../../../core/media_query/media_query.dart';
+import '../../../model/brand_model.dart';
 import '../../../model/product_model.dart';
 import '../../brand/controller/brand_controller.dart';
 import '../controller/product_controller.dart';
@@ -74,6 +76,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
   bool _isSubmitting = false;
   String? selectedBrand;
   String? selectedModel;
+  bool _hasAttemptedSubmit = false;
 
   @override
   void initState() {
@@ -91,19 +94,19 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     };
   }
   void _validateForm() {
-    final isValid = _formKey.currentState?.validate() ?? false;
-
     final brandValid = selectedBrand != null && selectedBrand!.isNotEmpty;
     final modelValid = selectedModel != null && selectedModel!.isNotEmpty;
 
     setState(() {
-      _isFormValid = isValid && brandValid && modelValid;
+      _isFormValid =  brandValid && modelValid;
     });
   }
 
   @override
   void dispose() {
-    _controllers.values.forEach((controller) => controller.dispose());
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -134,9 +137,8 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     );
   }
 
-  Widget _buildBody() {
-    final brandState = ref.watch(brandControllerProvider);
-    final brandController = ref.read(brandControllerProvider.notifier);
+  Widget _buildBody(List<BrandModel> brands) {
+    final brandController = ref.read(activeBrandControllerProvider.notifier);
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(screenWidth * 0.04),
@@ -145,7 +147,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildBrandDropdown(brandState, brandController),
+            _buildBrandDropdown(brands, brandController),
             _buildModelDropdown(brandController),
             ..._buildBasicInputs(),
             ..._buildStockInputs(),
@@ -158,53 +160,22 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     );
   }
 
-  Widget _buildBrandDropdown(AsyncValue brandState, dynamic brandController) {
-    return brandState.when(
-      data: (brands) => _buildSingleSelectDropdown(
-        label: 'Brand',
-        hint: 'Select brand',
-        items: brandController.brandNames,
-        selectedItem: selectedBrand,
-        onChanged: (value) {
-          setState(() {
-            selectedBrand = value;
-            selectedModel = null;
-          });
-        },
-      ),
-      loading: () => Padding(
-        padding: EdgeInsets.only(bottom: screenHeight * 0.02),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Brand", style: Theme.of(context).textTheme.bodyLarge),
-            SizedBox(height: screenHeight * 0.008),
-            Shimmer.fromColors(
-              baseColor: Colors.grey.shade300,
-              highlightColor: Colors.grey.shade100,
-              child: Container(
-                height: screenHeight * 0.06,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      error: (err, _) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.red.shade200),
-        ),
-        child: Text('Error loading brands: $err'),
-      ),
+
+  Widget _buildBrandDropdown(List<BrandModel> brands, dynamic brandController) {
+    return _buildSingleSelectDropdown(
+      label: 'Brand',
+      hint: 'Select brand',
+      items: brandController.brandNames,
+      selectedItem: selectedBrand,
+      onChanged: (value) {
+        setState(() {
+          selectedBrand = value;
+          selectedModel = null;
+        });
+      },
     );
   }
+
 
 
   Widget _buildModelDropdown(dynamic brandController) {
@@ -289,13 +260,12 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
         ),
         onPressed: _isSubmitting ? null : _handleSubmit,
         child: _isSubmitting
-            ? const SizedBox(
-          height: 24,
-          width: 24,
+            ?  SizedBox(
+            height: screenHeight * 0.04,
+            width: screenWidth * 0.05,
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            strokeWidth: 2,
-          ),
+            color: Colors.grey,
+          )
         )
             : Text(
           'Submit',
@@ -307,6 +277,9 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
   }
 
   Future<void> _handleSubmit() async {
+    setState(() {
+      _hasAttemptedSubmit = true;
+    });
     if (!_formKey.currentState!.validate()) return;
 
     final priceValue = double.tryParse(_controllers['price']!.text);
@@ -325,6 +298,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       _showSnackBar('$e', isError: true);
+      print('error : $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -375,6 +349,9 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     return Padding(
       padding: EdgeInsets.only(bottom: screenHeight * 0.02),
       child: FormField<String>(
+        autovalidateMode: _hasAttemptedSubmit
+            ? AutovalidateMode.always
+            : AutovalidateMode.disabled,
         validator: (value) {
           if ((selectedItem == null || selectedItem.isEmpty) && enabled) {
             return 'Please select $label';
@@ -558,7 +535,10 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
           Text(label, style: Theme.of(context).textTheme.bodyLarge),
           SizedBox(height: screenHeight * 0.008),
           TextFormField(
-            autovalidateMode: AutovalidateMode.disabled,
+            // ✅ Remove autovalidateMode or set to disabled
+            autovalidateMode: _hasAttemptedSubmit
+                ? AutovalidateMode.onUserInteraction
+                : AutovalidateMode.disabled,
             controller: controller,
             keyboardType: keyboardType,
             obscureText: obscureText,
@@ -570,7 +550,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
               }
               return null;
             },
-            onChanged: (_) => _validateForm(),
+            onChanged: (_) => _validateForm(), // Just for button state, not validation
             decoration: InputDecoration(
               suffixIcon: suffixIcon,
               filled: false,
@@ -609,12 +589,24 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body: _buildBody(),
+    final brandState = ref.watch(activeBrandControllerProvider);
+    return brandState.when(
+      loading: () => const Scaffold(
+        body: GlobalLoader(),
+      ),
+      error: (err, st) => Scaffold(
+        body: Center(child: Text('❌ Error loading brands: $err')),
+      ),
+      data: (brands) {
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: _buildAppBar(),
+          body: _buildBody(brands), // pass data down
+        );
+      },
     );
   }
+
 }

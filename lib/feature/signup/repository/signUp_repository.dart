@@ -68,6 +68,28 @@ class SignupRepository {
       throw Exception('Update error: $e');
     }
   }
+
+  /// ------------------------- Get Users by Role
+  Future<List<UserModel>> getUsersByRole(String role) async {
+    try {
+      final response = await _dio.get('/employees/getByRole/$role');
+
+      if (response.statusCode == 200) {
+        final List data = response.data['data'] ?? [];
+        return data.map((e) => UserModel.fromJson(e)).toList();
+      } else {
+        throw Exception('❌ Failed to fetch users by role');
+      }
+    } on DioException catch (e) {
+      final errorMessage =
+          e.response?.data?['message']?.toString() ?? e.message.toString();
+      throw Exception(errorMessage);
+    } catch (e) {
+      throw Exception('Unexpected error: $e');
+    }
+  }
+
+
   /// ------------------------- user delete function
   Future<void> deleteUser(String employeeId, String reason) async {
     try {
@@ -112,5 +134,6 @@ class SignupRepository {
       throw Exception('File upload failed: ${data['message']}');
     }
   }
+
 
 }

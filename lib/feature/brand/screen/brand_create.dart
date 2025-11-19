@@ -19,6 +19,7 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   final List<TextEditingController> _modelControllers = [];
+  bool _autoValidate = false;
 
   bool _isLoading = false;
 
@@ -50,7 +51,9 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
   }
 
   void _createBrand() async {
+    setState(() => _autoValidate = true); // Enable validation only on submit
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
 
     final models = _modelControllers
@@ -73,13 +76,11 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
       brandModels: models,
     );
 
-    // Handle the returned error message instead of try-catch
-    final errorMessage = await ref.read(brandControllerProvider.notifier).createBrand(newBrand);
+    final errorMessage = await ref.read(loadBrandsControllerProvider.notifier).createBrand(newBrand);
 
     setState(() => _isLoading = false);
-
+    await ref.read(loadBrandsControllerProvider.notifier).loadBrands();
     if (errorMessage != null) {
-      // Show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -89,7 +90,6 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
         );
       }
     } else {
-      // Success - close the screen
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -101,6 +101,7 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
       }
     }
   }
+
 
   Widget _buildInputField({
     required String label,
@@ -120,7 +121,9 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
           Text(label, style: Theme.of(context).textTheme.bodyLarge),
           SizedBox(height: screenHeight * 0.008),
           TextFormField(
-            autovalidateMode: AutovalidateMode.disabled,
+            autovalidateMode: _autoValidate
+                ? AutovalidateMode.always
+                : AutovalidateMode.disabled,
             controller: controller,
             keyboardType: keyboardType,
             obscureText: obscureText,

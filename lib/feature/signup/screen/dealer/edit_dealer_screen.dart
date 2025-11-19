@@ -14,6 +14,7 @@ import '../../../../../../../../../core/theme/theme.dart';
 import '../../../../../../../../../core/const/icons.dart';
 import '../../../../../../../core/theme/theme.dart';
 import '../../../../../../../model/user_model.dart';
+import '../../../../core/const/district.dart';
 import '../../../../model/brand_model.dart';
 import '../../../brand/controller/brand_controller.dart';
 import '../../controller/signUp_controller.dart';
@@ -399,7 +400,7 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
             width: double.maxFinite,
             height: screenHeight * 0.5,
             child: ListView.builder(
-              itemCount: _keralaDistricts.length,
+              itemCount: keralaDistricts.length,
               itemBuilder: (context, index) {
                 final district = _keralaDistricts[index];
                 return RadioListTile<String>(
@@ -423,7 +424,7 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
   }
 
   Widget _buildBrandMultiSelect(WidgetRef ref) {
-    final brandState = ref.watch(brandControllerProvider);
+    final brandState = ref.watch(loadBrandsControllerProvider);
 
     return Padding(
       padding: EdgeInsets.only(bottom: screenHeight * 0.02),
@@ -436,7 +437,7 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
         },
         builder: (fieldState) {
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Brands', style: Theme.of(context).textTheme.bodyLarge),
               SizedBox(height: screenHeight * 0.008),
@@ -456,60 +457,105 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
                         ),
                       ),
                       child: _selectedBrands!.isEmpty
-                          ? const Text("Select Brands")
-                          : Wrap(
-                              spacing: 6,
-                              children: _selectedBrands!.map((id) {
-                                final brand = brands.firstWhere(
-                                    (b) => b.brandId.toString() == id);
-                                return Chip(
-                                  deleteIconColor: Colors.white,
-                                  backgroundColor:
-                                      Theme.of(context).primaryColor,
-                                  label: Text(
-                                    brand.brandName,
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                  deleteIcon: const Icon(Icons.cancel),
-                                  onDeleted: () {
-                                    setState(() {
-                                      // _previousSelectedBrands = List.from(_selectedBrands!);
-                                      _selectedBrands?.remove(id);
-                                      fieldState.didChange(_selectedBrands);
-                                    });
-                                  },
-                                );
-                              }).toList(),
+                          ? Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Select Brands",
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: screenWidth * 0.038,
                             ),
+                          ),
+                          Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
+                        ],
+                      )
+                          : Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: _selectedBrands!.map((id) {
+                          // FIXED: Use where with orElse to handle missing brands safely
+                          try {
+                            final brand = brands.firstWhere(
+                                  (b) => b.brandId.toString() == id,
+                              orElse: () => BrandModel(
+                                brandId: id,
+                                brandName: 'Unknown Brand',
+                                 brandModels: [], description: '',
+                              ),
+                            );
+
+                            return Chip(
+                              deleteIconColor: Colors.white,
+                              backgroundColor: Theme.of(context).primaryColor,
+                              label: Text(
+                                brand.brandName,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              deleteIcon: const Icon(Icons.cancel, size: 18),
+                              onDeleted: () {
+                                setState(() {
+                                  _selectedBrands?.remove(id);
+                                  fieldState.didChange(_selectedBrands);
+                                });
+                              },
+                            );
+                          } catch (e) {
+                            // If there's any error, just skip this chip
+                            return const SizedBox.shrink();
+                          }
+                        }).toList(),
+                      ),
                     ),
                   );
                 },
-                loading: () => const LinearProgressIndicator(),
-                error: (e, _) => Text('Error: $e',
-                    style: const TextStyle(color: Colors.red)),
+                loading: () => Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                    border: Border.all(color: Colors.grey.shade400, width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 10),
+                      Text('Loading brands...',
+                          style: TextStyle(color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+                error: (e, _) => Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                    border: Border.all(color: Colors.red, width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red, size: 20),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Error loading brands',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               if (fieldState.hasError)
                 Padding(
-                  padding: const EdgeInsets.only(top: 0, left: 0),
+                  padding: const EdgeInsets.only(top: 5, left: 5),
                   child: Text(
                     fieldState.errorText ?? '',
                     style: const TextStyle(color: Colors.red, fontSize: 12),
                   ),
                 ),
-              // if (_previousSelectedBrands.isNotEmpty)
-              //   Align(
-              //     alignment: Alignment.center,
-              //     child: TextButton.icon(
-              //       onPressed: () {
-              //         setState(() {
-              //           _selectedBrands = List.from(_previousSelectedBrands);
-              //           _previousSelectedBrands = []; // clear after undo
-              //         });
-              //       },
-              //       icon: const Icon(Icons.undo, size: 18),
-              //       label: const Text("Undo"),
-              //     ),
-              //   ),
             ],
           );
         },
@@ -517,9 +563,9 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
     );
   }
 
-  void _showBrandDialog(BuildContext context, List brands) async {
+  void _showBrandDialog(BuildContext context, List<BrandModel> brands) async { // ✅ typed list
     final List<String> tempSelected = List.from(_selectedBrands!);
-    String searchQuery = ""; // 🔎 track search input
+    String searchQuery = "";
 
     await showDialog(
       context: context,
@@ -532,11 +578,10 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
           title: const Text("Select Brands"),
           content: StatefulBuilder(
             builder: (context, setState) {
-              // ✅ filter brands based on search text
               final filteredBrands = brands
                   .where((b) => b.brandName
-                      .toLowerCase()
-                      .contains(searchQuery.toLowerCase()))
+                  .toLowerCase()
+                  .contains(searchQuery.toLowerCase()))
                   .toList();
 
               return SizedBox(
@@ -544,14 +589,12 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 🔎 Search field
                     TextField(
                       decoration: InputDecoration(
                         hintText: "Search brand...",
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(screenWidth * 0.04),
+                          borderRadius: BorderRadius.circular(screenWidth * 0.04),
                         ),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: screenWidth * 0.1,
@@ -565,7 +608,6 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
                       },
                     ),
                     const SizedBox(height: 10),
-                    // ✅ Show filtered brand list with checkboxes
                     Expanded(
                       child: ListView.builder(
                         shrinkWrap: true,
@@ -629,9 +671,8 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  _previousSelectedBrands =
-                      List.from(_selectedBrands!); // ✅ backup
-                  _selectedBrands = List.from(tempSelected); // new selection
+                  _previousSelectedBrands = List.from(_selectedBrands!);
+                  _selectedBrands = List.from(tempSelected);
                 });
                 Navigator.pop(context);
               },
@@ -642,6 +683,7 @@ class _EditDealerScreenState extends ConsumerState<EditDealerScreen> {
       },
     );
   }
+
 
   Widget _buildProfileImageSection() {
     return Padding(

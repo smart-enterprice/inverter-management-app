@@ -7,6 +7,7 @@ final brandRepositoryProvider = Provider<BrandRepository>((ref) {
   return BrandRepository();
 });
 
+
 class BrandRepository {
   final Dio _dio = DioClient.instance;
 
@@ -46,12 +47,25 @@ class BrandRepository {
   }
 
   /// ------------------------- Update an existing brand
-  Future<void> updateBrand(BrandModel updatedData,String name) async {
+  /// ------------------------- Update an existing brand
+  Future<void> updateBrand(
+      BrandModel updatedData,
+      String name, {
+        Map<String, String>? brandModelsUpdate,
+        List<String>? deletedModels,
+        List<String>? addModel
+      }) async
+  {
     try {
       final response = await _dio.put(
         '/product-details/brand/$name',
-        data: updatedData.toJsonUpdate(),
+        data: updatedData.toJsonUpdate(
+          brandModelsUpdate: brandModelsUpdate,
+          deletedModels: deletedModels,
+          addModel: addModel
+        ),
       );
+
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         print('✅ Brand updated successfully');
@@ -61,14 +75,12 @@ class BrandRepository {
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode;
       String errorMessage = 'Update failed';
-
       if (e.response?.data != null) {
         final responseData = e.response!.data;
         if (responseData is Map<String, dynamic>) {
           errorMessage = responseData['message'] ?? errorMessage;
         }
       }
-
       print('❌ DioException in updateBrand: $errorMessage');
       throw Exception(errorMessage);
     } catch (e) {
@@ -76,14 +88,20 @@ class BrandRepository {
       throw Exception('Update error: $e');
     }
   }
+
   /// ------------------------- Get active Brand
   Future<List<BrandModel>> getActiveBrands() async {
-    final response = await _dio.get('/product-details/getActive/brands');
+    final response = await _dio.get('/product-details/getAll/brands?&status=active');
     final brandList = (response.data['data'] as List)
         .map((e) => BrandModel.fromJson(e))
         .toList();
 
-    return brandList;
+    // Filter only active brands
+    final activeBrands = brandList
+        .where((brand) => brand.status?.toLowerCase() == 'active')
+        .toList();
+
+    return activeBrands;
   }
 
   /// ------------------------- Delete brand by ID
@@ -100,4 +118,38 @@ class BrandRepository {
       throw Exception('Delete error: $e');
     }
   }
+  //------------------------------------------------------------------//
+
+  /// ------------------------- ✅ Get  brands by dealer ID
+  Future<List<BrandModel>> getBrandsByDealer(String dealerId) async {
+    try {
+      final response = await _dio.get(
+        '/product-details/getAll/brands?dealerId=$dealerId&status=active',
+      );
+
+      final brandList = (response.data['data'] as List)
+          .map((e) => BrandModel.fromJson(e))
+          .toList();
+
+      return brandList;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      String errorMessage = 'Failed to fetch active brands for dealer';
+
+      if (e.response?.data != null) {
+        final responseData = e.response!.data;
+        if (responseData is Map<String, dynamic>) {
+          errorMessage = responseData['message'] ?? errorMessage;
+        }
+      }
+
+      print('❌ DioException in getActiveBrandsByDealer: $errorMessage');
+      throw Exception(errorMessage);
+    } catch (e) {
+      print('❌ Non-Dio exception in getActiveBrandsByDealer: $e');
+      throw Exception('Unexpected error: $e');
+    }
+  }
+
+
 }

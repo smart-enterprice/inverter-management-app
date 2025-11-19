@@ -143,7 +143,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
   @override
   @override
   Widget build(BuildContext context) {
-    final brandState = ref.watch(brandControllerProvider); // ✅ add this here
+    final brandState = ref.watch(loadBrandsControllerProvider); // ✅ add this here
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -231,7 +231,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                     SizedBox(height: screenHeight * 0.01),
                     ElevatedButton(
                       onPressed: () {
-                        ref.invalidate(brandControllerProvider); // retry
+                        ref.invalidate(loadBrandsControllerProvider); // retry
                       },
                       child: const Text("Retry"),
                     ),
@@ -375,7 +375,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
 
 
   Widget _buildBrandDropdown(WidgetRef ref) {
-    final brandState = ref.watch(brandControllerProvider);
+    final brandState = ref.watch(loadBrandsControllerProvider);
     return Padding(
       padding: EdgeInsets.only(bottom: screenHeight * 0.02),
       child: FormField<List<String>>(

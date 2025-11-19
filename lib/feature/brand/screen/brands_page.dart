@@ -22,10 +22,33 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final brandState = ref.watch(brandControllerProvider);
+    final brandState = ref.watch(loadBrandsControllerProvider);
     return brandState.when(
         loading: () => Scaffold(body: GlobalLoader()),
-        error: (err, st) => Scaffold(body: Center(child: Text('Error'))),
+        error: (e, st) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.wifi_off, size: 50, color: Colors.grey),
+                  SizedBox(height: 10),
+                  Text(
+                    "No Internet Connection",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  SizedBox(height: screenHeight * 0.01),
+                  ElevatedButton(
+                    onPressed: () {
+                      ref.invalidate(loadBrandsControllerProvider);
+                    },
+                    child: const Text("Retry"),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
         data: (brand) {
           return Scaffold(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -99,7 +122,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                       SizedBox(height: screenHeight * 0.01),
                       ElevatedButton(
                         onPressed: () {
-                          ref.invalidate(brandControllerProvider); // retry
+                          ref.invalidate(loadBrandsControllerProvider); // retry
                         },
                         child: const Text("Retry"),
                       ),
@@ -122,7 +145,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                     color: Theme.of(context).primaryColor,
                     onRefresh: () async {
                       await Future.delayed(const Duration(seconds: 2));
-                      ref.invalidate(brandControllerProvider);
+                      ref.invalidate(loadBrandsControllerProvider);
                     },
                     child: Column(
                       children: [
@@ -155,7 +178,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                                   selected: isSelected,
                                   onSelected: (_) {
                                     setState(() => selectedFilter = status);
-                                    ref.invalidate(brandControllerProvider);
+                                    ref.invalidate(loadBrandsControllerProvider);
                                   },
                                 ),
                               );

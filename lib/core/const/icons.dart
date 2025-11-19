@@ -24,4 +24,8 @@ class AppIcons{
   static const String brand = 'assets/icons/brand.svg';
   static const String filter = 'assets/icons/filter.svg';
   static const String percentage = 'assets/icons/percentage.svg';
+  static const String type = 'assets/icons/type.svg';
+  static const String model = 'assets/icons/model.svg';
+  static const String quantity = 'assets/icons/quantity.svg';
+  static const String time = 'assets/icons/time.svg';
 }

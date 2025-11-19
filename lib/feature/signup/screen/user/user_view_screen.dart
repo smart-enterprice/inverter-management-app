@@ -6,9 +6,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:inverter_management_app/core/const/icons.dart';
 import 'package:inverter_management_app/feature/signup/screen/user/edit_user_screen.dart';
 import '../../../../core/media_query/media_query.dart';
-import '../../../../core/theme/theme.dart';
 import '../../../../model/user_model.dart';
-import '../../../../core/const/roll_converter.dart';
+import '../../../../screen/loadingScreen.dart';
 import '../../controller/signUp_controller.dart';
 
 String formatRole(String role) {
@@ -19,6 +18,11 @@ String formatRole(String role) {
   return role;
 }
 
+// Create a provider for the user data
+final userProvider = FutureProvider.family<UserModel?, String>((ref, userId) async {
+  return await ref.read(signupControllerProvider.notifier).getEmployeeById(userId);
+});
+
 class UserViewScreen extends ConsumerStatefulWidget {
   final String userId;
   const UserViewScreen({super.key, required this.userId});
@@ -28,124 +32,158 @@ class UserViewScreen extends ConsumerStatefulWidget {
 }
 
 class _UserViewScreenState extends ConsumerState<UserViewScreen> {
-  late Future<UserModel?> userFuture;
+  final _scrollController = ScrollController();
 
   @override
-  void initState() {
-    super.initState();
-    // User info API call once
-    userFuture = ref.read(signupControllerProvider.notifier)
-        .getEmployeeById(widget.userId);
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final sw = screenWidth;
     final sh = screenHeight;
+    final userAsync = ref.watch(userProvider(widget.userId));
 
-    return FutureBuilder<UserModel?>(
-      future: userFuture,
-      builder: (context, asyncSnapshot) {
-        if (asyncSnapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        } else if (asyncSnapshot.hasError) {
-          return Scaffold(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            appBar: _buildAppBar(context, null, sw),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline,
-                      size: sw * 0.15, color: Theme.of(context).colorScheme.error),
-                  SizedBox(height: sh * 0.02),
-                  Text('Error loading user details',
-                      style: Theme.of(context).textTheme.titleLarge),
-                  SizedBox(height: sh * 0.01),
-                  Text('${asyncSnapshot.error}',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      textAlign: TextAlign.center),
-                ],
-              ),
-            ),
-          );
-        } else if (asyncSnapshot.hasData) {
-          final user = asyncSnapshot.data!;
-          return Scaffold(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            appBar: _buildAppBar(context, user, sw),
-            body: RefreshIndicator(
-              backgroundColor: Colors.white,
-              color: Theme.of(context).primaryColor,
-              onRefresh: () async {
-                await Future.delayed(const Duration(seconds: 2));
-                // Reload user details
-                final newUser = await ref
-                    .read(signupControllerProvider.notifier)
-                    .getEmployeeById(widget.userId);
-                setState(() {
-                  userFuture = Future.value(newUser);
-                });
-              },
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(sw * 0.04),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildProfileHeader(context, user, sw, sh),
-                    SizedBox(height: sh * 0.03),
-                    _buildSectionCard(
-                      context,
-                      'Personal Information',
-                      Icons.person,
-                      sw,
-                      [
-                        _buildInfoRow(context, 'Employee ID', user.employeeId ?? 'N/A', sw),
-                        _buildInfoRow(context, 'Name', user.employeeName, sw),
-                        _buildInfoRow(context, 'Email', user.employeeEmail, sw),
-                        _buildInfoRow(context, 'Phone', user.employeePhone, sw),
-                        _buildInfoRow(context, 'Role', formatRole(user.role), sw),
-                      ],
-                    ),
-                    SizedBox(height: sh * 0.02),
-                    _buildSectionCard(
-                      context,
-                      'Address Information',
-                      Icons.location_on,
-                      sw,
-                      [
-                        _buildInfoRow(context, 'Address', user.address, sw),
-                      ],
-                    ),
-                    SizedBox(height: sh * 0.03),
-                    _buildActionButtons(context, user, sw, sh),
-                  ],
-                ),
-              ),
-            ),
-          );
-        } else {
-          return Scaffold(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            appBar: _buildAppBar(context, null, sw),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person_off,
-                      size: sw * 0.15, color: Theme.of(context).disabledColor),
-                  SizedBox(height: sh * 0.02),
-                  Text('No user found',
-                      style: Theme.of(context).textTheme.titleLarge),
-                ],
-              ),
-            ),
-          );
+    return userAsync.when(
+      data: (user) {
+        if (user == null) {
+          return _buildNotFoundState(context, sw, sh);
         }
+        return _buildUserView(context, user, sw, sh);
       },
+      loading: () => GlobalLoader(),
+      error: (error, stackTrace) => _buildErrorState(context, error, sw, sh),
+    );
+  }
+
+  Widget _buildUserView(BuildContext context, UserModel user, double sw, double sh) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: _buildAppBar(context, user, sw),
+      body: RefreshIndicator(
+        backgroundColor: Colors.white,
+        color: Theme.of(context).primaryColor,
+        onRefresh: () async {
+          await Future.delayed(const Duration(milliseconds: 500));
+          // Invalidate the provider to reload user details
+          ref.invalidate(userProvider(widget.userId));
+        },
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildProfileHeader(context, user, sw, sh),
+                  SizedBox(height: sh * 0.03),
+                ],
+              ),
+            ),
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: sw * 0.04),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildPersonalInfoSection(context, user, sw),
+                  SizedBox(height: sh * 0.02),
+                  _buildAddressSection(context, user, sw),
+                  SizedBox(height: sh * 0.03),
+                  _buildActionButtons(context, user, sw, sh),
+                  SizedBox(height: sh * 0.05),
+                ]),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, Object? error, double sw, double sh) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: _buildAppBar(context, null, sw),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline,
+                size: sw * 0.15, color: Theme.of(context).colorScheme.error),
+            SizedBox(height: sh * 0.02),
+            Text('Error loading user details',
+                style: Theme.of(context).textTheme.titleLarge),
+            SizedBox(height: sh * 0.01),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: sw * 0.1),
+              child: Text('$error',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  textAlign: TextAlign.center),
+            ),
+            SizedBox(height: sh * 0.03),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Invalidate the provider to retry
+                ref.invalidate(userProvider(widget.userId));
+              },
+              icon: Icon(Icons.refresh, size: sw * 0.04),
+              label: Text('Retry', style: TextStyle(fontSize: sw * 0.035)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotFoundState(BuildContext context, double sw, double sh) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: _buildAppBar(context, null, sw),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.person_off,
+                size: sw * 0.15, color: Theme.of(context).disabledColor),
+            SizedBox(height: sh * 0.02),
+            Text('No user found',
+                style: Theme.of(context).textTheme.titleLarge),
+            SizedBox(height: sh * 0.01),
+            Text('The requested user could not be found',
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPersonalInfoSection(BuildContext context, UserModel user, double sw) {
+    return _buildSectionCard(
+      context,
+      'Personal Information',
+      Icons.person_outline_rounded,
+      sw,
+      [
+        _buildInfoRow(context, 'Employee ID', user.employeeId ?? 'N/A', sw),
+        _buildInfoRow(context, 'Name', user.employeeName, sw),
+        _buildInfoRow(context, 'Email', user.employeeEmail, sw),
+        _buildInfoRow(context, 'Phone', user.employeePhone, sw),
+        _buildInfoRow(context, 'Role', formatRole(user.role), sw),
+      ],
+    );
+  }
+
+  Widget _buildAddressSection(BuildContext context, UserModel user, double sw) {
+    return _buildSectionCard(
+      context,
+      'Address Information',
+      Icons.location_on_outlined,
+      sw,
+      [
+        _buildInfoRow(context, 'Address', user.address, sw),
+      ],
     );
   }
 
@@ -168,27 +206,41 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
         'User Details',
         style: TextStyle(
           color: Colors.black,
-          fontSize: sw * 0.05,
-          fontWeight: FontWeight.w500,
+          fontSize: sw * 0.045,
+          fontWeight: FontWeight.w600,
         ),
       ),
       actions: [
         if (user != null) ...[
           IconButton(
-            padding: EdgeInsets.only(left: screenWidth * 0.04),
-            icon: SvgPicture.asset(
-              AppIcons.delete,
-              width: screenWidth * 0.07,
-              colorFilter: ColorFilter.mode(Colors.red, BlendMode.srcIn),
+            padding: EdgeInsets.only(left: screenWidth * 0.02),
+            icon: Container(
+              padding: EdgeInsets.all(sw * 0.015),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: SvgPicture.asset(
+                AppIcons.delete,
+                width: screenWidth * 0.055,
+                colorFilter: ColorFilter.mode(Colors.red, BlendMode.srcIn),
+              ),
             ),
             onPressed: () => _showDeleteDialog(context, user.employeeName, user.employeeId!),
           ),
           IconButton(
-            padding: EdgeInsets.only(left: screenWidth * 0.04, right: screenWidth * 0.04),
-            icon: SvgPicture.asset(
-              AppIcons.edit,
-              width: screenWidth * 0.07,
-              colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
+            padding: EdgeInsets.only(left: screenWidth * 0.02, right: screenWidth * 0.04),
+            icon: Container(
+              padding: EdgeInsets.all(sw * 0.015),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: SvgPicture.asset(
+                AppIcons.edit,
+                width: screenWidth * 0.055,
+                colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
+              ),
             ),
             onPressed: () {
               Navigator.push(
@@ -204,13 +256,13 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
 
   Widget _buildProfileHeader(BuildContext context, UserModel user, double sw, double sh) {
     return Container(
-      width: double.infinity,
+      margin: EdgeInsets.all(sw * 0.04),
       padding: EdgeInsets.all(sw * 0.05),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
             Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withOpacity(0.8),
+            Theme.of(context).primaryColor.withValues(alpha: 0.8),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -226,30 +278,51 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
       ),
       child: Column(
         children: [
-          Container(
-            width: sw * 0.25,
-            height: sw * 0.25,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: sw * 0.01),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: sw * 0.02,
-                  offset: const Offset(0, 3),
+          Stack(
+            children: [
+              Container(
+                width: sw * 0.25,
+                height: sw * 0.25,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: sw * 0.01),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: sw * 0.02,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: ClipOval(
-              child: user.photo != null && user.photo!.isNotEmpty
-                  ? CachedNetworkImage(
-                imageUrl: user.photo!,
-                fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => Icon(Icons.person,
-                    size: sw * 0.1, color: Colors.grey[600]),
-              )
-                  : Icon(Icons.person, size: sw * 0.1, color: Colors.grey[600]),
-            ),
+                child: ClipOval(
+                  child: user.photo != null && user.photo!.isNotEmpty
+                      ? CachedNetworkImage(
+                    imageUrl: user.photo!,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => Icon(Icons.person,
+                        size: sw * 0.1, color: Colors.grey[600]),
+                  )
+                      : Icon(Icons.person, size: sw * 0.1, color: Colors.grey[600]),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: EdgeInsets.all(sw * 0.015),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Theme.of(context).primaryColor, width: 1),
+                  ),
+                  child: Icon(
+                    Icons.verified_rounded,
+                    color: Theme.of(context).primaryColor,
+                    size: sw * 0.04,
+                  ),
+                ),
+              ),
+            ],
           ),
           SizedBox(height: sh * 0.02),
           Text(
@@ -259,6 +332,7 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
+            textAlign: TextAlign.center,
           ),
           SizedBox(height: sh * 0.005),
           Container(
@@ -285,8 +359,11 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
       BuildContext context, String title, IconData icon, double sw, List<Widget> children) {
     return Card(
       color: Colors.white,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(sw * 0.03)),
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(sw * 0.03),
+      ),
       child: Padding(
         padding: EdgeInsets.all(sw * 0.04),
         child: Column(
@@ -294,16 +371,26 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
           children: [
             Row(
               children: [
-                Icon(icon, color: Theme.of(context).primaryColor, size: sw * 0.06),
-                SizedBox(width: sw * 0.02),
-                Text(title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: sw * 0.045,
-                    )),
+                Container(
+                  padding: EdgeInsets.all(sw * 0.02),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: Theme.of(context).primaryColor, size: sw * 0.05),
+                ),
+                SizedBox(width: sw * 0.03),
+                Expanded(
+                  child: Text(title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: sw * 0.04,
+                        color: Colors.black87,
+                      )),
+                ),
               ],
             ),
-            SizedBox(height: sw * 0.04),
+            SizedBox(height: sw * 0.03),
             ...children,
           ],
         ),
@@ -313,28 +400,28 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
 
   Widget _buildInfoRow(BuildContext context, String label, String value, double sw) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: sw * 0.02),
+      padding: EdgeInsets.symmetric(vertical: sw * 0.015),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: sw * 0.25,
+            width: sw * 0.3,
             child: Text(
               label,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: Colors.black,
+                color: Colors.grey[700],
                 fontSize: sw * 0.035,
               ),
             ),
           ),
-          SizedBox(width: sw * 0.04),
+          SizedBox(width: sw * 0.02),
           Expanded(
             child: Text(value,
               style: TextStyle(
-                  fontSize: sw * 0.04,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500
+                fontSize: sw * 0.035,
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
               ),
               softWrap: true,
               overflow: TextOverflow.visible,
@@ -346,10 +433,9 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
   }
 
   Widget _buildActionButtons(BuildContext context, UserModel user, double sw, double sh) {
-    return Column(
+    return Row(
       children: [
-        SizedBox(
-          width: double.infinity,
+        Expanded(
           child: ElevatedButton.icon(
             onPressed: () {
               Navigator.push(
@@ -357,29 +443,31 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
                   MaterialPageRoute(builder: (ctx) => EditUserScreen(user: user))
               );
             },
-            icon: Icon(Icons.edit, size: sw * 0.05),
-            label: Text('Edit Details', style: TextStyle(fontSize: sw * 0.04)),
+            icon: Icon(Icons.edit_rounded, size: sw * 0.045),
+            label: Text('Edit Details', style: TextStyle(fontSize: sw * 0.037)),
             style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: sh * 0.015),
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: sh * 0.018),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(sw * 0.02),
               ),
+              elevation: 2,
             ),
           ),
         ),
-        SizedBox(height: sh * 0.015),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
+        SizedBox(width: sw * 0.03),
+        Container(
+          width: sh * 0.07,
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(sw * 0.02),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: IconButton(
             onPressed: () => _showContactOptions(context, user, sw),
-            icon: Icon(Icons.contact_phone, size: sw * 0.05),
-            label: Text('Contact', style: TextStyle(fontSize: sw * 0.04)),
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: sh * 0.015),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(sw * 0.02),
-              ),
-            ),
+            icon: Icon(Icons.contact_phone_rounded,
+                size: sw * 0.05, color: Theme.of(context).primaryColor),
           ),
         ),
       ],
@@ -389,30 +477,65 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
   void _showContactOptions(BuildContext context, UserModel user, double sw) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(sw * 0.05),
+          topRight: Radius.circular(sw * 0.05),
+        ),
+      ),
       builder: (context) {
         return Padding(
           padding: EdgeInsets.all(sw * 0.04),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: Icon(Icons.phone, size: sw * 0.06),
-                title: const Text('Call'),
-                subtitle: Text(user.employeePhone),
-                onTap: () => Navigator.pop(context),
+              Container(
+                width: sw * 0.15,
+                height: 4,
+                margin: EdgeInsets.only(bottom: sw * 0.03),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              ListTile(
-                leading: Icon(Icons.email, size: sw * 0.06),
-                title: const Text('Email'),
-                subtitle: Text(user.employeeEmail),
-                onTap: () => Navigator.pop(context),
+              Text(
+                'Contact User',
+                style: TextStyle(
+                  fontSize: sw * 0.045,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-              ListTile(
-                leading: Icon(Icons.message, size: sw * 0.06),
-                title: const Text('Message'),
-                subtitle: Text(user.employeePhone),
-                onTap: () => Navigator.pop(context),
-              ),
+              SizedBox(height: sw * 0.03),
+              if (user.employeePhone.isNotEmpty)
+                _buildContactOption(
+                  context,
+                  Icons.phone_rounded,
+                  'Call',
+                  user.employeePhone,
+                      () => Navigator.pop(context),
+                  Colors.green,
+                ),
+              if (user.employeeEmail.isNotEmpty)
+                _buildContactOption(
+                  context,
+                  Icons.email_rounded,
+                  'Email',
+                  user.employeeEmail,
+                      () => Navigator.pop(context),
+                  Colors.blue,
+                ),
+              if (user.employeePhone.isNotEmpty)
+                _buildContactOption(
+                  context,
+                  Icons.message_rounded,
+                  'Message',
+                  user.employeePhone,
+                      () => Navigator.pop(context),
+                  Colors.purple,
+                ),
+              SizedBox(height: sw * 0.02),
             ],
           ),
         );
@@ -420,8 +543,25 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
     );
   }
 
+  Widget _buildContactOption(BuildContext context, IconData icon, String title, String subtitle, VoidCallback onTap, Color color) {
+    return ListTile(
+      leading: Container(
+        padding: EdgeInsets.all(screenWidth * 0.03),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: screenWidth * 0.055, color: color),
+      ),
+      title: Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle, style: TextStyle(color: Colors.grey[600])),
+      onTap: onTap,
+      contentPadding: EdgeInsets.symmetric(vertical: screenWidth * 0.01),
+    );
+  }
+
   void _showDeleteDialog(BuildContext context, String userName, String employeeId) {
-    final TextEditingController _reasonController = TextEditingController();
+    final TextEditingController reasonController = TextEditingController();
     bool isButtonEnabled = false;
     int secondsRemaining = 10;
 
@@ -431,7 +571,6 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            // Start countdown once dialog opens
             if (!isButtonEnabled && secondsRemaining == 10) {
               Timer.periodic(const Duration(seconds: 1), (timer) {
                 if (secondsRemaining == 1) {
@@ -448,75 +587,138 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
               });
             }
 
-            return AlertDialog(
+            return Dialog(
               backgroundColor: Colors.white,
-              title: Text('Delete User', style: Theme.of(context).textTheme.titleLarge),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Are you sure you want to delete "$userName"?',
-                      style: Theme.of(context).textTheme.bodyMedium),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _reasonController,
-                    maxLines: 5,
-                    decoration: const InputDecoration(
-                      hintText: 'Enter reason for deleting',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (!isButtonEnabled)
-                    Text(
-                      'Please wait $secondsRemaining seconds...',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                ],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(screenWidth * 0.04),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: TextStyle(color: Theme.of(context).primaryColor)),
-                ),
-                ElevatedButton(
-                  onPressed: isButtonEnabled
-                      ? () async {
-                    final reason = _reasonController.text.trim();
-                    if (reason.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Reason is required'),
-                          backgroundColor: Colors.red,
+              child: Padding(
+                padding: EdgeInsets.all(screenWidth * 0.05),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Colors.orange, size: screenWidth * 0.06),
+                        SizedBox(width: screenWidth * 0.02),
+                        Text(
+                          "Delete User",
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.045,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
                         ),
-                      );
-                      return;
-                    }
+                      ],
+                    ),
+                    SizedBox(height: screenHeight * 0.02),
+                    Text(
+                      'Are you sure you want to delete "$userName"?',
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.038,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.02),
+                    Text(
+                      "This action cannot be undone. Please provide a reason for deletion.",
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.033,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.02),
+                    TextField(
+                      controller: reasonController,
+                      decoration: InputDecoration(
+                        labelText: "Reason for deletion",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                      ),
+                      maxLines: 3,
+                      onChanged: (value) {
+                        setState(() {});
+                      },
+                    ),
+                    if (!isButtonEnabled)
+                      Padding(
+                        padding: EdgeInsets.only(top: screenHeight * 0.015),
+                        child: Row(
+                          children: [
+                            Icon(Icons.timer_outlined, size: screenWidth * 0.04, color: Colors.grey),
+                            SizedBox(width: screenWidth * 0.02),
+                            Text(
+                              "Please wait $secondsRemaining seconds",
+                              style: TextStyle(color: Colors.grey, fontSize: screenWidth * 0.033),
+                            ),
+                          ],
+                        ),
+                      ),
+                    SizedBox(height: screenHeight * 0.025),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.grey[700],
+                            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.015),
+                          ),
+                          child: Text("Cancel", style: TextStyle(fontSize: screenWidth * 0.035)),
+                        ),
+                        SizedBox(width: screenWidth * 0.02),
+                        ElevatedButton(
+                          onPressed: isButtonEnabled && reasonController.text.trim().isNotEmpty
+                              ? () async {
+                            final reason = reasonController.text.trim();
+                            final result = await ref
+                                .read(signupControllerProvider.notifier)
+                                .deleteUser(employeeId, reason);
 
-                    // Call delete API
-                    final result = await ref
-                        .read(signupControllerProvider.notifier)
-                        .deleteUser(employeeId, reason);
-
-                    if (result == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('User deleted successfully')),
-                      );
-                      Navigator.pop(context); // close dialog
-                      Navigator.pop(context); // close user screen
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Delete failed: $result')),
-                      );
-                    }
-                  }
-                      : null,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: Text(
-                    isButtonEnabled ? 'Delete' : 'Wait...',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                            if (result == null) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("User deleted successfully"),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                Navigator.pop(context);
+                                Navigator.pop(context);
+                              }
+                            } else {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("Delete failed: $result"),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.015),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                            ),
+                          ),
+                          child: Text(
+                            isButtonEnabled ? 'Delete' : 'Wait...',
+                            style: TextStyle(fontSize: screenWidth * 0.035, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );

@@ -43,6 +43,8 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    screenHeight= MediaQuery.of(context).size.height;
+    screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,

@@ -1,34 +1,38 @@
+import 'package:inverter_management_app/model/product_model.dart';
+
+import 'dealer_discount_model.dart';
+
 class OrderModel {
-  final String orderNumber;
+  final String? orderNumber;
   final String dealerId;
   final String priority;
   final String orderNote;
-  final List<dynamic> paymentNotes;
-  final String status;
+  final List<dynamic>? paymentNotes;
+  final String? status;
   final String salesmanId;
-  final String createdBy;
-  final String paymentStatus;
+  final String? createdBy;
+  final String? paymentStatus;
   final String paymentType;
   final num amountPaid;
-  final bool salesTargetUpdated;
+  final bool? salesTargetUpdated;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DealerModel? dealer;
   final List<OrderDetailsModel> orderDetails;
 
   OrderModel({
-    required this.orderNumber,
+    this.orderNumber,
     required this.dealerId,
     required this.priority,
     required this.orderNote,
-    required this.paymentNotes,
-    required this.status,
+    this.paymentNotes,
+    this.status,
     required this.salesmanId,
-    required this.createdBy,
-    required this.paymentStatus,
+     this.createdBy,
+     this.paymentStatus,
     required this.paymentType,
     required this.amountPaid,
-    required this.salesTargetUpdated,
+    this.salesTargetUpdated,
     this.createdAt,
     this.updatedAt,
     this.dealer,
@@ -196,107 +200,161 @@ class DealerModel {
 }
 
 class OrderDetailsModel {
-  final String orderNumber;
-  final String orderDetailsNumber;
   final String productId;
   final String productBrand;
   final String productName;
   final String productModel;
   final String productType;
-  final int qtyOrdered;
-  final int qtyDelivered;
+  final int? productPrice;
+  final int? discountPrice;
+  final int? qtyOrdered;
   final DateTime? deliveryDate;
-  final String notes;
-  final bool isFree;
-  final Map<String, dynamic> stockUsage;
-  final Map<String, dynamic> stockFlags;
-  final String status;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-
-  // For update API
-  final bool? hasProductionCompleted;
-  final bool? hasUnPackedCompleted;
-  final int? cancelQty;
+  final String? dealerDiscountId;
+  final bool isProductScheme;
   final int? deliveredQty;
-  final DateTime? deliveredDate;
+  final String? status;
+
+  // Additional fields for UI state (not sent to backend)
+  final ProductModel? product;
+  final bool useDealerDiscount;
+  final num? discountAmount;
+  final DealerDiscountModel? dealerDiscount;
 
   OrderDetailsModel({
-    required this.orderNumber,
-    required this.orderDetailsNumber,
     required this.productId,
     required this.productBrand,
     required this.productName,
     required this.productModel,
     required this.productType,
-    required this.qtyOrdered,
-    required this.qtyDelivered,
+    this.productPrice,
+    this.discountPrice,
+    this.qtyOrdered,
     this.deliveryDate,
-    required this.notes,
-    required this.isFree,
-    required this.stockUsage,
-    required this.stockFlags,
-    required this.status,
-    this.createdAt,
-    this.updatedAt,
-    this.hasProductionCompleted,
-    this.hasUnPackedCompleted,
-    this.cancelQty,
+    this.dealerDiscountId,
+    this.isProductScheme = false,
     this.deliveredQty,
-    this.deliveredDate,
+    this.status,
+    this.product,
+    this.useDealerDiscount = false,
+    this.discountAmount,
+    this.dealerDiscount,
   });
+
+  // Convenience getter for quantity (since UI uses it)
+  int get quantity => qtyOrdered ?? 1;
+
+  // Convenience getter for isScheme (since UI uses it)
+  bool get isScheme => isProductScheme;
 
   factory OrderDetailsModel.fromJson(Map<String, dynamic> json) {
     return OrderDetailsModel(
-      orderNumber: json["order_number"] ?? "",
-      orderDetailsNumber: json["order_details_number"] ?? "",
-      productId: json["product_id"] ?? "",
-      productBrand: json["product_brand"] ?? "",
-      productName: json["product_name"] ?? "",
-      productModel: json["product_model"] ?? "",
-      productType: json["product_type"] ?? "",
-      qtyOrdered: json["qty_ordered"] ?? 0,
-      qtyDelivered: json["qty_delivered"] ?? 0,
-      deliveryDate: json["delivery_date"] != null ? DateTime.tryParse(json["delivery_date"]) : null,
-      notes: json["notes"] ?? "",
-      isFree: json["is_free"] ?? false,
-      stockUsage: json["stock_usage"] ?? {},
-      stockFlags: json["stock_flags"] ?? {},
-      status: json["status"] ?? "",
-      createdAt: json["created_at"] != null ? DateTime.tryParse(json["created_at"]) : null,
-      updatedAt: json["updated_at"] != null ? DateTime.tryParse(json["updated_at"]) : null,
-      hasProductionCompleted: json["has_production_completed"],
-      hasUnPackedCompleted: json["has_unPacked_completed"],
-      cancelQty: json["cancel_qty"],
-      deliveredQty: json["delivered_qty"],
-      deliveredDate: json["delivered_date"] != null ? DateTime.tryParse(json["delivered_date"]) : null,
+      productId: json["product_id"]?.toString() ?? "",
+      productBrand: json["product_brand"]?.toString() ?? "",
+      productName: json["product_name"]?.toString() ?? "",
+      productModel: json["product_model"]?.toString() ?? "",
+      productType: json["product_type"]?.toString() ?? "",
+      productPrice: json["product_price"] != null
+          ? int.tryParse(json["product_price"].toString())
+          : null,
+      discountPrice: json["discount_price"] != null
+          ? int.tryParse(json["discount_price"].toString())
+          : null,
+      qtyOrdered: json["qty_ordered"] != null
+          ? int.tryParse(json["qty_ordered"].toString())
+          : null,
+      deliveryDate: json["delivery_date"] != null
+          ? DateTime.tryParse(json["delivery_date"].toString())
+          : null,
+      dealerDiscountId: json["dealer_discount_id"]?.toString(),
+      isProductScheme: json["is_product_scheme"] == true ||
+          json["is_product_scheme"]?.toString().toLowerCase() == 'true',
+      deliveredQty: json["delivered_qty"] != null
+          ? int.tryParse(json["delivered_qty"].toString())
+          : null,
+      status: json["status"]?.toString(),
+    );
+  }
+
+  // Factory to create from ProductModel (for UI)
+  factory OrderDetailsModel.fromProduct(
+      ProductModel product, {
+        DealerDiscountModel? dealerDiscount,
+      }) {
+    return OrderDetailsModel(
+      productId: product.productId!,
+      productBrand: product.brand!,
+      productName: product.productName.toString(),
+      productModel: product.model.toString(),
+      productType: product.productType!,
+      productPrice: product.price?.toInt(),
+      qtyOrdered: 1,
+      isProductScheme: false,
+      product: product,
+      dealerDiscount: dealerDiscount,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      "order_number": orderNumber,
-      "order_details_number": orderDetailsNumber,
       "product_id": productId,
       "product_brand": productBrand,
       "product_name": productName,
       "product_model": productModel,
       "product_type": productType,
+      "product_price": productPrice,
+      "discount_price": discountPrice,
       "qty_ordered": qtyOrdered,
-      "qty_delivered": qtyDelivered,
-      "delivery_date": deliveryDate?.toIso8601String(),
-      "notes": notes,
-      "is_free": isFree,
-      "stock_usage": stockUsage,
-      "stock_flags": stockFlags,
-      "status": status,
-      "created_at": createdAt?.toIso8601String(),
-      "updated_at": updatedAt?.toIso8601String(),
-      "has_production_completed": hasProductionCompleted,
-      "has_unPacked_completed": hasUnPackedCompleted,
-      "cancel_qty": cancelQty,
+      "delivery_date": deliveryDate?.toIso8601String().split('T').first,
+      "dealer_discount_id": dealerDiscountId,
+      "is_product_scheme": isProductScheme,
       "delivered_qty": deliveredQty,
-      "delivered_date": deliveredDate?.toIso8601String(),
+      "status": status,
     };
   }
+
+  OrderDetailsModel copyWith({
+    String? productId,
+    String? productBrand,
+    String? productName,
+    String? productModel,
+    String? productType,
+    int? productPrice,
+    int? discountPrice,
+    int? qtyOrdered,
+    DateTime? deliveryDate,
+    String? dealerDiscountId,
+    bool? isProductScheme,
+    int? deliveredQty,
+    String? status,
+    ProductModel? product,
+    bool? useDealerDiscount,
+    num? discountAmount,
+    DealerDiscountModel? dealerDiscount,
+  }) {
+    return OrderDetailsModel(
+      productId: productId ?? this.productId,
+      productBrand: productBrand ?? this.productBrand,
+      productName: productName ?? this.productName,
+      productModel: productModel ?? this.productModel,
+      productType: productType ?? this.productType,
+      productPrice: productPrice ?? this.productPrice,
+      discountPrice: discountPrice ?? this.discountPrice,
+      qtyOrdered: qtyOrdered ?? this.qtyOrdered,
+      deliveryDate: deliveryDate ?? this.deliveryDate,
+      dealerDiscountId: dealerDiscountId ?? this.dealerDiscountId,
+      isProductScheme: isProductScheme ?? this.isProductScheme,
+      deliveredQty: deliveredQty ?? this.deliveredQty,
+      status: status ?? this.status,
+      product: product ?? this.product,
+      useDealerDiscount: useDealerDiscount ?? this.useDealerDiscount,
+      discountAmount: discountAmount ?? this.discountAmount,
+      dealerDiscount: dealerDiscount ?? this.dealerDiscount,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'OrderDetailsModel(productId: $productId, productName: $productName, qtyOrdered: $qtyOrdered)';
+  }
 }
+

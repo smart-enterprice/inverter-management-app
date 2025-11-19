@@ -25,6 +25,11 @@ StateNotifierProvider<DealerListNotifier, AsyncValue<List<UserModel>>>(
       (ref) => DealerListNotifier(ref.read(signupRepositoryProvider)),
 );
 
+/// Provider to get users by role
+final usersByRoleProvider = FutureProvider.family<List<UserModel>, String>((ref, role) async {
+  final controller = ref.read(signupControllerProvider.notifier);
+  return await controller.getUsersByRole(role);
+});
 
 
 class SignupController extends StateNotifier<AsyncValue<void>> {
@@ -148,6 +153,16 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  /// ----------------- Get Users by Role
+  Future<List<UserModel>> getUsersByRole(String role) async {
+    try {
+      final users = await _repository.getUsersByRole(role);
+      return users;
+    } catch (e) {
+      print('Error fetching users by role: $e');
+      rethrow;
+    }
+  }
 
   /// Delete user
   Future<String?> deleteUser(String employeeId, String reason) async {
@@ -161,4 +176,5 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
       return 'Delete failed: $e';
     }
   }
+
 }

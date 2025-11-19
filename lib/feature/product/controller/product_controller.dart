@@ -8,9 +8,17 @@ final productControllerProvider =
 StateNotifierProvider<ProductController, AsyncValue<List<ProductModel>>>(
       (ref) => ProductController(ref),
 );
+
 final productByIdProvider = FutureProvider.family<ProductModel?, String>((ref, id) {
   return ref.read(productControllerProvider.notifier).getProductById(id);
 });
+
+final productByBrandProvider =
+FutureProvider.family<List<ProductModel>, List<String>>((ref, brands) async {
+  final controller = ref.read(productControllerProvider.notifier);
+  return await controller.fetchProductsByBrand(brands);
+});
+
 
 class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
   final Ref _ref;
@@ -22,16 +30,17 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
     _startAutoRefresh();
   }
 
-  /// In ProductController
+  /// Create Product
   Future<void> createProduct(ProductModel product) async {
     try {
       await _ref.read(productRepositoryProvider).createProduct(product);
       await fetchProducts();
     } on DioException catch (e) {
       final errorMessage = e.response?.data['message'] ?? 'Something went wrong';
-      throw errorMessage; // pass the message up to the UI
+      throw errorMessage;
     }
   }
+
   /// Fetch All Products
   Future<void> fetchProducts() async {
     try {
@@ -42,6 +51,41 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
       state = AsyncValue.error(e, st);
     }
   }
+
+  /// Fetch Products by Brand
+  Future<List<ProductModel>> fetchProductsByBrand(List<String> brands) async {
+    try {
+      final products =
+      await _ref.read(productRepositoryProvider).getProductsByBrand(brands);
+      state = AsyncValue.data(products);
+      return products;
+    } on DioException {
+      rethrow;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+
+  /// Update Product
+  Future<void> updateProduct(String productId, ProductModel updatedProduct) async {
+    try {
+      await _ref.read(productRepositoryProvider).updateProduct(productId, updatedProduct);
+      await fetchProducts();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Update Stock
+  Future<void> updateStock(StockUpdate updatedStock) async {
+    try {
+      await _ref.read(productRepositoryProvider).updateStock(updatedStock);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Start Auto Refresh Every 1 Minute
   void _startAutoRefresh() {
     _timer?.cancel();
@@ -52,26 +96,6 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
     _ref.onDispose(() {
       _timer?.cancel();
     });
-  }
-
-  /// Filter products by brand name
-  void filterByBrand(String brandName) {
-    final filtered = _allProducts
-        .where((p) => p.brand?.toLowerCase() == brandName.toLowerCase())
-        .toList();
-    state = AsyncValue.data(filtered);
-  }
-
-  /// Clear brand filter
-  void clearFilter() {
-    state = AsyncValue.data(_allProducts);
-  }
-
-  /// Get unique brand names for the filter dropdown
-  List<String?> get uniqueBrandNames {
-    final brands = _allProducts.map((p) => p.brand).toSet().toList();
-    brands.sort();
-    return brands;
   }
 
   /// Get Product by ID
