@@ -84,4 +84,16 @@ class OrderRepository {
       throw Exception(errorMsg);
     }
   }
+
+  /// 🔹 Update order status only (packed, production, unpack)
+  Future<void> updateOrderStatus(OrderModel order) async {
+    try {
+      await _dio.put(
+        '/order-details/status/${order.orderNumber}',
+        data: order.toUpdateJson(),
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?["message"] ?? e.message ?? 'Unknown error');
+    }
+  }
 }

@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/core/theme/theme.dart';
 import 'package:inverter_management_app/screen/splash_screen.dart';
 
-import 'core/media_query/media_query.dart';
-import 'core/theme/theme.dart';
-
 void main() {
   runApp(const ProviderScope(child: MyApp())); // Wrap with ProviderScope
 }
@@ -15,13 +12,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    screenWidth = MediaQuery.of(context).size.width;
-    screenHeight = MediaQuery.of(context).size.height;
     return MaterialApp(
-      theme: AppTheme.theme,
+        theme: AppTheme.theme,
         themeMode: ThemeMode.light,
         debugShowCheckedModeBanner: false,
         home: SplashScreen());
   }
 }
-

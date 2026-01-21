@@ -5,14 +5,14 @@ import '../../../core/media_query/media_query.dart';
 import '../../../screen/superAdmin_home_screen.dart';
 import '../controller/login_controller.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class LoginMobileView extends ConsumerStatefulWidget {
+  const LoginMobileView({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginMobileView> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginMobileView> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
@@ -63,6 +63,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _passwordController.text.trim(),
         );
 
+        // ✅ Check if widget is still mounted before using context
+        if (!mounted) return;
+
         // Show message from LoginResult
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -78,22 +81,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             case 'ROLE_SUPER_ADMIN':
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const SuperAdminHomeScreen()),
+                MaterialPageRoute(builder: (_) => const SuperAdminHomePage()),
               );
               break;
             case 'ROLE_ADMIN':
-            // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
+              // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
               break;
             case 'ROLE_SALESMAN':
-            // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesmanHomeScreen()));
+              // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesmanHomeScreen()));
               break;
             case 'ROLE_ACCOUNT':
-            // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AccountHomeScreen()));
+              // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AccountHomeScreen()));
               break;
             default:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                MaterialPageRoute(builder: (_) => const LoginMobileView()),
               );
           }
         }
@@ -116,16 +119,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    screenWidth = MediaQuery.of(context).size.width;
-    screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
+              padding:
+                  EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.06),
               child: Form(
                 key: _formKey,
                 child: Container(
@@ -144,7 +145,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       width: 1,
                     ),
                   ),
-                  padding: EdgeInsets.all(screenWidth * 0.05),
+                  padding: EdgeInsets.all(Screen.w(context) * 0.05),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,7 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: Colors.blue,
                               ),
                             ),
-                            SizedBox(height: screenHeight * 0.02),
+                            SizedBox(height: Screen.h(context) * 0.02),
                             Text(
                               'Welcome Back',
                               style: TextStyle(
@@ -175,7 +176,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: Colors.black87,
                               ),
                             ),
-                            SizedBox(height: screenHeight * 0.005),
+                            SizedBox(height: Screen.h(context) * 0.005),
                             Text(
                               'Sign in to continue',
                               style: TextStyle(
@@ -186,7 +187,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ],
                         ),
                       ),
-                      SizedBox(height: screenHeight * 0.04),
+                      SizedBox(height: Screen.h(context) * 0.04),
 
                       // Email Field
                       Text(
@@ -197,7 +198,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      SizedBox(height: screenHeight * 0.008),
+                      SizedBox(height: Screen.h(context) * 0.008),
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
@@ -235,7 +236,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           return null;
                         },
                       ),
-                      SizedBox(height: screenHeight * 0.02),
+                      SizedBox(height: Screen.h(context) * 0.02),
 
                       // Password Field
                       Text(
@@ -246,7 +247,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      SizedBox(height: screenHeight * 0.008),
+                      SizedBox(height: Screen.h(context) * 0.008),
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
@@ -290,12 +291,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           return null;
                         },
                       ),
-                      SizedBox(height: screenHeight * 0.03),
+                      SizedBox(height: Screen.h(context) * 0.03),
 
                       // Login Button
                       SizedBox(
                         width: double.infinity,
-                        height: screenHeight * 0.06,
+                        height: Screen.h(context) * 0.06,
                         child: ElevatedButton(
                           onPressed: _isButtonEnabled && !_isLoading
                               ? _handleLogin
@@ -311,26 +312,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           child: _isLoading
                               ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white),
-                            ),
-                          )
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
                               : Text(
-                            'Login',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: _isButtonEnabled && !_isLoading
-                                  ? Colors.white
-                                  : Colors.grey.shade500,
-                            ),
-                          ),
-                        ),),
-                      SizedBox(height: screenHeight * 0.03),
+                                  'Login',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: _isButtonEnabled && !_isLoading
+                                        ? Colors.white
+                                        : Colors.grey.shade500,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.03),
 
                       // Forgot Password
                       Center(

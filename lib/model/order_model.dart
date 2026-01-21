@@ -20,6 +20,15 @@ class OrderModel {
   final DealerModel? dealer;
   final List<OrderDetailsModel> orderDetails;
 
+  // New fields
+  final num? orderTotalPrice;
+  final num? orderTotalDiscount;
+  final num? amountDue;
+  final num? totalDealerDiscount;
+  final num? totalPrice;
+  final int? totalCancelledQty;
+  final List<dynamic>? cancellationHistory;
+
   OrderModel({
     this.orderNumber,
     required this.dealerId,
@@ -28,8 +37,8 @@ class OrderModel {
     this.paymentNotes,
     this.status,
     required this.salesmanId,
-     this.createdBy,
-     this.paymentStatus,
+    this.createdBy,
+    this.paymentStatus,
     required this.paymentType,
     required this.amountPaid,
     this.salesTargetUpdated,
@@ -37,6 +46,13 @@ class OrderModel {
     this.updatedAt,
     this.dealer,
     required this.orderDetails,
+    this.orderTotalPrice,
+    this.orderTotalDiscount,
+    this.amountDue,
+    this.totalDealerDiscount,
+    this.totalPrice,
+    this.totalCancelledQty,
+    this.cancellationHistory,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -60,9 +76,23 @@ class OrderModel {
           ? List<OrderDetailsModel>.from(
           json["order_details"].map((x) => OrderDetailsModel.fromJson(x)))
           : [],
+      orderTotalPrice: json["order_total_price"],
+      orderTotalDiscount: json["order_total_discount"],
+      amountDue: json["amount_due"],
+      totalDealerDiscount: json["total_dealer_discount"],
+      totalPrice: json["total_price"],
+      totalCancelledQty: json["total_cancelled_qty"],
+      cancellationHistory: json["cancellation_history"] ?? [],
     );
   }
-
+  /// 🔹 Use for updating only status flags + order details
+  Map<String, dynamic> toUpdateJson() {
+    return {
+      "order_number": orderNumber,
+      "status":status,
+      "order_details": orderDetails.map((x) => x.toUpdateJson()).toList(),
+    };
+  }
   Map<String, dynamic> toJson() {
     return {
       "order_number": orderNumber,
@@ -101,6 +131,13 @@ class OrderModel {
     DateTime? updatedAt,
     DealerModel? dealer,
     List<OrderDetailsModel>? orderDetails,
+    num? orderTotalPrice,
+    num? orderTotalDiscount,
+    num? amountDue,
+    num? totalDealerDiscount,
+    num? totalPrice,
+    int? totalCancelledQty,
+    List<dynamic>? cancellationHistory,
   }) {
     return OrderModel(
       orderNumber: orderNumber ?? this.orderNumber,
@@ -119,6 +156,13 @@ class OrderModel {
       updatedAt: updatedAt ?? this.updatedAt,
       dealer: dealer ?? this.dealer,
       orderDetails: orderDetails ?? this.orderDetails,
+      orderTotalPrice: orderTotalPrice ?? this.orderTotalPrice,
+      orderTotalDiscount: orderTotalDiscount ?? this.orderTotalDiscount,
+      amountDue: amountDue ?? this.amountDue,
+      totalDealerDiscount: totalDealerDiscount ?? this.totalDealerDiscount,
+      totalPrice: totalPrice ?? this.totalPrice,
+      totalCancelledQty: totalCancelledQty ?? this.totalCancelledQty,
+      cancellationHistory: cancellationHistory ?? this.cancellationHistory,
     );
   }
 }
@@ -220,6 +264,22 @@ class OrderDetailsModel {
   final num? discountAmount;
   final DealerDiscountModel? dealerDiscount;
 
+  // New fields
+  final num? unitProductPrice;
+  final num? totalProductPrice;
+  final bool? isFree;
+  final num? dealerDiscountAmount;
+  final String? stockUsage;
+  final Map<String, dynamic>? stockFlags;
+  final int? qtyDelivered;
+
+  /// 🔹 New Fields Required for Order Update
+  final String? orderDetailsNumber;
+  final bool? hasUnpacked;
+  final bool? hasProduction;
+  final bool? hasPackedCompleted;
+  final bool? hasProductionCompleted;
+
   OrderDetailsModel({
     required this.productId,
     required this.productBrand,
@@ -238,6 +298,18 @@ class OrderDetailsModel {
     this.useDealerDiscount = false,
     this.discountAmount,
     this.dealerDiscount,
+    this.unitProductPrice,
+    this.totalProductPrice,
+    this.isFree,
+    this.dealerDiscountAmount,
+    this.stockUsage,
+    this.stockFlags,
+    this.qtyDelivered,
+    this.orderDetailsNumber,
+    this.hasUnpacked,
+    this.hasProduction,
+    this.hasPackedCompleted,
+    this.hasProductionCompleted,
   });
 
   // Convenience getter for quantity (since UI uses it)
@@ -247,6 +319,8 @@ class OrderDetailsModel {
   bool get isScheme => isProductScheme;
 
   factory OrderDetailsModel.fromJson(Map<String, dynamic> json) {
+    final stockUsageData = json["stock_usage"];
+    final stockFlagsData = json["stock_flags"];
     return OrderDetailsModel(
       productId: json["product_id"]?.toString() ?? "",
       productBrand: json["product_brand"]?.toString() ?? "",
@@ -272,7 +346,31 @@ class OrderDetailsModel {
           ? int.tryParse(json["delivered_qty"].toString())
           : null,
       status: json["status"]?.toString(),
+      unitProductPrice: json["unit_product_price"],
+      totalProductPrice: json["total_product_price"],
+      isFree: json["is_free"],
+      dealerDiscountAmount: json["dealer_discount"],
+      stockUsage: json["stock_usage"]?.toString(),
+      qtyDelivered: json["qty_delivered"] != null
+          ? int.tryParse(json["qty_delivered"].toString())
+          : null,
+      orderDetailsNumber: json["order_details_number"]?.toString(),
+      stockFlags: stockFlagsData != null
+          ? Map<String, dynamic>.from(stockFlagsData)
+          : null,
+
+      hasUnpacked: stockFlagsData?["hasUnpacked"] as bool?,
+      hasProduction: stockFlagsData?["hasProduction"] as bool?,
     );
+  }
+  /// 🔹 Used only when updating order
+  Map<String, dynamic> toUpdateJson() {
+    return {
+      "order_details_number": orderDetailsNumber,
+      // "has_unPacked_completed": hasUnPackedCompleted,
+      "has_unPacked_completed": hasPackedCompleted,
+      "has_production_completed": hasProductionCompleted,
+    };
   }
 
   // Factory to create from ProductModel (for UI)
@@ -302,7 +400,7 @@ class OrderDetailsModel {
       "product_model": productModel,
       "product_type": productType,
       "product_price": productPrice,
-      "discount_price": discountPrice,
+      "discount_price": discountAmount??0,
       "qty_ordered": qtyOrdered,
       "delivery_date": deliveryDate?.toIso8601String().split('T').first,
       "dealer_discount_id": dealerDiscountId,
@@ -330,6 +428,15 @@ class OrderDetailsModel {
     bool? useDealerDiscount,
     num? discountAmount,
     DealerDiscountModel? dealerDiscount,
+    num? unitProductPrice,
+    num? totalProductPrice,
+    bool? isFree,
+    num? dealerDiscountAmount,
+    String? stockUsage,
+    Map<String, dynamic>? stockFlags,
+    int? qtyDelivered,
+    bool? hasProductionCompleted,
+    bool? hasPackedCompleted, String? orderDetailsNumber,
   }) {
     return OrderDetailsModel(
       productId: productId ?? this.productId,
@@ -349,6 +456,16 @@ class OrderDetailsModel {
       useDealerDiscount: useDealerDiscount ?? this.useDealerDiscount,
       discountAmount: discountAmount ?? this.discountAmount,
       dealerDiscount: dealerDiscount ?? this.dealerDiscount,
+      unitProductPrice: unitProductPrice ?? this.unitProductPrice,
+      totalProductPrice: totalProductPrice ?? this.totalProductPrice,
+      isFree: isFree ?? this.isFree,
+      dealerDiscountAmount: dealerDiscountAmount ?? this.dealerDiscountAmount,
+      stockUsage: stockUsage ?? this.stockUsage,
+      stockFlags: stockFlags ?? this.stockFlags,
+      qtyDelivered: qtyDelivered ?? this.qtyDelivered,
+      orderDetailsNumber:orderDetailsNumber??this.orderDetailsNumber,
+      hasPackedCompleted: hasPackedCompleted ?? this.hasPackedCompleted,
+      hasProductionCompleted: hasProductionCompleted ?? this.hasProductionCompleted,
     );
   }
 
@@ -357,4 +474,3 @@ class OrderDetailsModel {
     return 'OrderDetailsModel(productId: $productId, productName: $productName, qtyOrdered: $qtyOrdered)';
   }
 }
-

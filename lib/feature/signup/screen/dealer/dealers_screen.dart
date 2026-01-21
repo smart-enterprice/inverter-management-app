@@ -117,7 +117,6 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
   @override
   Widget build(BuildContext context) {
     final dealersAsync = ref.watch(dealerListProvider);
-
     return dealersAsync.when(
       loading: () => GlobalLoader(),
       error: (e, st) => Scaffold(
@@ -131,7 +130,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                 "No Internet Connection",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
-              SizedBox(height: screenHeight * 0.01),
+              SizedBox(height: Screen.h(context) * 0.01),
               ElevatedButton(
                 onPressed: () {
                   ref.invalidate(dealerListProvider);
@@ -151,10 +150,10 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             elevation: 1,
             leading: IconButton(
-              padding: EdgeInsets.only(left: screenWidth * 0.04),
+              padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
               icon: SvgPicture.asset(
                 AppIcons.back_Arrow,
-                width: screenWidth * 0.07,
+                width: Screen.w(context) * 0.07,
                 colorFilter: ColorFilter.mode(
                     Theme.of(context).primaryColor, BlendMode.srcIn),
               ),
@@ -170,14 +169,14 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
             ),
             actions: [
               IconButton(
-                padding: EdgeInsets.only(right: screenWidth * 0.02),
+                padding: EdgeInsets.only(right: Screen.w(context) * 0.02),
                 onPressed: _toggleSearch,
                 icon: SvgPicture.asset(_isSearching?AppIcons.close:AppIcons.search,
-                    width: screenWidth * 0.07,colorFilter: ColorFilter.mode(
+                    width: Screen.w(context) * 0.07,colorFilter: ColorFilter.mode(
                       Theme.of(context).primaryColor, BlendMode.srcIn),)
               ),
               IconButton(
-                padding: EdgeInsets.only(right: screenWidth * 0.04),
+                padding: EdgeInsets.only(right: Screen.w(context) * 0.04),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -186,7 +185,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                 },
                 icon: SvgPicture.asset(
                   AppIcons.add,
-                  width: screenWidth * 0.07,
+                  width: Screen.w(context) * 0.07,
                   colorFilter: ColorFilter.mode(
                       Theme.of(context).primaryColor, BlendMode.srcIn),
                 ),
@@ -198,7 +197,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
               // Search Bar - Only show when _isSearching is true
               if (_isSearching)
                 Padding(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
+                  padding: EdgeInsets.all(Screen.w(context) * 0.04),
                   child: TextField(
                     controller: _searchController,
                     autofocus: true,
@@ -252,7 +251,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
               // Results count
               if (_isSearching && _searchQuery.isNotEmpty)
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                  padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -277,7 +276,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                         size: 64,
                         color: Colors.grey[400],
                       ),
-                      SizedBox(height: screenHeight * 0.02),
+                      SizedBox(height: Screen.h(context) * 0.02),
                       Text(
                         _searchQuery.isEmpty
                             ? 'Start typing to search'
@@ -301,7 +300,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                         size: 64,
                         color: Colors.grey[400],
                       ),
-                      SizedBox(height: screenHeight * 0.02),
+                      SizedBox(height: Screen.h(context) * 0.02),
                       Text(
                         'No dealers available',
                         style: TextStyle(
@@ -314,7 +313,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                 )
                     : Padding(
                   padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.04),
+                      horizontal: Screen.w(context) * 0.04),
                   child: RefreshIndicator(
                     backgroundColor: Colors.white,
                     color: Theme.of(context).primaryColor,
@@ -340,26 +339,26 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                             );
                           },
                           child: Card(
-                            margin: EdgeInsets.symmetric(vertical: screenWidth * 0.012),
+                            margin: EdgeInsets.symmetric(vertical: Screen.w(context) * 0.012),
                             color: Colors.white,
                             elevation: 2,
                             shadowColor: Colors.black.withValues(alpha: 0.1),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(screenWidth * 0.05),
+                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.05),
                             ),
                             child: Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(screenWidth * 0.05),
+                                borderRadius: BorderRadius.circular(Screen.w(context) * 0.05),
                                 border: Border.all(
                                   color: Colors.grey.withValues(alpha: 0.1),
                                   width: 1,
                                 ),
                               ),
                               child: ListTile(
-                                contentPadding: EdgeInsets.all(screenWidth * 0.045),
+                                contentPadding: EdgeInsets.all(Screen.w(context) * 0.045),
                                 leading: Container(
-                                  width: screenWidth * 0.14,
-                                  height: screenWidth * 0.14,
+                                  width: Screen.w(context) * 0.14,
+                                  height: Screen.w(context) * 0.14,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
@@ -376,7 +375,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                                         color: Colors.grey[100],
                                         child: Icon(
                                           Icons.person,
-                                          size: screenWidth * 0.06,
+                                          size: Screen.w(context) * 0.06,
                                           color: Colors.grey[400],
                                         ),
                                       ),
@@ -384,7 +383,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                                         color: Colors.grey[100],
                                         child: Icon(
                                           Icons.person,
-                                          size: screenWidth * 0.06,
+                                          size: Screen.w(context) * 0.06,
                                           color: Colors.grey[400],
                                         ),
                                       ),
@@ -393,7 +392,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                                       color: Colors.grey[100],
                                       child: Icon(
                                         Icons.person_rounded,
-                                        size: screenWidth * 0.06,
+                                        size: Screen.w(context) * 0.06,
                                         color: Colors.grey[400],
                                       ),
                                     ),
@@ -408,7 +407,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                                   ),
                                 ),
                                 subtitle: Padding(
-                                  padding: EdgeInsets.only(top: screenWidth * 0.008),
+                                  padding: EdgeInsets.only(top: Screen.w(context) * 0.008),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -417,7 +416,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                                         dealer.town.toString(),
                                         context,
                                       ),
-                                      SizedBox(height: screenWidth * 0.008),
+                                      SizedBox(height: Screen.w(context) * 0.008),
                                       _buildInfoRow(
                                         Icons.phone_rounded,
                                         dealer.employeePhone,
@@ -427,15 +426,15 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
                                   ),
                                 ),
                                 trailing: Container(
-                                  width: screenWidth * 0.08,
-                                  height: screenWidth * 0.08,
+                                  width: Screen.w(context) * 0.08,
+                                  height: Screen.w(context) * 0.08,
                                   decoration: BoxDecoration(
                                     color: Colors.grey.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
                                     Icons.chevron_right_rounded,
-                                    size: screenWidth * 0.05,
+                                    size: Screen.w(context) * 0.05,
                                     color: Colors.grey[600],
                                   ),
                                 ),
@@ -459,9 +458,9 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
     return Row(
       children: [
         Icon(icon,
-            size: screenWidth * 0.05,
+            size: Screen.w(context) * 0.05,
             color: Theme.of(context).primaryColor),
-        SizedBox(width: screenWidth * 0.02),
+        SizedBox(width: Screen.w(context) * 0.02),
         Expanded(
           child: Text(
             value,

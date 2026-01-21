@@ -15,13 +15,13 @@ class PasswordTextFormField extends StatelessWidget {
       controller: controller,
       decoration:  InputDecoration(
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(screenWidth*0.04)),
+          borderRadius: BorderRadius.all(Radius.circular(Screen.w(context)*0.04)),
           borderSide: BorderSide(
               width: 1.5,
               color: Colors.grey),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(screenWidth*0.04)),
+          borderRadius: BorderRadius.all(Radius.circular(Screen.w(context)*0.04)),
           borderSide: BorderSide(
               width: 2,
               color: Theme.of(context).primaryColor),

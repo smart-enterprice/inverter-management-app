@@ -11,10 +11,23 @@ class GlobalLoader extends StatelessWidget {
       child: Center(
         child: Image.asset(
           'assets/gif/loading.gif',
-          width: screenWidth*0.15,
-          height: screenHeight*0.15,
+          width: Screen.w(context) * 0.15,
+          height: Screen.h(context) * 0.15,
         ),
       ),
+    );
+  }
+}
+
+class LoadingIcon extends StatelessWidget {
+  const LoadingIcon({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      'assets/gif/loading2.gif',
+      width: Screen.w(context) * 0.15,
+      height: Screen.h(context) * 0.15,
     );
   }
 }

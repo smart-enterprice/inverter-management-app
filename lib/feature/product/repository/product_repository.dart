@@ -56,8 +56,26 @@ class ProductRepository {
 
   /// Update Product
   Future<void> updateProduct(String productId, ProductModel updatedProduct) async {
-    await _dio.put('/product-details/$productId', data: updatedProduct.toJson());
+    try {
+      final response = await _dio.put(
+        '/product-details/$productId',
+        data: updatedProduct.toJson(),
+      );
+      print("SUCCESS: ${response.data}");
+    } on DioException catch (e) {
+      print("DIO ERROR:");
+      print("Message: ${e.message}");
+      print("Status: ${e.response?.statusCode}");
+      print("Data: ${e.response?.data}");
+
+      // Optionally rethrow to UI
+      throw Exception(e.response?.data['message'] ?? e.message);
+    } catch (e) {
+      print("UNKNOWN ERROR: $e");
+      throw Exception(e.toString());
+    }
   }
+
 
   /// update stock
   Future<void> updateStock(StockUpdate updateStockModel) async {

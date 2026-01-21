@@ -37,7 +37,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                     "No Internet Connection",
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
-                  SizedBox(height: screenHeight * 0.01),
+                  SizedBox(height: Screen.h(context) * 0.01),
                   ElevatedButton(
                     onPressed: () {
                       ref.invalidate(loadBrandsControllerProvider);
@@ -57,10 +57,10 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               elevation: 0,
               leading: IconButton(
-                padding: EdgeInsets.only(left: screenWidth * 0.04),
+                padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
                 icon: SvgPicture.asset(
                   AppIcons.back_Arrow,
-                  width: screenWidth * 0.07,
+                  width: Screen.w(context) * 0.07,
                   colorFilter: ColorFilter.mode(
                       Theme.of(context).primaryColor, BlendMode.srcIn),
                 ),
@@ -70,14 +70,14 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
               title: Text(
                 'Brands',
                 style: TextStyle(
-                  fontSize: screenWidth * 0.05,
+                  fontSize: Screen.w(context) * 0.05,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
               ),
               actions: [
                 IconButton(
-                  padding: EdgeInsets.only(right: screenWidth * 0.04),
+                  padding: EdgeInsets.only(right: Screen.w(context) * 0.04),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -87,7 +87,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                   },
                   icon: SvgPicture.asset(
                     AppIcons.add,
-                    width: screenWidth * 0.07,
+                    width: Screen.w(context) * 0.07,
                     colorFilter: ColorFilter.mode(
                       Theme.of(context).primaryColor,
                       BlendMode.srcIn,
@@ -97,7 +97,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
               ],
             ),
             body: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+              padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
               child: brandState.when(
                 /// ✅ LOADING STATE
                 loading: () => FutureBuilder(
@@ -113,13 +113,13 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.wifi_off, size: 50, color: Colors.grey),
-                      SizedBox(height: screenHeight * 0.01),
+                      SizedBox(height: Screen.h(context) * 0.01),
                       const Text(
                         "No Internet Connection",
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w500),
                       ),
-                      SizedBox(height: screenHeight * 0.01),
+                      SizedBox(height: Screen.h(context) * 0.01),
                       ElevatedButton(
                         onPressed: () {
                           ref.invalidate(loadBrandsControllerProvider); // retry
@@ -133,10 +133,12 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                 /// ✅ DATA STATE
                 data: (brands) {
                   final filteredBrands = brands.where((brand) {
-                    if (selectedFilter == 'Active')
+                    if (selectedFilter == 'Active') {
                       return brand.status?.toLowerCase() == 'active';
-                    if (selectedFilter == 'Inactive')
+                    }
+                    if (selectedFilter == 'Inactive') {
                       return brand.status?.toLowerCase() == 'inactive';
+                    }
                     return true;
                   }).toList();
 
@@ -151,7 +153,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                       children: [
                         /// Filter Chips
                         SizedBox(
-                          height: screenWidth * 0.1,
+                          height: Screen.w(context) * 0.1,
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
                             itemCount: statusOptions.length,
@@ -160,7 +162,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                               final isSelected = status == selectedFilter;
                               return Padding(
                                 padding: EdgeInsets.symmetric(
-                                    horizontal: screenWidth * 0.02),
+                                    horizontal: Screen.w(context) * 0.02),
                                 child: ChoiceChip(
                                   showCheckmark: false,
                                   backgroundColor: Colors.white,
@@ -172,7 +174,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                                           ? Colors.white
                                           : Colors.black87,
                                       fontWeight: FontWeight.w600,
-                                      fontSize: screenWidth * 0.035,
+                                      fontSize: Screen.w(context) * 0.035,
                                     ),
                                   ),
                                   selected: isSelected,
@@ -187,11 +189,11 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                         ),
                         Padding(
                           padding: EdgeInsets.symmetric(
-                              vertical: screenHeight * 0.01),
+                              vertical: Screen.h(context) * 0.01),
                           child: Text(
                             'Showing ${filteredBrands.length} of ${brands.length} brands',
                             style: TextStyle(
-                              fontSize: screenWidth * 0.035,
+                              fontSize: Screen.w(context) * 0.035,
                               color: Colors.grey[600],
                             ),
                           ),
@@ -203,9 +205,9 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                             itemCount: filteredBrands.length,
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: screenWidth > 600 ? 3 : 2,
-                              crossAxisSpacing: screenWidth * 0.04,
-                              mainAxisSpacing: screenWidth * 0.04,
+                              crossAxisCount: Screen.w(context) > 600 ? 3 : 2,
+                              crossAxisSpacing: Screen.w(context) * 0.04,
+                              mainAxisSpacing: Screen.w(context) * 0.04,
                               childAspectRatio: 0.95,
                             ),
                             itemBuilder: (context, index) {
@@ -226,13 +228,13 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                                 child: Card(
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(
-                                        screenWidth * 0.05),
+                                        Screen.w(context) * 0.05),
                                   ),
                                   elevation: 3,
                                   shadowColor: Colors.black12,
                                   color: Colors.white,
                                   child: Padding(
-                                    padding: EdgeInsets.all(screenWidth * 0.03),
+                                    padding: EdgeInsets.all(Screen.w(context) * 0.03),
                                     child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -241,7 +243,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                                           brand.brandName,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            fontSize: screenWidth * 0.045,
+                                            fontSize: Screen.w(context) * 0.045,
                                             fontWeight: FontWeight.bold,
                                             color: Colors.black87,
                                           ),
@@ -253,7 +255,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                                             Text(
                                               'Models: ',
                                               style: TextStyle(
-                                                fontSize: screenWidth * 0.04,
+                                                fontSize: Screen.w(context) * 0.04,
                                                 fontWeight: FontWeight.w500,
                                                 color: Colors.black54,
                                               ),
@@ -262,25 +264,25 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                                               brand.brandModels.length
                                                   .toString(),
                                               style: TextStyle(
-                                                fontSize: screenWidth * 0.045,
+                                                fontSize: Screen.w(context) * 0.045,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.black87,
                                               ),
                                             ),
                                           ],
                                         ),
-                                        SizedBox(height: screenHeight * 0.01),
+                                        SizedBox(height: Screen.h(context) * 0.01),
                                         Container(
                                           padding: EdgeInsets.symmetric(
-                                            horizontal: screenWidth * 0.03,
-                                            vertical: screenHeight * 0.005,
+                                            horizontal: Screen.w(context) * 0.03,
+                                            vertical: Screen.h(context) * 0.005,
                                           ),
                                           decoration: BoxDecoration(
                                             color: isActive
                                                 ? Colors.green[50]
                                                 : Colors.red[50],
                                             borderRadius: BorderRadius.circular(
-                                                screenWidth * 0.03),
+                                                Screen.w(context) * 0.03),
                                           ),
                                           child: Text(
                                             isActive ? 'Active' : 'Inactive',
@@ -288,7 +290,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                                               color: isActive
                                                   ? Colors.green[800]
                                                   : Colors.red[800],
-                                              fontSize: screenWidth * 0.03,
+                                              fontSize: Screen.w(context) * 0.03,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),

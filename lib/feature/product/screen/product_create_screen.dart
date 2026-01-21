@@ -118,7 +118,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
       leading: IconButton(
         icon: SvgPicture.asset(
           AppIcons.back_Arrow,
-          width: screenWidth * 0.07,
+          width: Screen.w(context) * 0.07,
           colorFilter: ColorFilter.mode(
               Theme.of(context).primaryColor,
               BlendMode.srcIn
@@ -141,7 +141,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     final brandController = ref.read(activeBrandControllerProvider.notifier);
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(screenWidth * 0.04),
+      padding: EdgeInsets.all(Screen.w(context) * 0.04),
       child: Form(
         key: _formKey,
         child: Column(
@@ -151,9 +151,9 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
             _buildModelDropdown(brandController),
             ..._buildBasicInputs(),
             ..._buildStockInputs(),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
             _buildSubmitButton(),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
           ],
         ),
       ),
@@ -248,21 +248,21 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
 
   Widget _buildSubmitButton() {
     return SizedBox(
-      width: screenWidth * 0.5,
-      height: screenHeight * 0.06,
+      width: Screen.w(context) * 0.5,
+      height: Screen.h(context) * 0.06,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).primaryColor,
-          padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
+          padding: EdgeInsets.symmetric(vertical: Screen.h(context) * 0.02),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
           ),
         ),
         onPressed: _isSubmitting ? null : _handleSubmit,
         child: _isSubmitting
             ?  SizedBox(
-            height: screenHeight * 0.04,
-            width: screenWidth * 0.05,
+            height: Screen.h(context) * 0.04,
+            width: Screen.w(context) * 0.05,
           child: CircularProgressIndicator(
             color: Colors.grey,
           )
@@ -347,7 +347,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     bool enabled = true,
   }) {
     return Padding(
-      padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+      padding: EdgeInsets.only(bottom: Screen.h(context) * 0.02),
       child: FormField<String>(
         autovalidateMode: _hasAttemptedSubmit
             ? AutovalidateMode.always
@@ -363,7 +363,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: Theme.of(context).textTheme.bodyLarge),
-              SizedBox(height: screenHeight * 0.008),
+              SizedBox(height: Screen.h(context) * 0.008),
               InkWell(
                 onTap: enabled && items.isNotEmpty
                     ? () => _showSingleSelectDialog(context, items, selectedItem, onChanged)
@@ -371,7 +371,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                    borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                     border: Border.all(
                       color: fieldState.hasError ? Colors.red : Colors.grey.shade400,
                       width: 1,
@@ -427,12 +427,12 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
         return Dialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
           ),
           child: Container(
             constraints: BoxConstraints(
-              maxHeight: screenHeight * 0.6,
-              maxWidth: screenWidth * 0.8,
+              maxHeight: Screen.h(context) * 0.6,
+              maxWidth: Screen.w(context) * 0.8,
             ),
             child: StatefulBuilder(
               builder: (context, setDialogState) {
@@ -453,7 +453,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                           hintText: "Search...",
                           prefixIcon: const Icon(Icons.search),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                            borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
                           ),
                         ),
                         onChanged: (value) {
@@ -463,7 +463,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 10),
+                     SizedBox(height: Screen.h(context)*0.02),
                     Flexible(
                       child: Builder(
                         builder: (context) {
@@ -528,12 +528,12 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     Widget? suffixIcon,
   }) {
     return Padding(
-      padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+      padding: EdgeInsets.only(bottom: Screen.h(context) * 0.02),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: Theme.of(context).textTheme.bodyLarge),
-          SizedBox(height: screenHeight * 0.008),
+          SizedBox(height: Screen.h(context) * 0.008),
           TextFormField(
             // ✅ Remove autovalidateMode or set to disabled
             autovalidateMode: _hasAttemptedSubmit
@@ -557,30 +557,30 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
               fillColor: Theme.of(context).focusColor,
               hintText: hint,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: const BorderSide(color: Colors.grey),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: BorderSide(
                   color: Theme.of(context).primaryColor,
                   width: 2,
                 ),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: const BorderSide(color: Colors.red, width: 1),
               ),
               contentPadding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.04,
-                vertical: screenHeight * 0.018,
+                horizontal: Screen.w(context) * 0.04,
+                vertical: Screen.h(context) * 0.018,
               ),
               hintStyle: TextStyle(
-                fontSize: screenWidth * 0.038,
+                fontSize: Screen.w(context) * 0.038,
                 color: Colors.grey[500],
               ),
             ),

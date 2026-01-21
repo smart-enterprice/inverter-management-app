@@ -62,10 +62,9 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
     final ordersAsync = ref.watch(orderControllerProvider);
 
     return ordersAsync.when(
-      loading: () => const Scaffold(body: GlobalLoader()),
+      loading: () => const GlobalLoader(),
       error: (err, st) {
-        return Scaffold(
-            body: Center(
+        return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -84,14 +83,12 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
               ),
             ],
           ),
-        ));
+        );
       },
       data: (orders) {
         final filteredOrders = _filterOrders(orders);
         if (orders.isEmpty) {
-          return Scaffold(
-            backgroundColor: Colors.grey[50],
-            body: Center(
+          return  Center(
               child: Padding(
                 padding: EdgeInsets.all(screenWidth * 0.05),
                 child: Column(
@@ -132,74 +129,17 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                   ],
                 ),
               ),
-            ),
-          );
+            );
         }
-
-        return Scaffold(
-          backgroundColor: Colors.grey[50],
-          appBar: AppBar(
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SvgPicture.asset(
-                  AppIcons.orders,
-                  width: screenWidth * 0.06,
-                  height: screenWidth * 0.06,
-                  colorFilter:
-                      const ColorFilter.mode(Colors.black, BlendMode.srcIn),
-                ),
-                SizedBox(width: screenWidth * 0.02),
-                const Text("Orders"),
-              ],
-            ),
-            leading: IconButton(
-              padding: EdgeInsets.only(left: screenWidth * 0.04),
-              icon: SvgPicture.asset(
-                AppIcons.back_Arrow,
-                width: screenWidth * 0.07,
-                colorFilter: ColorFilter.mode(
-                    Theme.of(context).primaryColor, BlendMode.srcIn),
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
-            actions: [
-              IconButton(
-                padding: EdgeInsets.only(right: screenWidth * 0.02),
-                onPressed: _toggleSearch,
-                icon: SvgPicture.asset(
-                  _isSearching ? AppIcons.close : AppIcons.search,
-                  width: screenWidth * 0.07,
-                  colorFilter: ColorFilter.mode(
-                      Theme.of(context).primaryColor, BlendMode.srcIn),
-                ),
-              ),
-              IconButton(
-                  padding: EdgeInsets.only(right: screenWidth * 0.04),
-                  onPressed: ()=>Navigator.push(context, MaterialPageRoute(builder: (context)=>OrderCreatePage())),
-                  icon: SvgPicture.asset(
-                    AppIcons.add,
-                    width: screenWidth * 0.07,
-                    colorFilter: ColorFilter.mode(
-                        Theme.of(context).primaryColor, BlendMode.srcIn),
-                  ))
-            ],
-            surfaceTintColor: Colors.transparent,
-            centerTitle: true,
-            elevation: 0,
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black,
-            shadowColor: Colors.black12,
-          ),
-          body: Column(
+          return Column(
             children: [
               // Search Bar - Only show when _isSearching is true
-              if (_isSearching)
+              // if (_isSearching)
                 Padding(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
+                  padding: EdgeInsets.symmetric(horizontal:screenWidth * 0.04,vertical: screenHeight*0.01),
                   child: TextField(
                     controller: _searchController,
-                    autofocus: true,
+                    autofocus: false,
                     onChanged: (value) {
                       setState(() {
                         _searchQuery = value;
@@ -302,7 +242,7 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                         child: ListView.builder(
                           padding: EdgeInsets.symmetric(
                             horizontal: screenWidth * 0.04,
-                            vertical: screenHeight * 0.02,
+                            vertical: screenHeight * 0.0,
                           ),
                           itemCount: filteredOrders.length,
                           itemBuilder: (context, index) {
@@ -353,294 +293,109 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                     ),
                                   ],
                                 ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      // Navigate to order details
-                                    },
-                                    child: Padding(
-                                      padding:
-                                          EdgeInsets.all(screenWidth * 0.04),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                child: Padding(
+                                  padding:
+                                      EdgeInsets.all(screenWidth * 0.04),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Header Row
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
-                                          // Header Row
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Row(
-                                                  children: [
-                                                    SvgPicture.asset(
-                                                      AppIcons.orders,
-                                                      width:
-                                                          screenWidth * 0.045,
-                                                      height:
-                                                          screenWidth * 0.045,
-                                                      colorFilter:
-                                                          ColorFilter.mode(
-                                                              Theme.of(context)
-                                                                  .primaryColor,
-                                                              BlendMode.srcIn),
-                                                    ),
-                                                    SizedBox(
-                                                        width: screenWidth *
-                                                            0.015),
-                                                    Expanded(
-                                                      child: Text(
-                                                        "Order #${order.orderNumber}",
-                                                        style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                          fontSize:
-                                                              screenWidth *
-                                                                  0.04,
-                                                          color:
-                                                              Colors.grey[800],
-                                                        ),
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              Container(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal:
-                                                      screenWidth * 0.03,
-                                                  vertical:
-                                                      screenHeight * 0.005,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: isDelivered
-                                                      ? Colors.green[50]
-                                                      : Colors.orange[50],
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: isDelivered
-                                                        ? Colors.green[100]!
-                                                        : Colors.orange[100]!,
-                                                    width: 1,
-                                                  ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    SvgPicture.asset(
-                                                      isDelivered
-                                                          ? AppIcons.delivery
-                                                          : AppIcons.time,
-                                                      width: screenWidth * 0.03,
-                                                      height:
-                                                          screenWidth * 0.03,
-                                                      colorFilter:
-                                                          ColorFilter.mode(
-                                                        isDelivered
-                                                            ? Colors.green[700]!
-                                                            : Colors
-                                                                .orange[700]!,
-                                                        BlendMode.srcIn,
-                                                      ),
-                                                    ),
-                                                    SizedBox(
-                                                        width:
-                                                            screenWidth * 0.01),
-                                                    Text(
-                                                      order.status??'',
-                                                      style: TextStyle(
-                                                        color: isDelivered
-                                                            ? Colors.green[700]
-                                                            : Colors
-                                                                .orange[700],
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        fontSize:
-                                                            screenWidth * 0.03,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(
-                                              height: screenHeight * 0.015),
-                                          // Dealer Information
-                                          Row(
-                                            children: [
-                                              SvgPicture.asset(
-                                                AppIcons.dealers,
-                                                width: screenWidth * 0.04,
-                                                height: screenWidth * 0.04,
-                                                colorFilter: ColorFilter.mode(
-                                                    AppTheme.accentGreen,
-                                                    BlendMode.srcIn),
-                                              ),
-                                              SizedBox(
-                                                  width: screenWidth * 0.02),
-                                              Expanded(
-                                                child: Text(
-                                                  "Dealer: ${order.dealer?.employeeName ?? "N/A"}",
-                                                  style: TextStyle(
-                                                    fontSize:
-                                                        screenWidth * 0.035,
-                                                    color: Colors.grey[700],
-                                                    fontWeight: FontWeight.w400,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(
-                                              height: screenHeight * 0.008),
-                                          Row(
-                                            children: [
-                                              SvgPicture.asset(
-                                                AppIcons.shop,
-                                                width: screenWidth * 0.04,
-                                                height: screenWidth * 0.04,
-                                                colorFilter: ColorFilter.mode(
-                                                    Theme.of(context)
-                                                        .primaryColor,
-                                                    BlendMode.srcIn),
-                                              ),
-                                              SizedBox(
-                                                  width: screenWidth * 0.02),
-                                              Expanded(
-                                                child: Text(
-                                                  "Shop: ${order.dealer?.shopName ?? "-"}",
-                                                  style: TextStyle(
-                                                    fontSize:
-                                                        screenWidth * 0.035,
-                                                    color: Colors.grey[700],
-                                                    fontWeight: FontWeight.w400,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(
-                                              height: screenHeight * 0.008),
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.phone_rounded,
-                                                size: screenWidth * 0.04,
-                                                color: Theme.of(context)
-                                                    .primaryColor,
-                                              ),
-                                              SizedBox(
-                                                  width: screenWidth * 0.02),
-                                              Expanded(
-                                                child: Text(
-                                                  "Phone: ${order.dealer?.employeePhone ?? "-"}",
-                                                  style: TextStyle(
-                                                    fontSize:
-                                                        screenWidth * 0.035,
-                                                    color: Colors.grey[700],
-                                                    fontWeight: FontWeight.w400,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(
-                                              height: screenHeight * 0.008),
-                                          Row(
-                                            children: [
-                                              SvgPicture.asset(
-                                                AppIcons.bills,
-                                                width: screenWidth * 0.04,
-                                                height: screenWidth * 0.04,
-                                                colorFilter:
-                                                    const ColorFilter.mode(
-                                                        Colors.pink,
-                                                        BlendMode.srcIn),
-                                              ),
-                                              SizedBox(
-                                                  width: screenWidth * 0.02),
-                                              Expanded(
-                                                child: Text(
-                                                  "Amount Paid: ₹${order.amountPaid}",
-                                                  style: TextStyle(
-                                                    fontSize:
-                                                        screenWidth * 0.035,
-                                                    color: Colors.grey[700],
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          // Order Summary
-                                          SizedBox(
-                                              height: screenHeight * 0.015),
-                                          Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: screenWidth * 0.03,
-                                              vertical: screenHeight * 0.01,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[50],
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
+                                          Expanded(
                                             child: Row(
                                               children: [
                                                 SvgPicture.asset(
-                                                  AppIcons.box,
-                                                  width: screenWidth * 0.035,
-                                                  height: screenWidth * 0.035,
-                                                  colorFilter: ColorFilter.mode(
-                                                      AppTheme.accentBlue,
-                                                      BlendMode.srcIn),
+                                                  AppIcons.orders,
+                                                  width:
+                                                      screenWidth * 0.045,
+                                                  height:
+                                                      screenWidth * 0.045,
+                                                  colorFilter:
+                                                      ColorFilter.mode(
+                                                          Theme.of(context)
+                                                              .primaryColor,
+                                                          BlendMode.srcIn),
                                                 ),
                                                 SizedBox(
-                                                    width: screenWidth * 0.015),
-                                                Text(
-                                                  "${order.orderDetails.length} item${order.orderDetails.length > 1 ? 's' : ''}",
-                                                  style: TextStyle(
-                                                    fontSize:
-                                                        screenWidth * 0.035,
-                                                    color: Colors.grey[700],
-                                                    fontWeight: FontWeight.w500,
+                                                    width: screenWidth *
+                                                        0.015),
+                                                Expanded(
+                                                  child: Text(
+                                                    "Order #${order.orderNumber}",
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize:
+                                                          screenWidth *
+                                                              0.04,
+                                                      color:
+                                                          Colors.grey[800],
+                                                    ),
+                                                    overflow: TextOverflow
+                                                        .ellipsis,
                                                   ),
                                                 ),
-                                                const Spacer(),
-                                                Container(
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal:
+                                              ],
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal:
+                                                  screenWidth * 0.03,
+                                              vertical:
+                                                  screenHeight * 0.005,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isDelivered
+                                                  ? Colors.green[50]
+                                                  : Colors.orange[50],
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: isDelivered
+                                                    ? Colors.green[100]!
+                                                    : Colors.orange[100]!,
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize:
+                                                  MainAxisSize.min,
+                                              children: [
+                                                SvgPicture.asset(
+                                                  isDelivered
+                                                      ? AppIcons.delivery
+                                                      : AppIcons.time,
+                                                  width: screenWidth * 0.03,
+                                                  height:
+                                                      screenWidth * 0.03,
+                                                  colorFilter:
+                                                      ColorFilter.mode(
+                                                    isDelivered
+                                                        ? Colors.green[700]!
+                                                        : Colors
+                                                            .orange[700]!,
+                                                    BlendMode.srcIn,
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                    width:
+                                                        screenWidth * 0.01),
+                                                Text(
+                                                  order.status??'',
+                                                  style: TextStyle(
+                                                    color: isDelivered
+                                                        ? Colors.green[700]
+                                                        : Colors
+                                                            .orange[700],
+                                                    fontWeight:
+                                                        FontWeight.w600,
+                                                    fontSize:
                                                         screenWidth * 0.03,
-                                                    vertical:
-                                                        screenHeight * 0.005,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: priorityBg,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                    border: Border.all(
-                                                      color: priorityColor
-                                                          .withValues(
-                                                              alpha: 0.2),
-                                                      width: 1,
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    order.priority,
-                                                    style: TextStyle(
-                                                      color: priorityColor,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      fontSize:
-                                                          screenWidth * 0.03,
-                                                    ),
                                                   ),
                                                 ),
                                               ],
@@ -648,7 +403,184 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                           ),
                                         ],
                                       ),
-                                    ),
+                                      SizedBox(
+                                          height: screenHeight * 0.015),
+                                      // Dealer Information
+                                      Row(
+                                        children: [
+                                          SvgPicture.asset(
+                                            AppIcons.dealers,
+                                            width: screenWidth * 0.04,
+                                            height: screenWidth * 0.04,
+                                            colorFilter: ColorFilter.mode(
+                                                AppTheme.accentGreen,
+                                                BlendMode.srcIn),
+                                          ),
+                                          SizedBox(
+                                              width: screenWidth * 0.02),
+                                          Expanded(
+                                            child: Text(
+                                              "Dealer: ${order.dealer?.employeeName ?? "N/A"}",
+                                              style: TextStyle(
+                                                fontSize:
+                                                    screenWidth * 0.035,
+                                                color: Colors.grey[700],
+                                                fontWeight: FontWeight.w400,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(
+                                          height: screenHeight * 0.008),
+                                      Row(
+                                        children: [
+                                          SvgPicture.asset(
+                                            AppIcons.shop,
+                                            width: screenWidth * 0.04,
+                                            height: screenWidth * 0.04,
+                                            colorFilter: ColorFilter.mode(
+                                                Theme.of(context)
+                                                    .primaryColor,
+                                                BlendMode.srcIn),
+                                          ),
+                                          SizedBox(
+                                              width: screenWidth * 0.02),
+                                          Expanded(
+                                            child: Text(
+                                              "Shop: ${order.dealer?.shopName ?? "-"}",
+                                              style: TextStyle(
+                                                fontSize:
+                                                    screenWidth * 0.035,
+                                                color: Colors.grey[700],
+                                                fontWeight: FontWeight.w400,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(
+                                          height: screenHeight * 0.008),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.phone_rounded,
+                                            size: screenWidth * 0.04,
+                                            color: Theme.of(context)
+                                                .primaryColor,
+                                          ),
+                                          SizedBox(
+                                              width: screenWidth * 0.02),
+                                          Expanded(
+                                            child: Text(
+                                              "Phone: ${order.dealer?.employeePhone ?? "-"}",
+                                              style: TextStyle(
+                                                fontSize:
+                                                    screenWidth * 0.035,
+                                                color: Colors.grey[700],
+                                                fontWeight: FontWeight.w400,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(
+                                          height: screenHeight * 0.008),
+                                      Row(
+                                        children: [
+                                          SvgPicture.asset(
+                                            AppIcons.bills,
+                                            width: screenWidth * 0.04,
+                                            height: screenWidth * 0.04,
+                                            colorFilter:
+                                                const ColorFilter.mode(
+                                                    Colors.pink,
+                                                    BlendMode.srcIn),
+                                          ),
+                                          SizedBox(
+                                              width: screenWidth * 0.02),
+                                          Expanded(
+                                            child: Text(
+                                              "Amount Paid: ₹${order.amountPaid}",
+                                              style: TextStyle(
+                                                fontSize:
+                                                    screenWidth * 0.035,
+                                                color: Colors.grey[700],
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      // Order Summary
+                                      SizedBox(
+                                          height: screenHeight * 0.015),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: screenWidth * 0.03,
+                                          vertical: screenHeight * 0.01,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[50],
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            SvgPicture.asset(
+                                              AppIcons.box,
+                                              width: screenWidth * 0.035,
+                                              height: screenWidth * 0.035,
+                                              colorFilter: ColorFilter.mode(
+                                                  AppTheme.accentBlue,
+                                                  BlendMode.srcIn),
+                                            ),
+                                            SizedBox(
+                                                width: screenWidth * 0.015),
+                                            Text(
+                                              "${order.orderDetails.length} item${order.orderDetails.length > 1 ? 's' : ''}",
+                                              style: TextStyle(
+                                                fontSize:
+                                                    screenWidth * 0.035,
+                                                color: Colors.grey[700],
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            Container(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal:
+                                                    screenWidth * 0.03,
+                                                vertical:
+                                                    screenHeight * 0.005,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: priorityBg,
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                        8),
+                                                border: Border.all(
+                                                  color: priorityColor
+                                                      .withValues(
+                                                          alpha: 0.2),
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                order.priority,
+                                                style: TextStyle(
+                                                  color: priorityColor,
+                                                  fontWeight:
+                                                      FontWeight.w600,
+                                                  fontSize:
+                                                      screenWidth * 0.03,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -658,8 +590,7 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                       ),
               ),
             ],
-          ),
-        );
+          );
       },
     );
   }

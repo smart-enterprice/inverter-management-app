@@ -103,7 +103,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       context: context,
       builder: (BuildContext context,) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(screenWidth * 0.04)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Screen.w(context) * 0.04)),
           title: const Text('Select Photo'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -152,7 +152,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
         data: (brands) {
           // ✅ Full form when brands are loaded
           return Padding(
-            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+            padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
             child: SingleChildScrollView(
               child: Form(
                 key: _formKey,
@@ -168,9 +168,9 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                     _buildInputField(label: 'Town', hint: 'Enter Town', controller: _townController),
                     _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
                     _buildBrandDropdown(ref), // ✅ brands loaded here
-                    SizedBox(height: screenHeight * 0.03),
+                    SizedBox(height: Screen.h(context) * 0.03),
                     Center(child: _buildSubmitButton(_handleSubmit)),
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: Screen.h(context) * 0.02),
                   ],
                 ),
               ),
@@ -180,7 +180,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
         loading: () {
           // ⏳ Show shimmer placeholders for whole body
           return Padding(
-            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+            padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,15 +203,15 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
               if (snapshot.connectionState != ConnectionState.done) {
                 // Show shimmer placeholders during 2 sec delay
                     return  Padding(
-                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                      padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _shimmerCircle(), // profile image placeholder
-                          SizedBox(height: screenHeight*0.01),
+                          SizedBox(height: Screen.h(context)*0.01),
                           ...List.generate(
                               7, (_) => _shimmerBox()), // input fields shimmer
-                          SizedBox(height: screenHeight*0.13),
+                          SizedBox(height: Screen.h(context)*0.13),
                           Center(child: _shimmerButton()), // submit button shimmer
                         ],
                       ),
@@ -228,7 +228,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                       "No Internet Connection",
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                     ),
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: Screen.h(context) * 0.01),
                     ElevatedButton(
                       onPressed: () {
                         ref.invalidate(loadBrandsControllerProvider); // retry
@@ -250,7 +250,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       elevation: 0,
       leading: IconButton(
-        icon: SvgPicture.asset(AppIcons.back_Arrow, width: screenWidth * 0.06,colorFilter:ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn) ,),
+        icon: SvgPicture.asset(AppIcons.back_Arrow, width: Screen.w(context) * 0.06,colorFilter:ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn) ,),
         onPressed: () => Navigator.pop(context),
       ),
       centerTitle: true,
@@ -260,7 +260,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
 
   Widget _buildProfileImageSection() {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
+      padding: EdgeInsets.symmetric(vertical: Screen.h(context) * 0.02),
       child: Row(
         children: [
           GestureDetector(
@@ -268,7 +268,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
             child: Stack(
               children: [
                 CircleAvatar(
-                  radius: screenWidth * 0.08,
+                  radius: Screen.w(context) * 0.08,
                   backgroundImage: _selectedImage != null
                       ? FileImage(_selectedImage!)
                       : const NetworkImage('https://i.pravatar.cc/150?img=3') as ImageProvider,
@@ -277,7 +277,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                   bottom: 0,
                   right: 0,
                   child: Container(
-                    padding: EdgeInsets.all(screenWidth * 0.02),
+                    padding: EdgeInsets.all(Screen.w(context) * 0.02),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryColor,
                       shape: BoxShape.circle,
@@ -286,7 +286,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                     child: Icon(
                       Icons.camera_alt,
                       color: Colors.white,
-                      size: screenWidth * 0.04,
+                      size: Screen.w(context) * 0.04,
                     ),
                   ),
                 ),
@@ -294,16 +294,16 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
             ),
           ),
 
-          SizedBox(width: screenWidth * 0.04),
+          SizedBox(width: Screen.w(context) * 0.04),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Profile Image', style: TextStyle(fontSize: screenWidth * 0.04, fontWeight: FontWeight.w600, color: Colors.black87)),
-                SizedBox(height: screenHeight * 0.005),
+                Text('Profile Image', style: TextStyle(fontSize: Screen.w(context) * 0.04, fontWeight: FontWeight.w600, color: Colors.black87)),
+                SizedBox(height: Screen.h(context) * 0.005),
                 Text(
                   _selectedImage != null ? 'Tap to change photo' : 'Tap to add photo',
-                  style: TextStyle(fontSize: screenWidth * 0.032, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: Screen.w(context) * 0.032, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -323,12 +323,12 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
     Widget? suffixIcon,
   }) {
     return Padding(
-      padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+      padding: EdgeInsets.only(bottom: Screen.h(context) * 0.02),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: Theme.of(context).textTheme.bodyLarge),
-          SizedBox(height: screenHeight * 0.008),
+          SizedBox(height: Screen.h(context) * 0.008),
           TextFormField(
             autovalidateMode: AutovalidateMode.disabled,
             controller: controller,
@@ -349,23 +349,23 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
               fillColor: Theme.of(context).focusColor,
               hintText: hint,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: BorderSide(color: Colors.grey),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: BorderSide(color:Theme.of(context).primaryColor, width: 2),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: const BorderSide(color: Colors.red, width: 1),
               ),
-              contentPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.018),
-              hintStyle: TextStyle(fontSize: screenWidth * 0.038, color: Colors.grey[500]),
+              contentPadding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04, vertical: Screen.h(context) * 0.018),
+              hintStyle: TextStyle(fontSize: Screen.w(context) * 0.038, color: Colors.grey[500]),
             ),
           ),
         ],
@@ -377,7 +377,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
   Widget _buildBrandDropdown(WidgetRef ref) {
     final brandState = ref.watch(loadBrandsControllerProvider);
     return Padding(
-      padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+      padding: EdgeInsets.only(bottom: Screen.h(context) * 0.02),
       child: FormField<List<String>>(
         validator: (value) {
           if (_selectedBrands.isEmpty) {
@@ -391,7 +391,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text('Brands', style: Theme.of(context).textTheme.bodyLarge),
-                SizedBox(height: screenHeight * 0.008),
+                SizedBox(height: Screen.h(context) * 0.008),
                 brandState.when(
                   data: (brands) {
                     return InkWell(
@@ -399,7 +399,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                          borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                           border: Border.all(
                             color: fieldState.hasError
                                 ? Colors.red
@@ -465,7 +465,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
         return AlertDialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
           ),
           title: const Text("Select Brands"),
           content: StatefulBuilder(
@@ -488,10 +488,10 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                         hintText: "Search brand...",
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(screenWidth*0.04),
+                          borderRadius: BorderRadius.circular(Screen.w(context)*0.04),
                         ),
                         contentPadding:
-                         EdgeInsets.symmetric(horizontal: screenWidth*0.1, vertical: screenHeight*0.01),
+                         EdgeInsets.symmetric(horizontal: Screen.w(context)*0.1, vertical: Screen.h(context)*0.01),
                       ),
                       onChanged: (value) {
                         setState(() {
@@ -576,12 +576,12 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
 
   Widget _buildDistrictDropdown() {
     return Padding(
-      padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+      padding: EdgeInsets.only(bottom: Screen.h(context) * 0.02),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('District', style: Theme.of(context).textTheme.bodyLarge),
-          SizedBox(height: screenHeight * 0.008),
+          SizedBox(height: Screen.h(context) * 0.008),
           FormField<String>(
             validator: (value) => value == null ? 'Please select a District' : null,
             builder: (state) {
@@ -592,15 +592,15 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: Theme.of(context).focusColor,
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                         border: Border.all(
                           color: state.hasError
                               ? Colors.red
                               : Theme.of(context).scaffoldBackgroundColor,
                         ),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                      height: screenHeight * 0.065,
+                      padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.02),
+                      height: Screen.h(context) * 0.065,
                       alignment: Alignment.centerLeft,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -609,7 +609,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                             _selectedDistrict != null
                                 ? _selectedDistrict!.replaceAll('District', '').replaceAll('_', ' ')
                                 : 'Select District',
-                            style: TextStyle(fontSize: screenWidth * 0.038),
+                            style: TextStyle(fontSize: Screen.w(context) * 0.038),
                           ),
                           Icon(
                             isRoleDropdownOpen
@@ -623,7 +623,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                   SizedBox(height: 5),
                   ExpandedSection(
                     expand: isRoleDropdownOpen,
-                    height: screenHeight*0.01,
+                    height: Screen.h(context)*0.01,
                     child: MyScrollbar(
                       builder: (context, scrollController) => ListView.builder(
                         controller: _roleScrollController,
@@ -634,7 +634,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                           return RadioListTile<String>(
                             title: Text(
                               role.replaceAll('District', '').replaceAll('_', ' '),
-                              style: TextStyle(fontSize: screenWidth * 0.038),
+                              style: TextStyle(fontSize: Screen.w(context) * 0.038),
                             ),
                             value: role,
                             groupValue: _selectedDistrict,
@@ -668,8 +668,8 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
   }
   Widget _buildSubmitButton(VoidCallback onTap) {
     return SizedBox(
-      width: screenWidth * 0.5,
-      height: screenHeight*0.06,
+      width: Screen.w(context) * 0.5,
+      height: Screen.h(context)*0.06,
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
@@ -730,6 +730,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        ref.watch(dealerListProvider);
         Navigator.pop(context); // Go back
       }
     }
@@ -743,7 +744,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       highlightColor: Colors.grey.shade100,
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 8),
-        height: screenHeight * 0.06,
+        height: Screen.h(context) * 0.06,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
@@ -758,7 +759,7 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: CircleAvatar(
-        radius: screenWidth * 0.1,
+        radius: Screen.w(context) * 0.1,
         backgroundColor: Colors.white,
       ),
     );
@@ -770,8 +771,8 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: Container(
-        width: screenWidth * 0.5,
-        height: screenHeight * 0.06,
+        width: Screen.w(context) * 0.5,
+        height: Screen.h(context) * 0.06,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),

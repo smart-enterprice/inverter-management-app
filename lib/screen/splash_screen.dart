@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:inverter_management_app/screen/superAdmin_home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/media_query/media_query.dart';
-import '../feature/authentication/screen/login_screen.dart';
+import '../feature/authentication/screen/login_mobile_view.dart';
+import '../feature/authentication/screen/login_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,7 +12,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   // Modern Blue Color Palette
   static const Color primaryBlue = Color(0xFF0066FF);
   static const Color darkBlue = Color(0xFF0047CC);
@@ -76,25 +78,28 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final role = prefs.getString('user_role');
 
     if (!isLoggedIn || role == null) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const LoginPage()));
       return;
     }
 
     switch (role) {
       case 'ROLE_SUPER_ADMIN':
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SuperAdminHomeScreen()));
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (_) => const SuperAdminHomePage()));
         break;
       case 'ROLE_ADMIN':
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
+        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
         break;
       case 'ROLE_SALESMAN':
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesmanHomeScreen()));
+        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesmanHomeScreen()));
         break;
       case 'ROLE_ACCOUNT':
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AccountHomeScreen()));
+        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AccountHomeScreen()));
         break;
       default:
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const LoginPage()));
     }
   }
 
@@ -221,7 +226,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                                   letterSpacing: 3.0,
                                   shadows: [
                                     Shadow(
-                                      color: _colorAnimation.value!.withAlpha(150),
+                                      color:
+                                          _colorAnimation.value!.withAlpha(150),
                                       blurRadius: 20,
                                       offset: const Offset(0, 0),
                                     ),
@@ -319,8 +325,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   List<Widget> _buildFloatingParticles() {
     return List.generate(8, (index) {
       return Positioned(
-        left: (screenWidth * 0.2) + (index * 100) % screenWidth,
-        top: (screenHeight * 0.3) + (index * 80) % screenHeight,
+        left: (Screen.w(context) * 0.2) + (index * 100) % Screen.w(context),
+        top: (Screen.h(context) * 0.3) + (index * 80) % Screen.h(context),
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: Container(
@@ -331,7 +337,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: (index % 2 == 0 ? neonBlue : primaryBlue).withAlpha(100),
+                  color:
+                      (index % 2 == 0 ? neonBlue : primaryBlue).withAlpha(100),
                   blurRadius: 8,
                 ),
               ],

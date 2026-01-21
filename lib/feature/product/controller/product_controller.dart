@@ -72,10 +72,18 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
     try {
       await _ref.read(productRepositoryProvider).updateProduct(productId, updatedProduct);
       await fetchProducts();
-    } catch (e) {
+    } on DioException catch (e) {
+      // You can log here
+      print("DIO ERROR: ${e.response?.data}");
+
+      // Rethrow a cleaner error
       rethrow;
+    } catch (e) {
+      // Any non-Dio error
+     rethrow;
     }
   }
+
 
   /// Update Stock
   Future<void> updateStock(StockUpdate updatedStock) async {

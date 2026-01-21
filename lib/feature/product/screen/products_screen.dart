@@ -37,7 +37,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               "No Internet Connection",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
-            SizedBox(height: screenHeight * 0.01),
+            SizedBox(height: Screen.h(context) * 0.01),
             ElevatedButton(
               onPressed: () {
                 ref.read(productControllerProvider.notifier).fetchProducts();
@@ -62,10 +62,10 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             elevation: 1,
             leading: IconButton(
-              padding: EdgeInsets.only(left: screenWidth * 0.04),
+              padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
               icon: SvgPicture.asset(
                 AppIcons.back_Arrow,
-                width: screenWidth * 0.07,
+                width: Screen.w(context) * 0.07,
                 colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
               ),
               onPressed: () => Navigator.pop(context),
@@ -77,7 +77,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             ),
             actions: [
               IconButton(
-                padding: EdgeInsets.only(right: screenWidth * 0.04),
+                padding: EdgeInsets.only(right: Screen.w(context) * 0.04),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -86,7 +86,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 },
                 icon: SvgPicture.asset(
                   AppIcons.add,
-                  width: screenWidth * 0.07,
+                  width: Screen.w(context) * 0.07,
                   colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
                 ),
               ),
@@ -103,15 +103,15 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 // Header Section with Filter and Stats
                 Container(
                   padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.04,
-                    vertical: screenHeight * 0.02,
+                    horizontal: Screen.w(context) * 0.04,
+                    vertical: Screen.h(context) * 0.02,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Filter Chips
                       SizedBox(
-                        height: screenWidth * 0.1,
+                        height: Screen.w(context) * 0.1,
                         child: ListView.builder(
 
                           scrollDirection: Axis.horizontal,
@@ -120,7 +120,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                             final status = statusOptions[index];
                             final isSelected = status == selectedFilter;
                             return Padding(
-                              padding: EdgeInsets.only(right: screenWidth * 0.03),
+                              padding: EdgeInsets.only(right: Screen.w(context) * 0.03),
                               child: FilterChip(
                                 showCheckmark: false,
                                 backgroundColor: Colors.white,
@@ -130,7 +130,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                   style: TextStyle(
                                     color: isSelected ? Colors.white : Colors.grey[800],
                                     fontWeight: FontWeight.w600,
-                                    fontSize: screenWidth * 0.035,
+                                    fontSize: Screen.w(context) * 0.035,
                                   ),
                                 ),
                                 selected: isSelected,
@@ -142,7 +142,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                           },
                         ),
                       ),
-                      SizedBox(height: screenHeight * 0.01),
+                      SizedBox(height: Screen.h(context) * 0.01),
                       // Statistics Row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -150,15 +150,15 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                           Text(
                             'Products',
                             style: TextStyle(
-                              fontSize: screenWidth * 0.045,
+                              fontSize: Screen.w(context) * 0.045,
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).primaryColor,
                             ),
                           ),
                           Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: screenWidth * 0.03,
-                              vertical: screenHeight * 0.005,
+                              horizontal: Screen.w(context) * 0.03,
+                              vertical: Screen.h(context) * 0.005,
                             ),
                             decoration: BoxDecoration(
                               color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
@@ -167,7 +167,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                             child: Text(
                               '${filteredProducts.length} of ${products.length}',
                               style: TextStyle(
-                                fontSize: screenWidth * 0.035,
+                                fontSize: Screen.w(context) * 0.035,
                                 fontWeight: FontWeight.w600,
                                 color: Theme.of(context).primaryColor,
                               ),
@@ -184,9 +184,9 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   child: filteredProducts.isEmpty
                       ? _buildEmptyState()
                       : ListView.separated(
-                    padding: EdgeInsets.only(left: screenWidth * 0.04,right: screenWidth * 0.04,bottom: screenHeight * 0.02),
+                    padding: EdgeInsets.only(left: Screen.w(context) * 0.04,right: Screen.w(context) * 0.04,bottom: Screen.h(context) * 0.02),
                     itemCount: filteredProducts.length,
-                    separatorBuilder: (context, index) => SizedBox(height: screenHeight * 0.015),
+                    separatorBuilder: (context, index) => SizedBox(height: Screen.h(context) * 0.015),
                     itemBuilder: (context, index) {
                       final product = filteredProducts[index];
                       final isActive = product.status?.toLowerCase() == 'active';
@@ -209,23 +209,23 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
         children: [
           Icon(
             Icons.inventory_2_outlined,
-            size: screenWidth * 0.2,
+            size: Screen.w(context) * 0.2,
             color: Colors.grey[300],
           ),
-          SizedBox(height: screenHeight * 0.02),
+          SizedBox(height: Screen.h(context) * 0.02),
           Text(
             'No products found',
             style: TextStyle(
-              fontSize: screenWidth * 0.045,
+              fontSize: Screen.w(context) * 0.045,
               fontWeight: FontWeight.w600,
               color: Colors.grey[600],
             ),
           ),
-          SizedBox(height: screenHeight * 0.01),
+          SizedBox(height: Screen.h(context) * 0.01),
           Text(
             'Try changing your filter or add a new product',
             style: TextStyle(
-              fontSize: screenWidth * 0.035,
+              fontSize: Screen.w(context) * 0.035,
               color: Colors.grey[500],
             ),
             textAlign: TextAlign.center,
@@ -252,10 +252,10 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           );
         },
         child: Container(
-          padding: EdgeInsets.all(screenWidth * 0.04),
+          padding: EdgeInsets.all(Screen.w(context) * 0.04),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(screenWidth * 0.04),
+            borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,7 +269,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                       product.productName ?? 'Unnamed Product',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: screenWidth * 0.045,
+                        fontSize: Screen.w(context) * 0.045,
                         color: Colors.grey[800],
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -277,12 +277,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   ),
                   Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.03,
-                      vertical: screenHeight * 0.006,
+                      horizontal: Screen.w(context) * 0.03,
+                      vertical: Screen.h(context) * 0.006,
                     ),
                     decoration: BoxDecoration(
                       color: isActive ? Colors.green[50] : Colors.red[50],
-                      borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                      borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                       border: Border.all(
                         color: isActive ? Colors.green[100]! : Colors.red[100]!,
                         width: 1,
@@ -292,19 +292,19 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: screenWidth*0.02,
-                          height: screenHeight*0.01,
+                          width: Screen.w(context)*0.02,
+                          height: Screen.h(context)*0.01,
                           decoration: BoxDecoration(
                             color: isActive ? Colors.green : Colors.red,
                             shape: BoxShape.circle,
                           ),
                         ),
-                        SizedBox(width: screenWidth * 0.015),
+                        SizedBox(width: Screen.w(context) * 0.015),
                         Text(
                           isActive ? 'Active' : 'Inactive',
                           style: TextStyle(
                             color: isActive ? Colors.green[800] : Colors.red[800],
-                            fontSize: screenWidth * 0.03,
+                            fontSize: Screen.w(context) * 0.03,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -313,68 +313,68 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: screenHeight * 0.008),
+              SizedBox(height: Screen.h(context) * 0.008),
               // Product Details
               Row(
                 children: [
                   SvgPicture.asset(
                     AppIcons.brand,
-                    width: screenWidth * 0.05,
+                    width: Screen.w(context) * 0.05,
                     colorFilter: ColorFilter.mode(AppTheme.accentRed, BlendMode.srcIn),
                   ),
-                  SizedBox(width: screenWidth * 0.015),
+                  SizedBox(width: Screen.w(context) * 0.015),
                   Text(
                     product.brand ?? 'No model',
                     style: TextStyle(
-                      fontSize: screenWidth * 0.035,
+                      fontSize: Screen.w(context) * 0.035,
                       color: Colors.grey[600],
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: screenHeight * 0.005),
+              SizedBox(height: Screen.h(context) * 0.005),
               Row(
                 children: [
                   SvgPicture.asset(
                     AppIcons.model,
-                    width: screenWidth * 0.05,
+                    width: Screen.w(context) * 0.05,
                     colorFilter: ColorFilter.mode(AppTheme.accentYellow, BlendMode.srcIn),
                   ),
-                  SizedBox(width: screenWidth * 0.015),
+                  SizedBox(width: Screen.w(context) * 0.015),
                   Text(
                     product.model ?? 'No model',
                     style: TextStyle(
-                      fontSize: screenWidth * 0.035,
+                      fontSize: Screen.w(context) * 0.035,
                       color: Colors.grey[600],
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: screenHeight * 0.005),
+              SizedBox(height: Screen.h(context) * 0.005),
               Row(
                 children: [
                   SvgPicture.asset(
                     AppIcons.type,
-                    width: screenWidth * 0.05,
+                    width: Screen.w(context) * 0.05,
                     colorFilter: ColorFilter.mode(AppTheme.accentBlue, BlendMode.srcIn),
                   ),
-                  SizedBox(width: screenWidth * 0.015),
+                  SizedBox(width: Screen.w(context) * 0.015),
                   Text(
                     product.productType ?? 'No type',
                     style: TextStyle(
-                      fontSize: screenWidth * 0.035,
+                      fontSize: Screen.w(context) * 0.035,
                       color: Colors.grey[600],
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: screenHeight * 0.015),
+              SizedBox(height: Screen.h(context) * 0.015),
               // Stock Information
               Container(
-                padding: EdgeInsets.all(screenWidth * 0.03),
+                padding: EdgeInsets.all(Screen.w(context) * 0.03),
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Screen.w(context)*0.02),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -385,7 +385,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   ],
                 ),
               ),
-              SizedBox(height: screenHeight * 0.01),
+              SizedBox(height: Screen.h(context) * 0.01),
               // Price and Bottom Section
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -393,7 +393,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   Text(
                     'Price:',
                     style: TextStyle(
-                      fontSize: screenWidth * 0.035,
+                      fontSize: Screen.w(context) * 0.035,
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[700],
                     ),
@@ -401,7 +401,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   Text(
                     '₹${product.price ?? '0.00'}',
                     style: TextStyle(
-                      fontSize: screenWidth * 0.04,
+                      fontSize: Screen.w(context) * 0.04,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).primaryColor,
                     ),
@@ -420,14 +420,14 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
       children: [
         SvgPicture.asset(
           icon,
-          width: screenWidth * 0.07,
+          width: Screen.w(context) * 0.07,
           colorFilter: ColorFilter.mode(color!, BlendMode.srcIn),
         ),
         SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontSize: screenWidth * 0.04,
+            fontSize: Screen.w(context) * 0.04,
             fontWeight: FontWeight.bold,
             color: Colors.grey[800],
           ),
@@ -435,7 +435,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
         Text(
           label,
           style: TextStyle(
-            fontSize: screenWidth * 0.03,
+            fontSize: Screen.w(context) * 0.03,
             color: Colors.grey[600],
           ),
         ),

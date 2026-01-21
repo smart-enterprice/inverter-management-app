@@ -43,11 +43,11 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     return Scaffold(
       appBar: _buildAppBar(),
       bottomNavigationBar: Container(
-        padding: EdgeInsets.all(screenWidth * 0.05),
+        padding: EdgeInsets.all(Screen.w(context) * 0.05),
         child: ElevatedButton(
           onPressed: _canCreateOrder() ? _createOrder : null,
           style: ElevatedButton.styleFrom(
-            minimumSize: Size.fromHeight(screenHeight * 0.06),
+            minimumSize: Size.fromHeight(Screen.h(context) * 0.06),
           ),
           child: isCreatingOrder
               ? const SizedBox(
@@ -66,16 +66,16 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
           children: [
             // Existing dealer, brand, salesman selection buttons...
             Container(
-              width: screenWidth * 0.9,
-              height: screenHeight * 0.3,
+              width: Screen.w(context) * 0.9,
+              height: Screen.h(context) * 0.3,
               decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                  borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
                   color: Colors.white),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: screenWidth * 0.8,
+                    width: Screen.w(context) * 0.8,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -84,7 +84,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                         side: BorderSide(color: Colors.grey, width: 1),
                         shape: RoundedRectangleBorder(
                           borderRadius:
-                              BorderRadius.circular(screenWidth * 0.03),
+                              BorderRadius.circular(Screen.w(context) * 0.03),
                         ),
                       ),
                       onPressed: () => _showSalesmanDialog(context),
@@ -93,9 +93,9 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                           : selectedSalesman!.employeeName),
                     ),
                   ),
-                  SizedBox(height: screenWidth * 0.02),
+                  SizedBox(height: Screen.h(context) * 0.02),
                   SizedBox(
-                    width: screenWidth * 0.8,
+                    width: Screen.w(context) * 0.8,
                     child: ElevatedButton(
                       onPressed: () => _showDealerDialog(context),
                       style: ElevatedButton.styleFrom(
@@ -105,7 +105,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                         side: BorderSide(color: Colors.grey, width: 1),
                         shape: RoundedRectangleBorder(
                           borderRadius:
-                              BorderRadius.circular(screenWidth * 0.03),
+                              BorderRadius.circular(Screen.w(context) * 0.03),
                         ),
                       ),
                       child: Text(
@@ -115,9 +115,9 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: screenWidth * 0.02),
+                  SizedBox(height: Screen.h(context) * 0.02),
                   SizedBox(
-                    width: screenWidth * 0.8,
+                    width: Screen.w(context) * 0.8,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -126,7 +126,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                         side: BorderSide(color: Colors.grey, width: 1),
                         shape: RoundedRectangleBorder(
                           borderRadius:
-                              BorderRadius.circular(screenWidth * 0.03),
+                              BorderRadius.circular(Screen.w(context) * 0.03),
                         ),
                       ),
                       onPressed: selectedDealer == null
@@ -138,9 +138,9 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                           : selectedBrand!.brandName),
                     ),
                   ),
-                  SizedBox(height: screenWidth * 0.02),
+                  SizedBox(height: Screen.h(context) * 0.02),
                   SizedBox(
-                    width: screenWidth * 0.8,
+                    width: Screen.w(context) * 0.8,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -149,7 +149,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                         side: BorderSide(color: Colors.grey, width: 1),
                         shape: RoundedRectangleBorder(
                           borderRadius:
-                              BorderRadius.circular(screenWidth * 0.03),
+                              BorderRadius.circular(Screen.w(context) * 0.03),
                         ),
                       ),
                       onPressed: selectedBrand == null
@@ -164,18 +164,18 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                 ],
               ),
             ),
-            SizedBox(height: screenHeight * 0.03),
+            SizedBox(height: Screen.h(context) * 0.03),
             // Selected Products List
             if (selectedProducts.isNotEmpty) ...[
               Container(
-                width: screenWidth * 0.9,
+                width: Screen.w(context) * 0.9,
                 decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                    borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
                     color: Colors.white),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    SizedBox(height: screenHeight * 0.03),
+                    SizedBox(height: Screen.h(context) * 0.03),
                     Center(
                       child: Text(
                         'Selected Products (${selectedProducts.length})',
@@ -185,7 +185,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                 ),
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: Screen.h(context) * 0.01),
                     // if (selectedProducts.isNotEmpty)
                     ListView.builder(
                       shrinkWrap: true,
@@ -198,15 +198,15 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                       },
                     ),
                     // divider
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: Screen.h(context) * 0.01),
                     Center(
                       child:
-                          SizedBox(width: screenWidth * 0.8, child: Divider()),
+                          SizedBox(width: Screen.w(context) * 0.8, child: Divider()),
                     ),
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: Screen.h(context) * 0.01),
                     // ▼▼▼ ORDER TOTAL ▼▼▼
                     Padding(
-                      padding: EdgeInsets.only(right: screenWidth * 0.05),
+                      padding: EdgeInsets.only(right: Screen.w(context) * 0.05),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -225,20 +225,20 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                         ],
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: Screen.h(context) * 0.02),
                   ],
                 ),
               ),
             ],
-            SizedBox(height: screenHeight * 0.015),
+            SizedBox(height: Screen.h(context) * 0.015),
             Center(
               child: Container(
                 padding: EdgeInsets.symmetric(
-                    vertical: screenHeight * 0.02,
-                    horizontal: screenWidth * 0.05),
-                width: screenWidth * 0.9,
+                    vertical: Screen.h(context) * 0.02,
+                    horizontal: Screen.w(context) * 0.05),
+                width: Screen.w(context) * 0.9,
                 decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                    borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
                     color: Colors.white),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,7 +249,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                             fontWeight: FontWeight.bold,
                             fontSize: 16)),
                     SizedBox(
-                      height: screenHeight * 0.02,
+                      height: Screen.h(context) * 0.02,
                     ),
                     TextFormField(
                       controller: orderNoteController,
@@ -265,7 +265,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                       ),
                     ),
                     // Priority selection
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: Screen.h(context) * 0.02),
                     Text(
                       'Order Priority',
                       style: TextStyle(
@@ -274,7 +274,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                         fontSize: 14,
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: Screen.h(context) * 0.02),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: priorities.map((p) {
@@ -320,7 +320,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                     ),
 
                     // Amount field
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: Screen.h(context) * 0.02),
                     TextFormField(
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
@@ -335,7 +335,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                       },
                     ),
                     // Payment method
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: Screen.h(context) * 0.02),
                     Text(
                       'Order Priority',
                       style: TextStyle(
@@ -364,7 +364,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                             ),
                           ],
                         ),
-                        SizedBox(width: screenWidth*0.05), // spacing
+                        SizedBox(width: Screen.w(context)*0.05), // spacing
                         Row(
                           children: [
                             Radio<String>(
@@ -407,7 +407,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
       leading: IconButton(
         icon: SvgPicture.asset(
           AppIcons.back_Arrow,
-          width: screenWidth * 0.07,
+          width: Screen.w(context) * 0.07,
           colorFilter:
               ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
         ),
@@ -448,7 +448,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                       ),
                       onChanged: (val) => query.value = val.toLowerCase(),
                     ),
-                    SizedBox(height: screenHeight * 0.03),
+                    SizedBox(height: Screen.h(context) * 0.03),
                     Expanded(
                       child: ValueListenableBuilder<String>(
                         valueListenable: query,
@@ -468,10 +468,10 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                               final dealer = filtered[i];
                               return Container(
                                 margin:
-                                    EdgeInsets.only(bottom: screenWidth * 0.01),
+                                    EdgeInsets.only(bottom: Screen.w(context) * 0.01),
                                 decoration: BoxDecoration(
                                   borderRadius:
-                                      BorderRadius.circular(screenWidth * 0.03),
+                                      BorderRadius.circular(Screen.w(context) * 0.03),
                                   border: Border.all(
                                       color: Colors.grey, width: 0.8),
                                 ),
@@ -550,7 +550,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                       ),
                       onChanged: (val) => query.value = val.toLowerCase(),
                     ),
-                    SizedBox(height: screenHeight * 0.03),
+                    SizedBox(height: Screen.h(context) * 0.03),
                     Expanded(
                       child: ValueListenableBuilder<String>(
                         valueListenable: query,
@@ -569,10 +569,10 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                               final brand = filtered[i];
                               return Container(
                                 margin:
-                                    EdgeInsets.only(bottom: screenWidth * 0.01),
+                                    EdgeInsets.only(bottom: Screen.w(context) * 0.01),
                                 decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(
-                                        screenWidth * 0.03),
+                                        Screen.w(context) * 0.03),
                                     border: Border.all(
                                         color: Colors.grey, width: 0.8)),
                                 child: ListTile(
@@ -644,7 +644,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                       ),
                       onChanged: (val) => query.value = val.toLowerCase(),
                     ),
-                    SizedBox(height: screenWidth * 0.05),
+                    SizedBox(height: Screen.w(context) * 0.05),
                     Expanded(
                       child: ValueListenableBuilder<String>(
                         valueListenable: query,
@@ -666,10 +666,10 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                               final salesman = filtered[i];
                               return Container(
                                 margin:
-                                    EdgeInsets.only(bottom: screenWidth * 0.01),
+                                    EdgeInsets.only(bottom: Screen.w(context) * 0.01),
                                 decoration: BoxDecoration(
                                   borderRadius:
-                                      BorderRadius.circular(screenWidth * 0.03),
+                                      BorderRadius.circular(Screen.w(context) * 0.03),
                                   border: Border.all(
                                       color: Colors.grey, width: 0.8),
                                 ),
@@ -732,9 +732,9 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     return Card(
       color: Colors.white,
       margin: EdgeInsets.symmetric(
-          horizontal: screenWidth * 0.05, vertical: screenWidth * 0.01),
+          horizontal: Screen.w(context) * 0.05, vertical: Screen.w(context) * 0.01),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(Screen.w(context) * 0.04),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -774,7 +774,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                               color: Colors.grey[600],
                             ),
                           ),
-                          SizedBox(width: screenWidth * 0.02),
+                          SizedBox(width: Screen.w(context) * 0.02),
                           Text(
                             selectedProduct.product?.productType?.toString() ??
                                 selectedProduct.productType,
@@ -807,7 +807,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
               ],
             ),
 
-            SizedBox(height: screenHeight * 0.015),
+            SizedBox(height: Screen.h(context) * 0.015),
             // Quantity
             const Text(
               'Quantity:',
@@ -817,7 +817,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                 fontSize: 16,
               ),
             ),
-            SizedBox(height: screenHeight * 0.015),
+            SizedBox(height: Screen.h(context) * 0.015),
             Row(
               children: [
                 GestureDetector(
@@ -832,29 +832,29 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.015,
-                        vertical: screenWidth * 0.01),
+                        horizontal: Screen.w(context) * 0.015,
+                        vertical: Screen.w(context) * 0.01),
                     decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                        borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
                         border: Border.all(width: 1, color: Colors.grey)),
                     child: Icon(Icons.remove),
                   ),
                 ),
-                SizedBox(width: screenWidth * 0.02),
+                SizedBox(width: Screen.w(context) * 0.02),
                 Container(
                   padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.05,
-                      vertical: screenWidth * 0.01),
+                      horizontal: Screen.w(context) * 0.05,
+                      vertical: Screen.w(context) * 0.01),
                   decoration: BoxDecoration(
                       color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(screenWidth * 0.02)),
+                      borderRadius: BorderRadius.circular(Screen.w(context) * 0.02)),
                   child: Text(
                     selectedProduct.quantity.toString(),
                     style: const TextStyle(fontSize: 16, color: Colors.black),
                   ),
                 ),
-                SizedBox(width: screenWidth * 0.02),
+                SizedBox(width: Screen.w(context) * 0.02),
                 GestureDetector(
                   onTap: () {
                     setState(() {
@@ -865,11 +865,11 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.015,
-                        vertical: screenWidth * 0.01),
+                        horizontal: Screen.w(context) * 0.015,
+                        vertical: Screen.w(context) * 0.01),
                     decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                        borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
                         border: Border.all(width: 1, color: Colors.grey)),
                     child: Icon(Icons.add),
                   ),
@@ -915,7 +915,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
             if (selectedDealer != null)
               _buildDiscountOptions(selectedProduct, index),
             SizedBox(
-              height: screenHeight * 0.01,
+              height: Screen.h(context) * 0.01,
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -924,7 +924,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                 elevation: 0,
                 side: BorderSide(color: Colors.grey, width: 1),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                  borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 ),
               ),
               onPressed: () async {
@@ -944,9 +944,9 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
               },
               child: Row(
                 children: [
-                  SizedBox(width: screenWidth * 0.02),
+                  SizedBox(width: Screen.w(context) * 0.02),
                   Icon(Icons.calendar_month),
-                  SizedBox(width: screenWidth * 0.02),
+                  SizedBox(width: Screen.w(context) * 0.02),
                   Text(
                     selectedProduct.deliveryDate != null
                         ? "${selectedProduct.deliveryDate!.day}/${selectedProduct.deliveryDate!.month}/${selectedProduct.deliveryDate!.year}"
@@ -965,7 +965,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
             if (selectedProduct.isProductScheme == false)
               Column(
                 children: [
-                  SizedBox(height: screenHeight * 0.01),
+                  SizedBox(height: Screen.h(context) * 0.01),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1001,7 +1001,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: screenHeight * 0.01),
+                  SizedBox(height: Screen.h(context) * 0.01),
                 ],
               ),
           ],
@@ -1042,7 +1042,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
           const Text('Discount Amount:'),
           const SizedBox(height: 8),
           SizedBox(
-            width: screenWidth * 0.4,
+            width: Screen.w(context) * 0.4,
             child: TextFormField(
               initialValue: selectedProduct.discountAmount?.toString() ?? '',
               keyboardType: TextInputType.number,
@@ -1080,7 +1080,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
               fontWeight: FontWeight.bold,
               fontSize: 14,
             )),
-        SizedBox(height: screenWidth * 0.02),
+        SizedBox(height: Screen.w(context) * 0.02),
         Row(
           children: [
             Expanded(
@@ -1104,6 +1104,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                   selectedProducts[index] = selectedProduct.copyWith(
                     useDealerDiscount: false,
                     dealerDiscountId: null,
+                    discountAmount: 0
                   );
                 });
               },
@@ -1135,9 +1136,9 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
           ],
         ),
         if (!selectedProduct.useDealerDiscount) ...[
-          SizedBox(height: screenHeight * 0.01),
+          SizedBox(height: Screen.h(context) * 0.01),
           SizedBox(
-            width: screenWidth * 0.4,
+            width: Screen.w(context) * 0.4,
             child: TextFormField(
               initialValue: selectedProduct.discountAmount?.toString() ?? '',
               keyboardType: TextInputType.number,
@@ -1149,9 +1150,10 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
               ),
               onChanged: (value) {
                 print('✏️ Manual discount field updated: $value');
+                final parsedValue = num.tryParse(value);
                 setState(() {
                   selectedProducts[index] = selectedProduct.copyWith(
-                    discountAmount: num.tryParse(value),
+                    discountAmount: parsedValue??0,
                   );
                 });
               },
@@ -1159,7 +1161,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
           ),
         ],
         if (selectedProduct.useDealerDiscount) ...[
-          SizedBox(height: screenHeight * 0.01),
+          SizedBox(height: Screen.h(context) * 0.01),
           Card(
             color: Colors.white,
             child: ListTile(
@@ -1216,7 +1218,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                       ),
                       onChanged: (val) => query.value = val.toLowerCase(),
                     ),
-                    SizedBox(height: screenHeight * 0.03),
+                    SizedBox(height: Screen.h(context) * 0.03),
                     Expanded(
                       child: ValueListenableBuilder<String>(
                         valueListenable: query,
@@ -1237,10 +1239,10 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                               final product = filtered[i];
                               return Container(
                                 margin:
-                                    EdgeInsets.only(bottom: screenWidth * 0.01),
+                                    EdgeInsets.only(bottom: Screen.w(context) * 0.01),
                                 decoration: BoxDecoration(
                                   borderRadius:
-                                      BorderRadius.circular(screenWidth * 0.03),
+                                      BorderRadius.circular(Screen.w(context) * 0.03),
                                   border: Border.all(
                                       color: Colors.grey, width: 0.8),
                                 ),
@@ -1322,7 +1324,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
 
 
   void _createOrder() async {
-    // 🔍 VALIDATION FIRST – do NOT start loading yet
+    // 🔍 VALIDATION FIRST
     final missingDeliveryDate = selectedProducts.any(
           (p) => !p.isProductScheme && p.deliveryDate == null,
     );
@@ -1333,13 +1335,51 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
           content: Text("Please select delivery date for all products"),
         ),
       );
-      return; // ⛔ stops execution
+      return;
     }
 
-    // Now safe to show loader
     setState(() => isCreatingOrder = true);
 
     try {
+      // ✅ Calculate discount for each product before sending
+      final processedProducts = selectedProducts.map((p) {
+        double calculatedDiscountPerUnit = 0;
+
+        // Skip discount calculation for scheme items
+        if (p.isProductScheme == true) {
+          return p.copyWith(discountAmount: 0); // Scheme items have no discount
+        }
+
+        double unitPrice = double.tryParse(p.product?.price?.toString() ?? "0") ?? 0;
+
+        // Calculate discount based on type
+        if (p.useDealerDiscount && p.dealerDiscount != null) {
+          final discount = p.dealerDiscount!;
+          if (discount.isPercentage == true) {
+            calculatedDiscountPerUnit = unitPrice * (discount.discountValue / 100);
+          } else {
+            calculatedDiscountPerUnit = discount.discountValue.toDouble();
+          }
+        } else if (!p.useDealerDiscount && p.discountAmount != null) {
+          // Manual discount - already set
+          calculatedDiscountPerUnit = p.discountAmount!.toDouble();
+        }
+
+        // ✅ Ensure discountAmount is set
+        return p.copyWith(discountAmount: calculatedDiscountPerUnit);
+      }).toList();
+
+      // 🔍 DEBUG: Check what's being sent
+      print('📦 ORDER DETAILS DEBUG:');
+      for (var i = 0; i < processedProducts.length; i++) {
+        final p = processedProducts[i];
+        print('  Product $i: ${p.product?.productName}');
+        print('    - useDealerDiscount: ${p.useDealerDiscount}');
+        print('    - discountAmount: ${p.discountAmount}');
+        print('    - dealerDiscountId: ${p.dealerDiscountId}');
+        print('    - isScheme: ${p.isProductScheme}');
+      }
+
       final order = OrderModel(
         dealerId: selectedDealer!.employeeId!,
         priority: selectedPriority,
@@ -1347,10 +1387,10 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
         salesmanId: selectedSalesman!.employeeId!,
         paymentType: paymentMethod,
         amountPaid: amountPaid,
-        orderDetails: selectedProducts,
+        orderDetails: processedProducts, // ← Use processed products
       );
 
-      print('Creating order: ${order.toJson()}');
+      print('📤 Sending order: ${order.toJson()}');
 
       await ref.read(orderControllerProvider.notifier).createOrder(order);
 
@@ -1376,7 +1416,6 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
         ),
       );
 
-      // Refresh & exit
       await ref.read(orderControllerProvider.notifier).getAllOrders();
       if (mounted) Navigator.pop(context);
     } catch (e, s) {

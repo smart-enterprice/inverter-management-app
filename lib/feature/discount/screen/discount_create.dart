@@ -40,8 +40,6 @@ class _DealerDiscountCreatePageState
   Widget build(BuildContext context) {
     final brandsAsync = ref.watch(dealerBrandsProvider(widget.dealerId));
     final discountState = ref.watch(dealerDiscountControllerProvider);
-    final sw = MediaQuery.of(context).size.width;
-    final sh = MediaQuery.of(context).size.height;
     return brandsAsync.when(
         data: (brands){
           return Scaffold(
@@ -61,10 +59,10 @@ class _DealerDiscountCreatePageState
                 ),
               ],
               leading: IconButton(
-                padding: EdgeInsets.only(left: screenWidth * 0.04),
+                padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
                 icon: SvgPicture.asset(
                   AppIcons.back_Arrow,
-                  width: screenWidth * 0.07,
+                  width: Screen.w(context) * 0.07,
                   colorFilter: ColorFilter.mode(
                       Theme.of(context).primaryColor, BlendMode.srcIn),
                 ),
@@ -75,7 +73,7 @@ class _DealerDiscountCreatePageState
           );
         },
         error: (error, _) =>
-        _buildErrorState(context, error, brandsAsync, sw, sh, ref),
+        _buildErrorState(context, error, brandsAsync, Screen.w(context), Screen.h(context), ref),
         loading: () => Scaffold(
           backgroundColor: Colors.grey[50],
           body: GlobalLoader(),
@@ -162,14 +160,14 @@ class _DealerDiscountCreatePageState
   }
   Widget _buildContent(AsyncValue discountState) {
     return Padding(
-      padding: EdgeInsets.all(screenWidth * 0.04),
+      padding: EdgeInsets.all(Screen.w(context) * 0.04),
       child: Form(
         key: _formKey,
         child: ListView(
           children: [
             if (_brandDiscounts.isEmpty)
               Container(
-                padding: EdgeInsets.all(screenWidth * 0.06),
+                padding: EdgeInsets.all(Screen.w(context) * 0.06),
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
                   borderRadius: BorderRadius.circular(12),
@@ -209,7 +207,7 @@ class _DealerDiscountCreatePageState
                   return Card(
                     elevation: 0,
                     color: Colors.white,
-                    margin: EdgeInsets.only(bottom: screenHeight * 0.02),
+                    margin: EdgeInsets.only(bottom: Screen.h(context) * 0.02),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -232,7 +230,7 @@ class _DealerDiscountCreatePageState
                               IconButton(
                                 icon: SvgPicture.asset(
                                   AppIcons.delete,
-                                  width: screenWidth * 0.06,
+                                  width: Screen.w(context) * 0.06,
                                   colorFilter: ColorFilter.mode(
                                       Colors.red, BlendMode.srcIn),
                                 ),
@@ -253,7 +251,7 @@ class _DealerDiscountCreatePageState
                                   _showModelDiscountDialog(brandIndex),
                               icon: SvgPicture.asset(
                                 AppIcons.add,
-                                width: screenWidth * 0.06,
+                                width: Screen.w(context) * 0.06,
                                 colorFilter: ColorFilter.mode(
                                     Colors.white, BlendMode.srcIn),
                               ),
@@ -300,7 +298,7 @@ class _DealerDiscountCreatePageState
                                       IconButton(
                                         icon: SvgPicture.asset(
                                           AppIcons.delete,
-                                          width: screenWidth * 0.06,
+                                          width: Screen.w(context) * 0.06,
                                           colorFilter: ColorFilter.mode(
                                               Colors.red, BlendMode.srcIn),
                                         ),

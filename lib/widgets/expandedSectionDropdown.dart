@@ -67,7 +67,7 @@ class _ExpandedSectionState extends State<ExpandedSection>
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),

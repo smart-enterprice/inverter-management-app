@@ -21,10 +21,10 @@ class BoxCard extends StatelessWidget {
     return Container(
       width: width ?? double.infinity,
       height: height,
-      padding:  EdgeInsets.all(screenWidth*0.03),
+      padding: EdgeInsets.all(Screen.w(context) * 0.03),
       decoration: BoxDecoration(
-        color:color,
-        borderRadius: BorderRadius.circular(screenWidth*0.03),
+        color: color,
+        borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
         border: Border.all(
           color: Colors.grey.shade300,
           width: 1,

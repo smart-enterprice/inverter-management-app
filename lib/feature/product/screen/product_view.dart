@@ -77,17 +77,17 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                   child: FadeTransition(
                     opacity: _fadeAnimation,
                     child: Padding(
-                      padding: EdgeInsets.all(screenWidth * 0.04),
+                      padding: EdgeInsets.all(Screen.w(context) * 0.04),
                       child: Column(
                         children: [
                           _buildProductHeaderCard(theme, colorScheme, product),
-                          SizedBox(height: screenHeight * 0.03),
+                          SizedBox(height: Screen.h(context) * 0.03),
                           _buildStatusCard(theme, colorScheme, product),
-                          SizedBox(height: screenHeight * 0.03),
+                          SizedBox(height: Screen.h(context) * 0.03),
                           _buildStockInfoCard(theme, colorScheme, product),
-                          SizedBox(height: screenHeight * 0.03),
+                          SizedBox(height: Screen.h(context) * 0.03),
                           _buildPricingCard(theme, colorScheme, product),
-                          SizedBox(height: screenHeight * 0.03),
+                          SizedBox(height: Screen.h(context) * 0.03),
                           FutureBuilder<UserModel?>(
                             future: ref
                                 .read(signupControllerProvider.notifier)
@@ -96,9 +96,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                               return _buildCreatorCard(theme, colorScheme, userSnapshot);
                             },
                           ),
-                          SizedBox(height: screenHeight * 0.03),
+                          SizedBox(height: Screen.h(context) * 0.03),
                           _buildDateInfoRow(theme, colorScheme, product),
-                          SizedBox(height: screenHeight * 0.04),
+                          SizedBox(height: Screen.h(context) * 0.04),
                         ],
                       ),
                     ),
@@ -122,13 +122,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
             Text(
               message,
               style: theme.textTheme.titleMedium?.copyWith(color: Colors.red),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: screenHeight * 0.03),
+            SizedBox(height: Screen.h(context) * 0.03),
             ElevatedButton.icon(
               onPressed: () => Navigator.pop(context),
               icon: Icon(Icons.arrow_back, size: 20),
@@ -147,23 +147,23 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
   Widget _buildSliverAppBar(BuildContext context, ThemeData theme, ColorScheme colorScheme, ProductModel product) {
     return SliverAppBar(
-      expandedHeight: screenHeight * 0.2,
+      expandedHeight: Screen.h(context) * 0.2,
       floating: false,
       pinned: true,
       elevation: 0,
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
-        padding: EdgeInsets.only(left: screenWidth * 0.04),
+        padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
         icon: SvgPicture.asset(
           AppIcons.back_Arrow,
-          width: screenWidth * 0.07,
+          width: Screen.w(context) * 0.07,
           colorFilter: ColorFilter.mode(theme.primaryColor, BlendMode.srcIn),
         ),
         onPressed: () => Navigator.pop(context),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        titlePadding: EdgeInsets.only(left: screenWidth * 0.15, bottom: screenHeight * 0.016),
+        titlePadding: EdgeInsets.only(left: Screen.w(context) * 0.15, bottom: Screen.h(context) * 0.016),
         title: Text(
           "Product Details",
           style: theme.textTheme.titleLarge?.copyWith(
@@ -190,7 +190,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     return Container(
       decoration: BoxDecoration(
         color: Colors.white70,
-        borderRadius: BorderRadius.circular(screenWidth*0.04),
+        borderRadius: BorderRadius.circular(Screen.w(context)*0.04),
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withValues(alpha: 0.1),
@@ -200,21 +200,21 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.05),
+        padding: EdgeInsets.all(Screen.w(context) * 0.05),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
+                  padding: EdgeInsets.all(Screen.w(context) * 0.04),
                   decoration: BoxDecoration(
                     color: theme.primaryColor.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.inventory_2_outlined, color: theme.primaryColor),
                 ),
-                SizedBox(width: screenWidth * 0.04),
+                SizedBox(width: Screen.w(context) * 0.04),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,7 +227,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: screenHeight * 0.005),
+                      SizedBox(height: Screen.h(context) * 0.005),
                       Text(
                         product.model ?? "No Model",
                         style: theme.textTheme.bodyMedium?.copyWith(
@@ -240,15 +240,15 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 // Add Edit Button
                 IconButton(
                   onPressed: () => _showEditProductDetailsDialog(context, product),
-                  icon: SvgPicture.asset(AppIcons.edit,colorFilter: ColorFilter.mode(theme.primaryColor, BlendMode.srcIn),width: screenWidth * 0.05),
+                  icon: SvgPicture.asset(AppIcons.edit,colorFilter: ColorFilter.mode(theme.primaryColor, BlendMode.srcIn),width: Screen.w(context) * 0.05),
                   tooltip: 'Edit Product Details',
                 ),
               ],
             ),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
             Wrap(
-              spacing: screenWidth * 0.02,
-              runSpacing: screenHeight * 0.01,
+              spacing: Screen.w(context) * 0.02,
+              runSpacing: Screen.h(context) * 0.01,
               children: [
                 _buildInfoChip(Icons.category, "Type", product.productType ?? "N/A", theme),
                 _buildInfoChip(Icons.branding_watermark, "Brand", product.brand ?? "N/A", theme),
@@ -272,7 +272,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
           backgroundColor: Colors.white,
           title: Row(
             children: [
-              SizedBox(width: screenWidth * 0.02),
+              SizedBox(width: Screen.w(context) * 0.02),
               const Text('Edit Product Name'),
             ],
           ),
@@ -282,7 +282,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(height: screenHeight * 0.02),
+                  SizedBox(height: Screen.h(context) * 0.02),
                   TextFormField(
                     controller: productNameController,
                     decoration: const InputDecoration(
@@ -296,7 +296,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                       return null;
                     },
                   ),
-                  SizedBox(height: screenHeight * 0.02),
+                  SizedBox(height: Screen.h(context) * 0.02),
                 ],
               ),
             ),
@@ -380,7 +380,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
   Widget _buildInfoChip(IconData icon, String label, String value, ThemeData theme) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03, vertical: screenHeight * 0.008),
+      padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.03, vertical: Screen.h(context) * 0.008),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(12),
@@ -390,7 +390,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: theme.primaryColor),
-          SizedBox(width: screenWidth * 0.01),
+          SizedBox(width: Screen.w(context) * 0.01),
           Text(
             "$label: ",
             style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
@@ -420,12 +420,12 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(Screen.w(context) * 0.04),
         child: Row(
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 400),
-              padding: EdgeInsets.all(screenWidth * 0.03),
+              padding: EdgeInsets.all(Screen.w(context) * 0.03),
               decoration: BoxDecoration(
                 color: active ? Colors.green : Colors.red,
                 shape: BoxShape.circle,
@@ -433,10 +433,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
               child: Icon(
                 active ? Icons.check_circle : Icons.pause_circle,
                 color: Colors.white,
-                size: screenWidth * 0.05,
+                size: Screen.w(context) * 0.05,
               ),
             ),
-            SizedBox(width: screenWidth * 0.04),
+            SizedBox(width: Screen.w(context) * 0.04),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,14 +517,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(Screen.w(context) * 0.04),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.inventory_outlined, color: theme.primaryColor, size: screenWidth * 0.06),
-                SizedBox(width: screenWidth * 0.03),
+                Icon(Icons.inventory_outlined, color: theme.primaryColor, size: Screen.w(context) * 0.06),
+                SizedBox(width: Screen.w(context) * 0.03),
                 Text(
                   "Stock Information",
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -534,7 +534,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 ),
               ],
             ),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
             Row(
               children: [
                 Expanded(child: _buildStockItem("Packed", Icons.draw_outlined, product.packedStock ?? 0, Colors.blue)),
@@ -542,12 +542,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 Expanded(child: _buildStockItem("Total", Icons.summarize, product.availableStock ?? 0, theme.primaryColor)),
               ],
             ),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
+            if ((product.status ?? '').toLowerCase() == 'active')
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton.icon(
                 onPressed: () => _showUpdateStockDialog(context, product),
-                icon: SvgPicture.asset(AppIcons.edit,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),width: screenWidth * 0.05),
+                icon: SvgPicture.asset(AppIcons.edit,colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),width: Screen.w(context) * 0.05),
                 label: const Text("Update Stock"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.primaryColor,
@@ -585,7 +586,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 ),
                 keyboardType: TextInputType.number,
               ),
-              SizedBox(height: screenHeight * 0.02),
+              SizedBox(height: Screen.h(context) * 0.02),
               TextField(
                 controller: unpackedController,
                 decoration: const InputDecoration(
@@ -594,7 +595,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 ),
                 keyboardType: TextInputType.number,
               ),
-              SizedBox(height: screenHeight * 0.02),
+              SizedBox(height: Screen.h(context) * 0.02),
               TextField(
                 controller: notesController,
                 decoration: const InputDecoration(
@@ -706,18 +707,18 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     return Column(
       children: [
         Container(
-          padding: EdgeInsets.all(screenWidth * 0.03),
+          padding: EdgeInsets.all(Screen.w(context) * 0.03),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: color, size: screenWidth * 0.05),
+          child: Icon(icon, color: color, size: Screen.w(context) * 0.05),
         ),
-        SizedBox(height: screenHeight * 0.01),
+        SizedBox(height: Screen.h(context) * 0.01),
         Text(
           value.toString(),
           style: TextStyle(
-            fontSize: screenWidth * 0.045,
+            fontSize: Screen.w(context) * 0.045,
             fontWeight: FontWeight.bold,
             color: color,
           ),
@@ -725,7 +726,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         Text(
           label,
           style: TextStyle(
-            fontSize: screenWidth * 0.03,
+            fontSize: Screen.w(context) * 0.03,
             color: Colors.grey[600],
           ),
         ),
@@ -747,7 +748,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(Screen.w(context) * 0.04),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -756,8 +757,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
               children: [
                 Row(
                   children: [
-                    Text('₹',style: TextStyle(fontSize: screenWidth*0.06,color: Colors.green),),
-                    SizedBox(width: screenWidth * 0.03),
+                    Text('₹',style: TextStyle(fontSize: Screen.w(context)*0.06,color: Colors.green),),
+                    SizedBox(width: Screen.w(context) * 0.03),
                     Text(
                       "Pricing",
                       style: theme.textTheme.titleMedium?.copyWith(
@@ -769,14 +770,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 ),
                 IconButton(
                   onPressed: () => _showEditPriceDialog(context, product),
-                  icon: SvgPicture.asset(AppIcons.edit,colorFilter: ColorFilter.mode(Colors.green, BlendMode.srcIn),width: screenWidth * 0.05),
+                  icon: SvgPicture.asset(AppIcons.edit,colorFilter: ColorFilter.mode(Colors.green, BlendMode.srcIn),width: Screen.w(context) * 0.05),
                   tooltip: 'Edit Price',
                 ),
               ],
             ),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
             Container(
-              padding: EdgeInsets.all(screenWidth * 0.04),
+              padding: EdgeInsets.all(Screen.w(context) * 0.04),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.centerLeft,
@@ -911,14 +912,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(Screen.w(context) * 0.04),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.person_outline, color: theme.primaryColor, size: screenWidth * 0.06),
-                SizedBox(width: screenWidth * 0.03),
+                Icon(Icons.person_outline, color: theme.primaryColor, size: Screen.w(context) * 0.06),
+                SizedBox(width: Screen.w(context) * 0.03),
                 Text(
                   "Created By",
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -928,7 +929,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 ),
               ],
             ),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
             if (snapshot.connectionState == ConnectionState.waiting)
               _buildLoadingState()
             else if (snapshot.hasData && snapshot.data != null)
@@ -949,7 +950,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     return Row(
       children: [
         CircleAvatar(
-          radius: screenWidth * 0.06,
+          radius: Screen.w(context) * 0.06,
           backgroundColor: theme.primaryColor,
           child: Text(
             (user.employeeName ?? "U").substring(0, 1).toUpperCase(),
@@ -959,7 +960,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             ),
           ),
         ),
-        SizedBox(width: screenWidth * 0.04),
+        SizedBox(width: Screen.w(context) * 0.04),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -968,7 +969,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 user.employeeName ?? "Unknown User",
                 style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
               ),
-              SizedBox(height: screenHeight * 0.005),
+              SizedBox(height: Screen.h(context) * 0.005),
               Text(
                 user.role ?? "No role specified",
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -976,7 +977,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 ),
               ),
               ...[
-              SizedBox(height: screenHeight * 0.003),
+              SizedBox(height: Screen.h(context) * 0.003),
               Text(
                 user.employeeEmail,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -995,8 +996,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   Widget _buildErrorState(ThemeData theme) {
     return Row(
       children: [
-        Icon(Icons.error_outline, color: Colors.red, size: screenWidth * 0.05),
-        SizedBox(width: screenWidth * 0.03),
+        Icon(Icons.error_outline, color: Colors.red, size: Screen.w(context) * 0.05),
+        SizedBox(width: Screen.w(context) * 0.03),
         Text(
           "Creator information not available",
           style: theme.textTheme.bodyMedium?.copyWith(color: Colors.red),
@@ -1009,7 +1010,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     return Row(
       children: [
         Expanded(child: _buildDateCard("Created", Icons.calendar_today, product.createdAt, theme)),
-        SizedBox(width: screenWidth * 0.03),
+        SizedBox(width: Screen.w(context) * 0.03),
         Expanded(child: _buildDateCard("Updated", Icons.update, product.updatedAt, theme)),
       ],
     );
@@ -1017,7 +1018,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
   Widget _buildDateCard(String title, IconData icon, dynamic date, ThemeData theme) {
     return Container(
-      padding: EdgeInsets.all(screenWidth * 0.04),
+      padding: EdgeInsets.all(Screen.w(context) * 0.04),
       decoration: BoxDecoration(
         color: theme.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
@@ -1028,8 +1029,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         children: [
           Row(
             children: [
-              Icon(icon, size: screenWidth * 0.04, color: theme.primaryColor),
-              SizedBox(width: screenWidth * 0.02),
+              Icon(icon, size: Screen.w(context) * 0.04, color: theme.primaryColor),
+              SizedBox(width: Screen.w(context) * 0.02),
               Text(
                 title,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -1039,7 +1040,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
               ),
             ],
           ),
-          SizedBox(height: screenHeight * 0.01),
+          SizedBox(height: Screen.h(context) * 0.01),
           Text(
             _formatDate(date),
             style: theme.textTheme.bodyMedium?.copyWith(

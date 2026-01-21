@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:inverter_management_app/feature/order/screen/order_create_page.dart';
 
 import '../core/const/icons.dart';
 import '../core/media_query/media_query.dart';
@@ -14,67 +15,81 @@ class ControlPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      {
-        "icon": AppIcons.orders,
-        "title": "Orders",
-        "color": Colors.white,
-        'backgroundColor': Colors.lightBlueAccent.withValues(alpha: 0.25),
-        "iconColor": Theme.of(context).primaryColor,
-        "onTap": ()=> Navigator.push(context, MaterialPageRoute(builder: (context)=>const OrdersViewPage()))
-      },
-      {
-        "icon": AppIcons.box,
-        "title": "Products",
-        "color": Colors.white,
-        'backgroundColor': Colors.purpleAccent.withValues(alpha: 0.25),
-        "iconColor": Colors.purpleAccent,
-        "onTap": ()=> Navigator.push(context, MaterialPageRoute(builder: (context)=>const ProductsScreen()))
-      },
-      {
-        "icon": AppIcons.brand,
-        "title": "Brands",
-        "color": Colors.white,
-        'backgroundColor': Colors.orangeAccent.withValues(alpha: 0.25),
-        "iconColor": Colors.orange,
-        "onTap": ()=> Navigator.push(context, MaterialPageRoute(builder: (context)=>BrandsScreen()))
-      },
-      {
-        "icon": AppIcons.dealers,
-        "title": "Dealers",
-        "color": Colors.white,
-        'backgroundColor': Colors.greenAccent.withValues(alpha: 0.25),
-        "iconColor": Colors.green,
-        "onTap": ()=> Navigator.push(context, MaterialPageRoute(builder: (context)=>DealersScreen()))
-      },
-      {
-        "icon": AppIcons.dealers,
-        "title": "Employees",
-        "color": Colors.white,
-        'backgroundColor': Colors.deepPurpleAccent.withValues(alpha: 0.25),
-        "iconColor": Colors.deepPurple,
-        "onTap": ()=>Navigator.push(context, MaterialPageRoute(builder: (context)=>UsersScreen()))
-      },
-    ];
-    return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04,vertical: screenHeight*0.04),
-        child: GridView.count(
-          crossAxisCount: 2, // two per row (adjust as needed)
-          crossAxisSpacing: screenWidth * 0.04,
-          mainAxisSpacing: screenHeight * 0.02,
-          children: items.map((item) {
-            return CreateCard(
-              iconPath: item["icon"] as String,
-              title: item["title"] as String,
-              color: item["color"] as Color,
-              iconColor: item["iconColor"] as Color,
-              onTap: item["onTap"] as VoidCallback,
-              backgroundColor: item['backgroundColor'] as Color,
-            );
-          }).toList(),
-        ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          CreateCard(
+            iconPath: AppIcons.add,
+            title: 'Order',
+            color: Colors.white,
+            backgroundColor: Colors.blue.shade50,
+            iconColor: Colors.blue,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const OrderCreatePage(  )),
+              );
+            },
+          ),
+          SizedBox(width: Screen.w(context)*0.01,),
+          CreateCard(
+            iconPath: AppIcons.product,
+            title: 'Products',
+            color: Colors.white,
+            backgroundColor: Colors.blue.shade50,
+            iconColor: Colors.blue,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProductsScreen()),
+              );
+            },
+          ),
+          SizedBox(width: Screen.w(context)*0.01,),
+          CreateCard(
+            iconPath: AppIcons.brand,
+            title: 'Brands',
+            color: Colors.white,
+            backgroundColor: Colors.blue.shade50,
+            iconColor: Colors.blue,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProductsScreen()),
+              );
+            },
+          ),
+          SizedBox(width: Screen.w(context)*0.01,),
+          CreateCard(
+            iconPath: AppIcons.dealers,
+            title: 'Dealers',
+            color: Colors.white,
+            backgroundColor: Colors.blue.shade50,
+            iconColor: Colors.blue,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DealersScreen()),
+              );
+            },
+          ),
+          SizedBox(width: Screen.w(context)*0.01,),
+          CreateCard(
+            iconPath: AppIcons.dealers,
+            title: 'Users',
+            color: Colors.white,
+            backgroundColor: Colors.blue.shade50,
+            iconColor: Colors.blue,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const UsersScreen()),
+              );
+            },
+          ),
+        ],
       ),
     );
-  }
+}
 }

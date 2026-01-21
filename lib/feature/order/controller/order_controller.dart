@@ -22,6 +22,7 @@ class OrderController extends StateNotifier<AsyncValue<List<OrderModel>>> {
   Future<void> createOrder(OrderModel order) async {
     try {
 await _orderRepository.createOrder(order);
+print(_orderRepository.createOrder(order));
     } on DioException catch (e) {
        rethrow;
     }
@@ -32,10 +33,10 @@ await _orderRepository.createOrder(order);
       state = const AsyncValue.loading();
       final orders = await _orderRepository.getAllOrders();
       state = AsyncValue.data(orders);
-    } on DioException catch (e, st) {
-      state = AsyncValue.error(_handleDioError(e), st);
+    } on DioException catch (e) {
+      rethrow;
     } catch (e, st) {
-      state = AsyncValue.error(e.toString(), st);
+      rethrow;
     }
   }
 
@@ -66,34 +67,24 @@ await _orderRepository.createOrder(order);
         endDate: endDate,
       );
       state = AsyncValue.data(orders);
-    } on DioException catch (e, st) {
-      state = AsyncValue.error(_handleDioError(e), st);
-    } catch (e, st) {
-      state = AsyncValue.error(e.toString(), st);
+    } on DioException catch (e) {
+      rethrow;
+    } catch (e) {
+     rethrow;
     }
   }
 
-  /// Centralized Dio error handler
-  String _handleDioError(DioException e) {
-    if (e.response != null && e.response?.data is Map<String, dynamic>) {
-      return e.response?.data['message'] ??
-          e.response?.statusMessage ??
-          'Something went wrong';
-    }
-
-    switch (e.type) {
-      case DioExceptionType.connectionTimeout:
-        return 'Connection timeout';
-      case DioExceptionType.sendTimeout:
-        return 'Request send timeout';
-      case DioExceptionType.receiveTimeout:
-        return 'Response receive timeout';
-      case DioExceptionType.badResponse:
-        return 'Bad response from server';
-      case DioExceptionType.connectionError:
-        return 'No internet connection';
-      default:
-        return e.message ?? 'Unexpected error occurred';
+  /// 🔹 Update order status and refresh order list
+  Future<void> updateOrderStatus(OrderModel order) async {
+    try {
+      await _orderRepository.updateOrderStatus(order);
+      // Refresh orders after update
+      await getAllOrders();
+    } on DioException catch (e) {
+      rethrow;
+    } catch (_) {
+      rethrow;
     }
   }
+
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:inverter_management_app/core/const/icons.dart';
 import 'package:inverter_management_app/core/media_query/media_query.dart';
+import 'package:inverter_management_app/feature/order/screen/order_create_page.dart';
 import 'package:inverter_management_app/feature/product/screen/product_create_screen.dart';
 import '../feature/brand/screen/brand_create.dart';
 import '../feature/signup/screen/dealer/dealers_sign_up_screen.dart';
@@ -20,7 +21,8 @@ class CreateSection extends StatelessWidget {
         "color": Colors.white,
         'backgroundColor': Colors.lightBlueAccent.withValues(alpha: 0.25),
         "iconColor": Theme.of(context).primaryColor,
-        "onTap": (){}
+        "onTap": () => Navigator.push(context,
+            MaterialPageRoute(builder: (context) => OrderCreatePage())),
       },
       {
         "icon": AppIcons.box,
@@ -28,7 +30,8 @@ class CreateSection extends StatelessWidget {
         "color": Colors.white,
         'backgroundColor': Colors.purpleAccent.withValues(alpha: 0.25),
         "iconColor": Colors.purpleAccent,
-        "onTap": ()=>Navigator.push(context, MaterialPageRoute(builder: (context)=>ProductCreateScreen())),
+        "onTap": () => Navigator.push(context,
+            MaterialPageRoute(builder: (context) => ProductCreateScreen())),
       },
       {
         "icon": AppIcons.brand,
@@ -36,7 +39,8 @@ class CreateSection extends StatelessWidget {
         "color": Colors.white,
         'backgroundColor': Colors.orangeAccent.withValues(alpha: 0.25),
         "iconColor": Colors.orange,
-        "onTap": () => Navigator.push(context, MaterialPageRoute(builder: (context)=>BrandCreateScreen())),
+        "onTap": () => Navigator.push(context,
+            MaterialPageRoute(builder: (context) => BrandCreateScreen())),
       },
       {
         "icon": AppIcons.dealers,
@@ -44,7 +48,8 @@ class CreateSection extends StatelessWidget {
         "color": Colors.white,
         'backgroundColor': Colors.greenAccent.withValues(alpha: 0.25),
         "iconColor": Colors.green,
-        "onTap": ()=>Navigator.push(context, MaterialPageRoute(builder: (context)=>AddDealerScreen())),
+        "onTap": () => Navigator.push(context,
+            MaterialPageRoute(builder: (context) => AddDealerScreen())),
       },
       {
         "icon": AppIcons.dealers,
@@ -53,7 +58,7 @@ class CreateSection extends StatelessWidget {
         'backgroundColor': Colors.deepPurpleAccent.withValues(alpha: 0.25),
         "iconColor": Colors.deepPurple,
         "onTap": () => Navigator.push(
-      context, MaterialPageRoute(builder: (context) => AddUserScreen())),
+            context, MaterialPageRoute(builder: (context) => AddUserScreen())),
       },
       {
         "icon": AppIcons.bills,
@@ -66,11 +71,13 @@ class CreateSection extends StatelessWidget {
     ];
     return Scaffold(
       body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04,vertical: screenHeight*0.04),
+        padding: EdgeInsets.symmetric(
+            horizontal: Screen.w(context) * 0.04,
+            vertical: Screen.h(context) * 0.04),
         child: GridView.count(
           crossAxisCount: 2, // two per row (adjust as needed)
-          crossAxisSpacing: screenWidth * 0.04,
-          mainAxisSpacing: screenHeight * 0.02,
+          crossAxisSpacing: Screen.w(context) * 0.04,
+          mainAxisSpacing: Screen.h(context) * 0.02,
           children: items.map((item) {
             return CreateCard(
               iconPath: item["icon"] as String,

@@ -36,16 +36,10 @@ class LoginController {
       );
       if (response.statusCode == 200) {
         return await _saveUserData(response.data?['data']);
-      } else if (response.statusCode == 401) {
-        return LoginResult.failure('Invalid email or password');
-      } else {
+      }  else {
         return LoginResult.failure('Something went wrong. Try again.');
       }
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        return LoginResult.failure('Invalid email or password');
-      }
-
       if (e.response?.statusCode == 400) {
         return LoginResult.failure('password and email required');
       }

@@ -40,7 +40,8 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutQuart));
+    ).animate(CurvedAnimation(
+        parent: _animationController, curve: Curves.easeOutQuart));
 
     _animationController.forward();
   }
@@ -63,7 +64,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
       error: (err, _) => _buildErrorScreen("Error: $err", theme),
       data: (brands) {
         final brand = brands.firstWhere(
-              (b) => b.brandId == widget.brandId,
+          (b) => b.brandId == widget.brandId,
           orElse: () => currentBrand!,
         );
 
@@ -81,26 +82,27 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                   child: FadeTransition(
                     opacity: _fadeAnimation,
                     child: Padding(
-                      padding: EdgeInsets.all(screenWidth * 0.04),
+                      padding: EdgeInsets.all(Screen.w(context) * 0.04),
                       child: Column(
                         children: [
                           _buildBrandHeaderCard(theme, colorScheme, brand),
-                          SizedBox(height: screenHeight * 0.03),
+                          SizedBox(height: Screen.h(context) * 0.03),
                           _buildStatusCard(theme, colorScheme, brand),
-                          SizedBox(height: screenHeight * 0.03),
+                          SizedBox(height: Screen.h(context) * 0.03),
                           _buildModelsCard(theme, colorScheme, brand),
-                          SizedBox(height: screenHeight * 0.03),
+                          SizedBox(height: Screen.h(context) * 0.03),
                           FutureBuilder<UserModel?>(
                             future: ref
                                 .read(signupControllerProvider.notifier)
                                 .getEmployeeById(brand.createdBy ?? ""),
                             builder: (context, userSnapshot) {
-                              return _buildCreatorCard(theme, colorScheme, userSnapshot);
+                              return _buildCreatorCard(
+                                  theme, colorScheme, userSnapshot);
                             },
                           ),
-                          SizedBox(height: screenHeight * 0.03),
+                          SizedBox(height: Screen.h(context) * 0.03),
                           _buildDateInfoRow(theme, colorScheme, brand),
-                          SizedBox(height: screenHeight * 0.04),
+                          SizedBox(height: Screen.h(context) * 0.04),
                         ],
                       ),
                     ),
@@ -122,13 +124,13 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
             Text(
               message,
               style: theme.textTheme.titleMedium?.copyWith(color: Colors.red),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: screenHeight * 0.03),
+            SizedBox(height: Screen.h(context) * 0.03),
             ElevatedButton.icon(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.arrow_back, size: 20),
@@ -136,7 +138,8 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.primaryColor,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
@@ -145,25 +148,27 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, ThemeData theme, ColorScheme colorScheme, BrandModel brand) {
+  Widget _buildSliverAppBar(BuildContext context, ThemeData theme,
+      ColorScheme colorScheme, BrandModel brand) {
     return SliverAppBar(
-      expandedHeight: screenHeight * 0.2,
+      expandedHeight: Screen.h(context) * 0.2,
       floating: false,
       pinned: true,
       elevation: 0,
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
-        padding: EdgeInsets.only(left: screenWidth * 0.04),
+        padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
         icon: SvgPicture.asset(
           AppIcons.back_Arrow,
-          width: screenWidth * 0.07,
+          width: Screen.w(context) * 0.07,
           colorFilter: ColorFilter.mode(theme.primaryColor, BlendMode.srcIn),
         ),
         onPressed: () => Navigator.pop(context),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        titlePadding: EdgeInsets.only(left: screenWidth * 0.15, bottom: screenHeight * 0.016),
+        titlePadding: EdgeInsets.only(
+            left: Screen.w(context) * 0.15, bottom: Screen.h(context) * 0.016),
         title: Text(
           "Brand Details",
           style: theme.textTheme.titleLarge?.copyWith(
@@ -186,11 +191,12 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
     );
   }
 
-  Widget _buildBrandHeaderCard(ThemeData theme, ColorScheme colorScheme, BrandModel brand) {
+  Widget _buildBrandHeaderCard(
+      ThemeData theme, ColorScheme colorScheme, BrandModel brand) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white70,
-        borderRadius: BorderRadius.circular(screenWidth * 0.04),
+        borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withValues(alpha: 0.1),
@@ -200,25 +206,26 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.05),
+        padding: EdgeInsets.all(Screen.w(context) * 0.05),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(screenWidth * 0.04),
+                  padding: EdgeInsets.all(Screen.w(context) * 0.04),
                   decoration: BoxDecoration(
                     color: AppTheme.accentRed.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: SvgPicture.asset(
                     AppIcons.brand,
-                    width: screenWidth * 0.07,
-                    colorFilter: ColorFilter.mode(AppTheme.accentRed, BlendMode.srcIn),
+                    width: Screen.w(context) * 0.07,
+                    colorFilter:
+                        ColorFilter.mode(AppTheme.accentRed, BlendMode.srcIn),
                   ),
                 ),
-                SizedBox(width: screenWidth * 0.04),
+                SizedBox(width: Screen.w(context) * 0.04),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,7 +238,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: screenHeight * 0.005),
+                      SizedBox(height: Screen.h(context) * 0.005),
                       Text(
                         brand.description ?? "No description available",
                         style: theme.textTheme.bodyMedium?.copyWith(
@@ -247,17 +254,18 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                   onPressed: () => _showEditBrandDetailsDialog(context, brand),
                   icon: SvgPicture.asset(
                     AppIcons.edit,
-                    colorFilter: ColorFilter.mode(theme.primaryColor, BlendMode.srcIn),
-                    width: screenWidth * 0.05,
+                    colorFilter:
+                        ColorFilter.mode(theme.primaryColor, BlendMode.srcIn),
+                    width: Screen.w(context) * 0.05,
                   ),
                   tooltip: 'Edit Brand Details',
                 ),
               ],
             ),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
             Wrap(
-              spacing: screenWidth * 0.02,
-              runSpacing: screenHeight * 0.01,
+              spacing: Screen.w(context) * 0.02,
+              runSpacing: Screen.h(context) * 0.01,
               children: [
                 _buildInfoChip(
                   Icons.format_list_numbered,
@@ -281,7 +289,8 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
 
   void _showEditBrandDetailsDialog(BuildContext context, BrandModel brand) {
     final brandNameController = TextEditingController(text: brand.brandName);
-    final descriptionController = TextEditingController(text: brand.description ?? '');
+    final descriptionController =
+        TextEditingController(text: brand.description ?? '');
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -291,7 +300,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
           backgroundColor: Colors.white,
           title: Row(
             children: [
-              SizedBox(width: screenWidth * 0.02),
+              SizedBox(width: Screen.w(context) * 0.02),
               const Text('Edit Brand Details'),
             ],
           ),
@@ -308,9 +317,16 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                       // border: OutlineInputBorder(),
                       hint: Text('Brand Name'),
                       prefixIcon: Padding(
-                        padding: EdgeInsets.all(screenWidth * 0.03),
-                        child: SvgPicture.asset(AppIcons.brand,colorFilter:ColorFilter.mode(AppTheme.accentRed, BlendMode.srcIn,),width: screenWidth * 0.05,  // Set proper size
-                            height: screenWidth * 0.05,),
+                        padding: EdgeInsets.all(Screen.w(context) * 0.03),
+                        child: SvgPicture.asset(
+                          AppIcons.brand,
+                          colorFilter: ColorFilter.mode(
+                            AppTheme.accentRed,
+                            BlendMode.srcIn,
+                          ),
+                          width: Screen.w(context) * 0.05, // Set proper size
+                          height: Screen.w(context) * 0.05,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -320,14 +336,17 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                       return null;
                     },
                   ),
-                  SizedBox(height: screenHeight * 0.02),
+                  SizedBox(height: Screen.h(context) * 0.02),
                   TextFormField(
                     controller: descriptionController,
                     decoration: const InputDecoration(
                       // labelText: 'Description',
                       // border: OutlineInputBorder(),
                       hint: Text('Description'),
-                      prefixIcon: Icon(Icons.description,color: Colors.blue,),
+                      prefixIcon: Icon(
+                        Icons.description,
+                        color: Colors.blue,
+                      ),
                     ),
                     maxLines: 3,
                     validator: (value) {
@@ -372,7 +391,8 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
     );
   }
 
-  void _updateBrandDetails(BrandModel brand, String brandName, String description) async {
+  void _updateBrandDetails(
+      BrandModel brand, String brandName, String description) async {
     final brandController = ref.read(loadBrandsControllerProvider.notifier);
 
     try {
@@ -407,11 +427,12 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
     }
   }
 
-  Widget _buildInfoChip(IconData icon, String label, String value, ThemeData theme) {
+  Widget _buildInfoChip(
+      IconData icon, String label, String value, ThemeData theme) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.03,
-        vertical: screenHeight * 0.008,
+        horizontal: Screen.w(context) * 0.03,
+        vertical: Screen.h(context) * 0.008,
       ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.8),
@@ -422,10 +443,12 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: theme.primaryColor),
-          SizedBox(width: screenWidth * 0.01),
+          SizedBox(width: Screen.w(context) * 0.01),
           Text(
             "$label: ",
-            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500,),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
           ),
           Text(
             value,
@@ -436,27 +459,32 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
     );
   }
 
-  Widget _buildStatusCard(ThemeData theme, ColorScheme colorScheme, BrandModel brand) {
+  Widget _buildStatusCard(
+      ThemeData theme, ColorScheme colorScheme, BrandModel brand) {
     final bool active = (brand.status ?? '').toLowerCase() == 'active';
     final brandController = ref.watch(loadBrandsControllerProvider.notifier);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
       decoration: BoxDecoration(
-        color: active ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+        color: active
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: active ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3),
+          color: active
+              ? Colors.green.withValues(alpha: 0.3)
+              : Colors.red.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(Screen.w(context) * 0.04),
         child: Row(
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 400),
-              padding: EdgeInsets.all(screenWidth * 0.03),
+              padding: EdgeInsets.all(Screen.w(context) * 0.03),
               decoration: BoxDecoration(
                 color: active ? Colors.green : Colors.red,
                 shape: BoxShape.circle,
@@ -464,10 +492,10 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
               child: Icon(
                 active ? Icons.check_circle : Icons.pause_circle,
                 color: Colors.white,
-                size: screenWidth * 0.05,
+                size: Screen.w(context) * 0.05,
               ),
             ),
-            SizedBox(width: screenWidth * 0.04),
+            SizedBox(width: Screen.w(context) * 0.04),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,14 +527,16 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                 try {
                   final status = value ? "active" : "inactive";
                   final updatedBrand = brand.copyWith(status: status);
-                  await brandController.updateBrand(updatedBrand, brand.brandName);
+                  await brandController.updateBrand(
+                      updatedBrand, brand.brandName);
 
                   ref.invalidate(loadBrandsControllerProvider);
 
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Status updated to ${value ? "Active" : "Inactive"}'),
+                        content: Text(
+                            'Status updated to ${value ? "Active" : "Inactive"}'),
                         backgroundColor: Colors.green,
                         duration: const Duration(seconds: 2),
                       ),
@@ -532,7 +562,8 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
     );
   }
 
-  Widget _buildModelsCard(ThemeData theme, ColorScheme colorScheme, BrandModel brand) {
+  Widget _buildModelsCard(
+      ThemeData theme, ColorScheme colorScheme, BrandModel brand) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -546,7 +577,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(Screen.w(context) * 0.04),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -557,10 +588,11 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                   children: [
                     SvgPicture.asset(
                       AppIcons.model,
-                      width: screenWidth * 0.05,
-                      colorFilter: ColorFilter.mode(AppTheme.accentYellow, BlendMode.srcIn),
+                      width: Screen.w(context) * 0.05,
+                      colorFilter: ColorFilter.mode(
+                          AppTheme.accentYellow, BlendMode.srcIn),
                     ),
-                    SizedBox(width: screenWidth * 0.03),
+                    SizedBox(width: Screen.w(context) * 0.03),
                     Text(
                       "Models",
                       style: theme.textTheme.titleMedium?.copyWith(
@@ -574,17 +606,18 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                   onPressed: () => _showManageModelsDialog(context, brand),
                   icon: SvgPicture.asset(
                     AppIcons.edit,
-                    colorFilter: ColorFilter.mode(theme.primaryColor, BlendMode.srcIn),
-                    width: screenWidth * 0.05,
+                    colorFilter:
+                        ColorFilter.mode(theme.primaryColor, BlendMode.srcIn),
+                    width: Screen.w(context) * 0.05,
                   ),
                   tooltip: 'Edit Models',
                 ),
               ],
             ),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
             if (brand.brandModels.isEmpty)
               Container(
-                padding: EdgeInsets.all(screenWidth * 0.04),
+                padding: EdgeInsets.all(Screen.w(context) * 0.04),
                 decoration: BoxDecoration(
                   color: Colors.grey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -592,7 +625,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                 child: Row(
                   children: [
                     Icon(Icons.info_outline, color: Colors.grey[600]),
-                    SizedBox(width: screenWidth * 0.03),
+                    SizedBox(width: Screen.w(context) * 0.03),
                     Text(
                       "No models added yet",
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -604,40 +637,41 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
               )
             else
               Wrap(
-                spacing: screenWidth * 0.02,
-                runSpacing: screenHeight * 0.01,
+                spacing: Screen.w(context) * 0.02,
+                runSpacing: Screen.h(context) * 0.01,
                 children: brand.brandModels
                     .map((model) => Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.03,
-                    vertical: screenHeight * 0.008,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentYellow.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.primaryColor.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SvgPicture.asset(
-                        AppIcons.model,
-                        width: screenWidth * 0.05,
-                        colorFilter: ColorFilter.mode(AppTheme.accentYellow, BlendMode.srcIn),
-                      ),
-                      SizedBox(width: screenWidth * 0.02),
-                      Text(
-                        model,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ))
+                          padding: EdgeInsets.symmetric(
+                            horizontal: Screen.w(context) * 0.03,
+                            vertical: Screen.h(context) * 0.008,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentYellow.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: theme.primaryColor.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SvgPicture.asset(
+                                AppIcons.model,
+                                width: Screen.w(context) * 0.05,
+                                colorFilter: ColorFilter.mode(
+                                    AppTheme.accentYellow, BlendMode.srcIn),
+                              ),
+                              SizedBox(width: Screen.w(context) * 0.02),
+                              Text(
+                                model,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ))
                     .toList(),
               ),
           ],
@@ -664,7 +698,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
             title: const Text("Manage Models"),
             content: SingleChildScrollView(
               child: SizedBox(
-                width: screenWidth * 0.8,
+                width: Screen.w(context) * 0.8,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -673,10 +707,10 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                     Text(
                       "Add New Model",
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: Screen.h(context) * 0.01),
                     Row(
                       children: [
                         Expanded(
@@ -690,7 +724,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                             ),
                           ),
                         ),
-                        SizedBox(width: screenWidth * 0.02),
+                        SizedBox(width: Screen.w(context) * 0.02),
                         IconButton(
                           onPressed: () {
                             if (newModelController.text.trim().isNotEmpty) {
@@ -707,16 +741,16 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                         ),
                       ],
                     ),
-                    SizedBox(height: screenHeight * 0.03),
+                    SizedBox(height: Screen.h(context) * 0.03),
 
                     // Existing Models Section
                     Text(
                       "Existing Models",
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: Screen.h(context) * 0.01),
 
                     if (currentModels.isEmpty && newModels.isEmpty)
                       const Padding(
@@ -727,39 +761,53 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                       Column(
                         children: [
                           // Show current models
-                          ...currentModels.where((m) => !deletedModels.contains(m)).map((model) {
+                          ...currentModels
+                              .where((m) => !deletedModels.contains(m))
+                              .map((model) {
                             final isRenamed = renamedModels.containsKey(model);
                             return Card(
                               color: Colors.white,
-                              margin: EdgeInsets.only(bottom: screenHeight * 0.01),
+                              margin:
+                                  EdgeInsets.only(bottom: Screen.h(context) * 0.01),
                               child: ListTile(
-                                leading: SvgPicture.asset(AppIcons.model,colorFilter: ColorFilter.mode(AppTheme.accentYellow, BlendMode.srcIn) ,),
+                                leading: SvgPicture.asset(
+                                  AppIcons.model,
+                                  colorFilter: ColorFilter.mode(
+                                      AppTheme.accentYellow, BlendMode.srcIn),
+                                ),
                                 title: isRenamed
                                     ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      model,
-                                      style: const TextStyle(
-                                        decoration: TextDecoration.lineThrough,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    Text(
-                                      renamedModels[model]!,
-                                      style: const TextStyle(
-                                        color: Colors.blue,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                )
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            model,
+                                            style: const TextStyle(
+                                              decoration:
+                                                  TextDecoration.lineThrough,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          Text(
+                                            renamedModels[model]!,
+                                            style: const TextStyle(
+                                              color: Colors.blue,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      )
                                     : Text(model),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon:SvgPicture.asset(AppIcons.edit,colorFilter: ColorFilter.mode(AppTheme.primaryColor, BlendMode.srcIn) ,),
+                                      icon: SvgPicture.asset(
+                                        AppIcons.edit,
+                                        colorFilter: ColorFilter.mode(
+                                            AppTheme.primaryColor,
+                                            BlendMode.srcIn),
+                                      ),
                                       onPressed: () => _showRenameDialog(
                                         context,
                                         model,
@@ -768,7 +816,11 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                                       ),
                                     ),
                                     IconButton(
-                                      icon: SvgPicture.asset(AppIcons.delete,colorFilter: ColorFilter.mode(Colors.red, BlendMode.srcIn) ,),
+                                      icon: SvgPicture.asset(
+                                        AppIcons.delete,
+                                        colorFilter: ColorFilter.mode(
+                                            Colors.red, BlendMode.srcIn),
+                                      ),
                                       onPressed: () {
                                         setDialogState(() {
                                           deletedModels.add(model);
@@ -786,9 +838,11 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                           ...newModels.map((model) {
                             return Card(
                               color: Colors.white,
-                              margin: EdgeInsets.only(bottom: screenHeight * 0.01),
+                              margin:
+                                  EdgeInsets.only(bottom: Screen.h(context) * 0.01),
                               child: ListTile(
-                                leading: const Icon(Icons.fiber_new, color: Colors.green),
+                                leading: const Icon(Icons.fiber_new,
+                                    color: Colors.green),
                                 title: Text(
                                   model,
                                   style: const TextStyle(
@@ -797,7 +851,11 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                                   ),
                                 ),
                                 trailing: IconButton(
-                                  icon: SvgPicture.asset(AppIcons.delete,colorFilter: ColorFilter.mode(Colors.red, BlendMode.srcIn) ,),
+                                  icon: SvgPicture.asset(
+                                    AppIcons.delete,
+                                    colorFilter: ColorFilter.mode(
+                                        Colors.red, BlendMode.srcIn),
+                                  ),
                                   onPressed: () {
                                     setDialogState(() {
                                       newModels.remove(model);
@@ -840,12 +898,14 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                     await ref
                         .read(loadBrandsControllerProvider.notifier)
                         .updateBrand(
-                      updatedBrand,
-                      brand.brandName,
-                      brandModelsUpdate: renamedModels.isNotEmpty ? renamedModels : null,
-                      deletedModels: deletedModels.isNotEmpty ? deletedModels : null,
-                      addModel: newModels.isNotEmpty ? newModels : null,
-                    );
+                          updatedBrand,
+                          brand.brandName,
+                          brandModelsUpdate:
+                              renamedModels.isNotEmpty ? renamedModels : null,
+                          deletedModels:
+                              deletedModels.isNotEmpty ? deletedModels : null,
+                          addModel: newModels.isNotEmpty ? newModels : null,
+                        );
 
                     ref.invalidate(loadBrandsControllerProvider);
 
@@ -883,11 +943,11 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
   }
 
   void _showRenameDialog(
-      BuildContext context,
-      String oldName,
-      StateSetter setDialogState,
-      Map<String, String> renamedModels,
-      ) {
+    BuildContext context,
+    String oldName,
+    StateSetter setDialogState,
+    Map<String, String> renamedModels,
+  ) {
     final renameController = TextEditingController(text: oldName);
 
     showDialog(
@@ -898,15 +958,18 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
         content: TextField(
           controller: renameController,
           decoration: const InputDecoration(
-            // labelText: "New Model Name",
-            hint: Text('New Model Name')
-            // border: OutlineInputBorder(),
-          ),
+              // labelText: "New Model Name",
+              hint: Text('New Model Name')
+              // border: OutlineInputBorder(),
+              ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel",style: TextStyle(color: AppTheme.primaryColor),),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: AppTheme.primaryColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -929,7 +992,8 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
     );
   }
 
-  Widget _buildCreatorCard(ThemeData theme, ColorScheme colorScheme, AsyncSnapshot<UserModel?> snapshot) {
+  Widget _buildCreatorCard(ThemeData theme, ColorScheme colorScheme,
+      AsyncSnapshot<UserModel?> snapshot) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -943,14 +1007,15 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(Screen.w(context) * 0.04),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.person_outline, color: theme.primaryColor, size: screenWidth * 0.06),
-                SizedBox(width: screenWidth * 0.03),
+                Icon(Icons.person_outline,
+                    color: theme.primaryColor, size: Screen.w(context) * 0.06),
+                SizedBox(width: Screen.w(context) * 0.03),
                 Text(
                   "Created By",
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -960,7 +1025,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
                 ),
               ],
             ),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: Screen.h(context) * 0.02),
             if (snapshot.connectionState == ConnectionState.waiting)
               const GlobalLoader()
             else if (snapshot.hasData && snapshot.data != null)
@@ -977,7 +1042,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
     return Row(
       children: [
         CircleAvatar(
-          radius: screenWidth * 0.06,
+          radius: Screen.w(context) * 0.06,
           backgroundColor: theme.primaryColor,
           child: Text(
             (user.employeeName ?? "U").substring(0, 1).toUpperCase(),
@@ -987,23 +1052,24 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
             ),
           ),
         ),
-        SizedBox(width: screenWidth * 0.04),
+        SizedBox(width: Screen.w(context) * 0.04),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 user.employeeName ?? "Unknown User",
-                style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                style: theme.textTheme.bodyLarge
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
-              SizedBox(height: screenHeight * 0.005),
+              SizedBox(height: Screen.h(context) * 0.005),
               Text(
                 user.role ?? "No role specified",
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
-              SizedBox(height: screenHeight * 0.003),
+              SizedBox(height: Screen.h(context) * 0.003),
               Text(
                 user.employeeEmail,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -1021,8 +1087,8 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
   Widget _buildErrorState(ThemeData theme) {
     return Row(
       children: [
-        Icon(Icons.error_outline, color: Colors.red, size: screenWidth * 0.05),
-        SizedBox(width: screenWidth * 0.03),
+        Icon(Icons.error_outline, color: Colors.red, size: Screen.w(context) * 0.05),
+        SizedBox(width: Screen.w(context) * 0.03),
         Text(
           "Creator information not available",
           style: theme.textTheme.bodyMedium?.copyWith(color: Colors.red),
@@ -1031,19 +1097,25 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
     );
   }
 
-  Widget _buildDateInfoRow(ThemeData theme, ColorScheme colorScheme, BrandModel brand) {
+  Widget _buildDateInfoRow(
+      ThemeData theme, ColorScheme colorScheme, BrandModel brand) {
     return Row(
       children: [
-        Expanded(child: _buildDateCard("Created", Icons.calendar_today, brand.createdAt, theme)),
-        SizedBox(width: screenWidth * 0.03),
-        Expanded(child: _buildDateCard("Updated", Icons.update, brand.updatedAt, theme)),
+        Expanded(
+            child: _buildDateCard(
+                "Created", Icons.calendar_today, brand.createdAt, theme)),
+        SizedBox(width: Screen.w(context) * 0.03),
+        Expanded(
+            child: _buildDateCard(
+                "Updated", Icons.update, brand.updatedAt, theme)),
       ],
     );
   }
 
-  Widget _buildDateCard(String title, IconData icon, dynamic date, ThemeData theme) {
+  Widget _buildDateCard(
+      String title, IconData icon, dynamic date, ThemeData theme) {
     return Container(
-      padding: EdgeInsets.all(screenWidth * 0.04),
+      padding: EdgeInsets.all(Screen.w(context) * 0.04),
       decoration: BoxDecoration(
         color: theme.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
@@ -1054,8 +1126,8 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
         children: [
           Row(
             children: [
-              Icon(icon, size: screenWidth * 0.04, color: theme.primaryColor),
-              SizedBox(width: screenWidth * 0.02),
+              Icon(icon, size: Screen.w(context) * 0.04, color: theme.primaryColor),
+              SizedBox(width: Screen.w(context) * 0.02),
               Text(
                 title,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -1065,7 +1137,7 @@ class _BrandDetailsScreenState extends ConsumerState<BrandDetailsScreen>
               ),
             ],
           ),
-          SizedBox(height: screenHeight * 0.01),
+          SizedBox(height: Screen.h(context) * 0.01),
           Text(
             _formatDate(date),
             style: theme.textTheme.bodyMedium?.copyWith(

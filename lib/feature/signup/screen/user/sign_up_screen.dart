@@ -58,6 +58,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
     _roleScrollController.dispose();
     super.dispose();
   }
+
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -74,7 +75,8 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: ${e.toString()}'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Error picking image: ${e.toString()}'),
+            backgroundColor: Colors.red),
       );
     }
   }
@@ -84,12 +86,14 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       _selectedImage = null;
     });
   }
+
   void _showImagePickerDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context,) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(screenWidth * 0.04)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(screenWidth * 0.04)),
           title: const Text('Select Photo'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -125,11 +129,13 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       },
     );
   }
+
   bool isPasswordHidden = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:AppTheme.background,
+      backgroundColor: AppTheme.background,
       // bottomNavigationBar: Padding(
       //   padding: EdgeInsets.only(left: screenWidth * 0.04,right: screenWidth * 0.04,bottom:  screenWidth * 0.04),
       //   child: _buildSubmitButton(),
@@ -143,21 +149,39 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
             child: Column(
               children: [
                 _buildProfileImageSection(),
-                _buildInputField(label: 'Name', hint: 'Enter full name', controller: _nameController),
-                _buildInputField(label: 'Email', hint: 'Enter email address', controller: _emailController, keyboardType: TextInputType.emailAddress),
-                _buildInputField(label: 'Phone', hint: 'Enter phone number', controller: _phoneController, keyboardType: TextInputType.phone, digitsOnly: true),
-                _buildInputField(label: 'Password', hint: 'Enter password', controller: _passwordController, obscureText: isPasswordHidden,suffixIcon:IconButton(
-                  icon: Icon(
-                    isPasswordHidden ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      isPasswordHidden = !isPasswordHidden;
-                    });
-                  },
-                ), ),
-                _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
+                _buildInputField(label: 'Name',
+                    hint: 'Enter full name',
+                    controller: _nameController),
+                _buildInputField(label: 'Email',
+                    hint: 'Enter email address',
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress),
+                _buildInputField(label: 'Phone',
+                    hint: 'Enter phone number',
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    digitsOnly: true),
+                _buildInputField(
+                  label: 'Password',
+                  hint: 'Enter password',
+                  controller: _passwordController,
+                  obscureText: isPasswordHidden,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      isPasswordHidden ? Icons.visibility_off : Icons
+                          .visibility,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isPasswordHidden = !isPasswordHidden;
+                      });
+                    },
+                  ),),
+                _buildInputField(label: 'Address',
+                    hint: 'Enter address',
+                    controller: _addressController,
+                    maxLines: 3),
                 _buildRoleDropdown(),
                 SizedBox(height: screenHeight * 0.03),
                 _buildSubmitButton(
@@ -175,14 +199,23 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
   AppBar _buildAppBar() {
     return AppBar(
       surfaceTintColor: Colors.transparent,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Theme
+          .of(context)
+          .scaffoldBackgroundColor,
       elevation: 0,
       leading: IconButton(
-        icon: SvgPicture.asset(AppIcons.back_Arrow, width: screenWidth * 0.06,colorFilter:ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn) ,),
+        icon: SvgPicture.asset(AppIcons.back_Arrow, width: screenWidth * 0.06,
+          colorFilter: ColorFilter.mode(Theme
+              .of(context)
+              .primaryColor, BlendMode.srcIn),),
         onPressed: () => Navigator.pop(context),
       ),
       centerTitle: true,
-      title:  Text('Add user', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+      title: Text('Add user', style: Theme
+          .of(context)
+          .textTheme
+          .bodyLarge
+          ?.copyWith(fontWeight: FontWeight.bold)),
     );
   }
 
@@ -192,12 +225,14 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: ()=>_showImagePickerDialog,
+            onTap: _showImagePickerDialog,
             child: Stack(
               children: [
                 CircleAvatar(
                   radius: screenWidth * 0.08,
-                  backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : const NetworkImage('https://i.pravatar.cc/150?img=3') as ImageProvider,
+                  backgroundImage: _selectedImage != null ? FileImage(
+                      _selectedImage!) : const NetworkImage(
+                      'https://i.pravatar.cc/150?img=3') as ImageProvider,
                 ),
                 Positioned(
                   bottom: 0,
@@ -209,7 +244,8 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
-                    child: Icon(Icons.camera_alt, color: Colors.white, size: screenWidth * 0.04),
+                    child: Icon(Icons.camera_alt, color: Colors.white,
+                        size: screenWidth * 0.04),
                   ),
                 ),
               ],
@@ -220,11 +256,17 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Profile Image', style: TextStyle(fontSize: screenWidth * 0.04, fontWeight: FontWeight.w600, color: Colors.black87)),
+                Text('Profile Image', style: TextStyle(
+                    fontSize: screenWidth * 0.04,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87)),
                 SizedBox(height: screenHeight * 0.005),
                 Text(
-                  _selectedImage != null ? 'Tap to change photo' : 'Tap to add photo',
-                  style: TextStyle(fontSize: screenWidth * 0.032, color: Colors.grey[600]),
+                  _selectedImage != null
+                      ? 'Tap to change photo'
+                      : 'Tap to add photo',
+                  style: TextStyle(
+                      fontSize: screenWidth * 0.032, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -249,25 +291,37 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodyLarge),
+          Text(label, style: Theme
+              .of(context)
+              .textTheme
+              .bodyLarge),
           SizedBox(height: screenHeight * 0.008),
           TextFormField(
             controller: controller,
             keyboardType: keyboardType,
             obscureText: obscureText,
             maxLines: maxLines,
-            inputFormatters: digitsOnly ? [FilteringTextInputFormatter.digitsOnly] : null,
+            inputFormatters: digitsOnly ? [
+              FilteringTextInputFormatter.digitsOnly
+            ] : null,
             validator: (value) {
-              if (value == null || value.trim().isEmpty) return 'Please enter $label';
-              if (label == 'Email' && !_isValidEmail(value)) return 'Please enter a valid email';
-              if (label == 'Phone' && value.length != 10) return 'Please enter a valid 10-digit phone number';
-              if (label == 'Password' && value.length < 6) return 'Password must be at least 6 characters';
+              if (value == null || value
+                  .trim()
+                  .isEmpty) return 'Please enter $label';
+              if (label == 'Email' && !_isValidEmail(value))
+                return 'Please enter a valid email';
+              if (label == 'Phone' && value.length != 10)
+                return 'Please enter a valid 10-digit phone number';
+              if (label == 'Password' && value.length < 6)
+                return 'Password must be at least 6 characters';
               return null;
             },
             decoration: InputDecoration(
               suffixIcon: suffixIcon,
               filled: false,
-              fillColor: Theme.of(context).focusColor,
+              fillColor: Theme
+                  .of(context)
+                  .focusColor,
               hintText: hint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
@@ -279,14 +333,19 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color:Theme.of(context).primaryColor, width: 2),
+                borderSide: BorderSide(color: Theme
+                    .of(context)
+                    .primaryColor, width: 2),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(screenWidth * 0.03),
                 borderSide: const BorderSide(color: Colors.red, width: 1),
               ),
-              contentPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.018),
-              hintStyle: TextStyle(fontSize: screenWidth * 0.038, color: Colors.grey[500]),
+              contentPadding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.04,
+                  vertical: screenHeight * 0.018),
+              hintStyle: TextStyle(
+                  fontSize: screenWidth * 0.038, color: Colors.grey[500]),
             ),
           ),
         ],
@@ -300,7 +359,10 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Role', style: Theme.of(context).textTheme.bodyLarge),
+          Text('Role', style: Theme
+              .of(context)
+              .textTheme
+              .bodyLarge),
           SizedBox(height: screenHeight * 0.008),
           FormField<String>(
             validator: (value) => value == null ? 'Please select a role' : null,
@@ -308,18 +370,25 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
               return Column(
                 children: [
                   GestureDetector(
-                    onTap: () => setState(() => isRoleDropdownOpen = !isRoleDropdownOpen),
+                    onTap: () =>
+                        setState(() =>
+                        isRoleDropdownOpen = !isRoleDropdownOpen),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(context).focusColor,
+                        color: Theme
+                            .of(context)
+                            .focusColor,
                         borderRadius: BorderRadius.circular(screenWidth * 0.03),
                         border: Border.all(
                           color: state.hasError
                               ? Colors.red
-                              : Theme.of(context).scaffoldBackgroundColor,
+                              : Theme
+                              .of(context)
+                              .scaffoldBackgroundColor,
                         ),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.02),
                       height: screenHeight * 0.065,
                       alignment: Alignment.centerLeft,
                       child: Row(
@@ -327,7 +396,8 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
                         children: [
                           Text(
                             _selectedRole != null
-                                ? _selectedRole!.replaceAll('ROLE_', '').replaceAll('_', ' ')
+                                ? _selectedRole!.replaceAll('ROLE_', '')
+                                .replaceAll('_', ' ')
                                 : 'Select Role',
                             style: TextStyle(fontSize: screenWidth * 0.038),
                           ),
@@ -343,31 +413,35 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
                   SizedBox(height: 5),
                   ExpandedSection(
                     expand: isRoleDropdownOpen,
-                    height: screenHeight*0.01,
+                    height: screenHeight * 0.01,
                     child: MyScrollbar(
-                      builder: (context, scrollController) => ListView.builder(
-                        controller: _roleScrollController,
-                        shrinkWrap: true,
-                        itemCount: _roles.length,
-                        itemBuilder: (context, index) {
-                          final role = _roles[index];
-                          return RadioListTile<String>(
-                            title: Text(
-                              role.replaceAll('ROLE_', '').replaceAll('_', ' '),
-                              style: TextStyle(fontSize: screenWidth * 0.038),
-                            ),
-                            value: role,
-                            groupValue: _selectedRole,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedRole = value;
-                                isRoleDropdownOpen = false;
-                                state.didChange(value); // updates FormField validation
-                              });
+                      builder: (context, scrollController) =>
+                          ListView.builder(
+                            controller: _roleScrollController,
+                            shrinkWrap: true,
+                            itemCount: _roles.length,
+                            itemBuilder: (context, index) {
+                              final role = _roles[index];
+                              return RadioListTile<String>(
+                                title: Text(
+                                  role.replaceAll('ROLE_', '').replaceAll(
+                                      '_', ' '),
+                                  style: TextStyle(
+                                      fontSize: screenWidth * 0.038),
+                                ),
+                                value: role,
+                                groupValue: _selectedRole,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedRole = value;
+                                    isRoleDropdownOpen = false;
+                                    state.didChange(
+                                        value); // updates FormField validation
+                                  });
+                                },
+                              );
                             },
-                          );
-                        },
-                      ), scrollController:scrollController ,
+                          ), scrollController: scrollController,
                     ),
                   ),
                   if (state.hasError)
@@ -388,25 +462,26 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
   }
 
 
-
   Widget _buildSubmitButton(onTap) {
     return SizedBox(
       width: screenWidth * 0.5,
-      height: screenHeight*0.06,
+      height: screenHeight * 0.06,
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
+          backgroundColor: Theme
+              .of(context)
+              .primaryColor,
         ),
-        child:  Text('Submit',style: TextStyle(color: Colors.white,fontSize: 16,fontWeight: FontWeight.bold),),
+        child: Text('Submit', style: TextStyle(
+            color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),),
       ),
     );
   }
 
 
   bool _isValidEmail(String email) {
-    return  RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$').hasMatch(email);
-
+    return RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$').hasMatch(email);
   }
 
   void _handleSubmit() async {
@@ -429,7 +504,11 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
           role: _selectedRole!,
           photo: _selectedImage?.path ?? '',
         ),
+        photoFile: _selectedImage,
       );
+
+      // ✅ Check if widget is still mounted before using context
+      if (!mounted) return;
 
       Navigator.pop(context); // Remove loader
 
@@ -453,8 +532,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       }
     }
   }
-  }
-
+}
 
 
 

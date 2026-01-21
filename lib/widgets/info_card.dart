@@ -20,7 +20,7 @@ class InfoCard extends ConsumerWidget {
           value: dealerCount.toString(),
           iconColor: Theme.of(context).primaryColor,
         ),
-        SizedBox(height: screenHeight * 0.01),
+        SizedBox(height: Screen.h(context) * 0.01),
         SingleInfoCard(
           iconBackground: Colors.greenAccent.withValues(alpha: 0.25),
           icon: AppIcons.box,
@@ -28,7 +28,7 @@ class InfoCard extends ConsumerWidget {
           value: "200",
           iconColor: Colors.green,
         ),
-        SizedBox(height: screenHeight * 0.01),
+        SizedBox(height: Screen.h(context) * 0.01),
         SingleInfoCard(
           iconBackground: Colors.purpleAccent.withValues(alpha: 0.25),
           icon: AppIcons.chart,
@@ -36,7 +36,7 @@ class InfoCard extends ConsumerWidget {
           value: "50/200 (25%)",
           iconColor: Colors.purple,
         ),
-        SizedBox(height: screenHeight * 0.01),
+        SizedBox(height: Screen.h(context) * 0.01),
         SingleInfoCard(
           iconBackground: Colors.orangeAccent.withValues(alpha: 0.25),
           icon: AppIcons.delivery,
@@ -44,7 +44,7 @@ class InfoCard extends ConsumerWidget {
           value: "200",
           iconColor: Colors.orange,
         ),
-        SizedBox(height: screenHeight * 0.01),
+        SizedBox(height: Screen.h(context) * 0.01),
         SingleInfoCard(
           iconBackground: Colors.redAccent.withValues(alpha: 0.25),
           icon: AppIcons.alert,
@@ -56,5 +56,3 @@ class InfoCard extends ConsumerWidget {
     );
   }
 }
-
-

@@ -114,12 +114,12 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
     Widget? suffixIcon,
   }) {
     return Padding(
-      padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+      padding: EdgeInsets.only(bottom: Screen.h(context) * 0.02),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: Theme.of(context).textTheme.bodyLarge),
-          SizedBox(height: screenHeight * 0.008),
+          SizedBox(height: Screen.h(context) * 0.008),
           TextFormField(
             autovalidateMode: _autoValidate
                 ? AutovalidateMode.always
@@ -141,23 +141,23 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
               fillColor: Theme.of(context).focusColor,
               hintText: hint,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: BorderSide(color: Colors.grey),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: BorderSide(color:Theme.of(context).primaryColor, width: 2),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
                 borderSide: const BorderSide(color: Colors.red, width: 1),
               ),
-              contentPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.018),
-              hintStyle: TextStyle(fontSize: screenWidth * 0.038, color: Colors.grey[500]),
+              contentPadding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04, vertical: Screen.h(context) * 0.018),
+              hintStyle: TextStyle(fontSize: Screen.w(context) * 0.038, color: Colors.grey[500]),
             ),
           ),
         ],
@@ -173,10 +173,10 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 1,
         leading: IconButton(
-          padding: EdgeInsets.only(left: screenWidth * 0.04),
+          padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
           icon: SvgPicture.asset(
             AppIcons.back_Arrow,
-            width: screenWidth * 0.07,
+            width: Screen.w(context) * 0.07,
             colorFilter: ColorFilter.mode(
               Theme.of(context).primaryColor,
               BlendMode.srcIn,
@@ -194,7 +194,7 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
         ),
       ),
       body: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
+        padding: EdgeInsets.all(Screen.w(context) * 0.04),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -213,7 +213,7 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
                   maxLines: 3,
                 ),
                 Text('Brand Models', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold,color: Colors.black)),
-                SizedBox(height: screenHeight * 0.01),
+                SizedBox(height: Screen.h(context) * 0.01),
             
                 ..._modelControllers.asMap().entries.map((entry) {
                   final index = entry.key;
@@ -246,11 +246,11 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
                   ),
                 ),
             
-                SizedBox(height: screenHeight * 0.03),
+                SizedBox(height: Screen.h(context) * 0.03),
                 Center(
                   child: SizedBox(
-                    width: screenWidth * 0.5,
-                    height: screenHeight*0.06,
+                    width: Screen.w(context) * 0.5,
+                    height: Screen.h(context)*0.06,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,

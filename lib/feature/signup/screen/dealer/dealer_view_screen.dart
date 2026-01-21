@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:inverter_management_app/core/media_query/media_query.dart';
+import 'package:inverter_management_app/feature/signup/screen/dealer/dealers_screen.dart';
 import 'package:inverter_management_app/model/user_model.dart';
 import '../../../../core/const/district.dart';
 import '../../../../core/const/icons.dart';
@@ -64,8 +67,8 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    final sw = screenWidth;
-    final sh = screenHeight;
+    final sw = Screen.w(context);
+    final sh = Screen.h(context);
     final brandAsync = ref.watch(loadBrandsControllerProvider);
     final dealerDiscountsAsync = ref.watch(dealerDiscountControllerProvider);
     final dealerAsync = ref.watch(dealerProvider(widget.dealerId));
@@ -100,7 +103,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildProfileHeader(context, dealer, sw, sh),
+                        _buildProfileHeader(context, ref,dealer, sw, sh,),
                         SizedBox(height: sh * 0.02),
                       ],
                     ),
@@ -285,16 +288,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
               .getBrandsByDealer(widget.dealerId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: sw * 0.03),
-                  child: SizedBox(
-                    width: sw * 0.06,
-                    height: sw * 0.06,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-              );
+              return GlobalLoader();
             } else if (snapshot.hasError) {
               return Container(
                 padding: EdgeInsets.all(sw * 0.03),
@@ -356,7 +350,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
         borderRadius: BorderRadius.circular(sw * 0.04),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -372,7 +366,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                 Container(
                   padding: EdgeInsets.all(sw * 0.025),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(sw * 0.025),
                   ),
                   child: Icon(icon, color: Theme.of(context).primaryColor, size: sw * 0.055),
@@ -398,7 +392,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                       child: Container(
                         padding: EdgeInsets.all(sw * 0.02),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withOpacity(0.08),
+                          color: Theme.of(context).primaryColor.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(sw * 0.02),
                         ),
                         child: SvgPicture.asset(
@@ -488,13 +482,13 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Theme.of(context).primaryColor.withOpacity(0.1),
-                Theme.of(context).primaryColor.withOpacity(0.05),
+                Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                Theme.of(context).primaryColor.withValues(alpha: 0.05),
               ],
             ),
             borderRadius: BorderRadius.circular(sw * 0.06),
             border: Border.all(
-              color: Theme.of(context).primaryColor.withOpacity(0.2),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -524,20 +518,20 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
         return AlertDialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(screenWidth * 0.04),
+            borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
           ),
           title: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(screenWidth * 0.02),
+                padding: EdgeInsets.all(Screen.w(context)  * 0.02),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
                 ),
                 child: Icon(Icons.person_outline_rounded,
-                    color: Theme.of(context).primaryColor, size: screenWidth * 0.06),
+                    color: Theme.of(context).primaryColor, size: Screen.w(context)  * 0.06),
               ),
-              SizedBox(width: screenWidth * 0.03),
+              SizedBox(width: Screen.w(context)  * 0.03),
               const Text('Edit Personal Info'),
             ],
           ),
@@ -555,11 +549,11 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                       filled: true,
                       fillColor: Colors.grey[50],
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                         borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                         borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
                     ),
@@ -570,7 +564,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                       return null;
                     },
                   ),
-                  SizedBox(height: screenHeight * 0.02),
+                  SizedBox(height: Screen.h(context)  * 0.02),
                   TextFormField(
                     controller: emailController,
                     decoration: InputDecoration(
@@ -579,11 +573,11 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                       filled: true,
                       fillColor: Colors.grey[50],
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                         borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                         borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
                     ),
@@ -598,7 +592,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                       return null;
                     },
                   ),
-                  SizedBox(height: screenHeight * 0.02),
+                  SizedBox(height: Screen.h(context)  * 0.02),
                   TextFormField(
                     controller: phoneController,
                     decoration: InputDecoration(
@@ -607,11 +601,11 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                       filled: true,
                       fillColor: Colors.grey[50],
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                         borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                         borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
                     ),
@@ -651,9 +645,9 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                 backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.05, vertical: screenHeight * 0.015),
+                    horizontal: Screen.w(context)  * 0.05, vertical: Screen.h(context) * 0.015),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                  borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
                 ),
                 elevation: 0,
               ),
@@ -688,20 +682,20 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
             return AlertDialog(
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                borderRadius: BorderRadius.circular(Screen.w(context)  * 0.04),
               ),
               title: Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(screenWidth * 0.02),
+                    padding: EdgeInsets.all(Screen.w(context)  * 0.02),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
                     ),
                     child: Icon(Icons.location_on_outlined,
-                        color: Theme.of(context).primaryColor, size: screenWidth * 0.06),
+                        color: Theme.of(context).primaryColor, size: Screen.w(context)  * 0.06),
                   ),
-                  SizedBox(width: screenWidth * 0.03),
+                  SizedBox(width: Screen.w(context)  * 0.03),
                   const Text('Edit Address'),
                 ],
               ),
@@ -719,11 +713,11 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                           filled: true,
                           fillColor: Colors.grey[50],
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                            borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                             borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                            borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                             borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
                         ),
@@ -735,7 +729,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                           return null;
                         },
                       ),
-                      SizedBox(height: screenHeight * 0.02),
+                      SizedBox(height: Screen.h(context) * 0.02),
                       DropdownButtonFormField<String>(
                         value: keralaDistricts.contains(selectedDistrict)
                             ? selectedDistrict
@@ -749,11 +743,11 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                           filled: true,
                           fillColor: Colors.grey[50],
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                            borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                             borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                            borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                             borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
                         ),
@@ -775,7 +769,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                           return null;
                         },
                       ),
-                      SizedBox(height: screenHeight * 0.02),
+                      SizedBox(height: Screen.h(context) * 0.02),
                       TextFormField(
                         controller: townController,
                         decoration: InputDecoration(
@@ -784,11 +778,11 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                           filled: true,
                           fillColor: Colors.grey[50],
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                            borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                             borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                            borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                             borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
                         ),
@@ -827,9 +821,9 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                     backgroundColor: Theme.of(context).primaryColor,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.05, vertical: screenHeight * 0.015),
+                        horizontal: Screen.w(context)  * 0.05, vertical: Screen.h(context) * 0.015),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                      borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
                     ),
                     elevation: 0,
                   ),
@@ -851,10 +845,10 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
       barrierDismissible: false,
       builder: (context) => Center(
         child: Container(
-          padding: EdgeInsets.all(screenWidth * 0.05),
+          padding: EdgeInsets.all(Screen.w(context)  * 0.05),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+            borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
           ),
           child: CircularProgressIndicator(),
         ),
@@ -863,13 +857,11 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
 
     try {
       // Fetch brands
-      final allBrandsAsync = ref.read(activeBrandControllerProvider);
+      ref.watch(activeBrandControllerProvider);
+      final allBrandsAsync = ref.watch(activeBrandControllerProvider);
 
       await allBrandsAsync.when(
         data: (allBrands) async {
-          // Close loading dialog
-          Navigator.pop(context);
-
           List<String> selectedBrands = List<String>.from(dealer.brand ?? []);
           final shopNameController = TextEditingController(text: dealer.shopName ?? '');
 
@@ -882,25 +874,25 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                   return AlertDialog(
                     backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                      borderRadius: BorderRadius.circular(Screen.w(context)  * 0.04),
                     ),
                     title: Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.all(screenWidth * 0.02),
+                          padding: EdgeInsets.all(Screen.w(context)  * 0.02),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
                           ),
                           child: Icon(Icons.business_center_outlined,
-                              color: Theme.of(context).primaryColor, size: screenWidth * 0.06),
+                              color: Theme.of(context).primaryColor, size: Screen.w(context)  * 0.06),
                         ),
-                        SizedBox(width: screenWidth * 0.03),
+                        SizedBox(width: Screen.w(context)  * 0.03),
                         const Text('Edit Business Info'),
                       ],
                     ),
                     content: SizedBox(
-                      width: screenWidth * 0.8,
+                      width: Screen.w(context)  * 0.8,
                       child: SingleChildScrollView(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -913,16 +905,16 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                                 filled: true,
                                 fillColor: Colors.grey[50],
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                                  borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                                   borderSide: BorderSide(color: Colors.grey[300]!),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                                  borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                                   borderSide: BorderSide(color: Colors.grey[300]!),
                                 ),
                               ),
                             ),
-                            SizedBox(height: screenHeight * 0.02),
+                            SizedBox(height: Screen.h(context) * 0.02),
                             Text(
                               'Select Brands',
                               style: Theme.of(context)
@@ -930,12 +922,12 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                                   .titleSmall
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
-                            SizedBox(height: screenHeight * 0.01),
+                            SizedBox(height: Screen.h(context) * 0.01),
                             Container(
-                              height: screenHeight * 0.3,
+                              height: Screen.h(context) * 0.3,
                               decoration: BoxDecoration(
                                 border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                                borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                               ),
                               child: allBrands.isEmpty
                                   ? const Center(child: Text('No brands available'))
@@ -994,9 +986,9 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                           backgroundColor: Theme.of(context).primaryColor,
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(
-                              horizontal: screenWidth * 0.05, vertical: screenHeight * 0.015),
+                              horizontal: Screen.w(context)  * 0.05, vertical: Screen.h(context) * 0.015),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                            borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
                           ),
                           elevation: 0,
                         ),
@@ -1071,14 +1063,14 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
               content: Row(
                 children: [
                   Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: screenWidth * 0.02),
+                  SizedBox(width: Screen.w(context)  * 0.02),
                   Text('Dealer information updated successfully'),
                 ],
               ),
               backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
               ),
               duration: Duration(seconds: 2),
             ),
@@ -1091,14 +1083,14 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
               content: Row(
                 children: [
                   Icon(Icons.error_outline, color: Colors.white),
-                  SizedBox(width: screenWidth * 0.02),
+                  SizedBox(width: Screen.w(context)  * 0.02),
                   Expanded(child: Text('Update failed: $result')),
                 ],
               ),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
               ),
               duration: Duration(seconds: 3),
             ),
@@ -1112,14 +1104,14 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
             content: Row(
               children: [
                 Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: screenWidth * 0.02),
+                SizedBox(width: Screen.w(context)  * 0.02),
                 Expanded(child: Text('Error: $e')),
               ],
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+              borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
             ),
             duration: Duration(seconds: 3),
           ),
@@ -1165,7 +1157,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                   padding: EdgeInsets.all(sw * 0.035),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.green[50]!, Colors.green[50]!.withOpacity(0.3)],
+                      colors: [Colors.green[50]!, Colors.green[50]!.withValues(alpha: 0.3)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -1219,7 +1211,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                           borderRadius: BorderRadius.circular(sw * 0.05),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.green.withOpacity(0.3),
+                              color: Colors.green.withValues(alpha: 0.3),
                               blurRadius: 4,
                               offset: Offset(0, 2),
                             ),
@@ -1246,7 +1238,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                             child: Container(
                               padding: EdgeInsets.all(sw * 0.02),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(sw * 0.02),
                               ),
                               child: SvgPicture.asset(
@@ -1262,7 +1254,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                     ],
                   ),
                 );
-              }).toList(),
+              }),
             if (discounts.isNotEmpty) ...[
               SizedBox(height: sw * 0.02),
               Center(
@@ -1280,12 +1272,12 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                       decoration: BoxDecoration(
                         color: _isEditingDiscounts
                             ? Colors.grey[300]
-                            : Theme.of(context).primaryColor.withOpacity(0.1),
+                            : Theme.of(context).primaryColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(sw * 0.05),
                         border: Border.all(
                           color: _isEditingDiscounts
                               ? Colors.grey[400]!
-                              : Theme.of(context).primaryColor.withOpacity(0.3),
+                              : Theme.of(context).primaryColor.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
@@ -1376,10 +1368,10 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
             return Dialog(
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                borderRadius: BorderRadius.circular(Screen.w(context)  * 0.04),
               ),
               child: Padding(
-                padding: EdgeInsets.all(screenWidth * 0.05),
+                padding: EdgeInsets.all(Screen.w(context)  * 0.05),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1387,26 +1379,26 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                     Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.all(screenWidth * 0.02),
+                          padding: EdgeInsets.all(Screen.w(context)  * 0.02),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
                           ),
                           child: Icon(Icons.edit_rounded,
-                              color: Theme.of(context).primaryColor, size: screenWidth * 0.06),
+                              color: Theme.of(context).primaryColor, size: Screen.w(context)  * 0.06),
                         ),
-                        SizedBox(width: screenWidth * 0.03),
+                        SizedBox(width: Screen.w(context)  * 0.03),
                         Text(
                           "Update Discount",
                           style: TextStyle(
-                            fontSize: screenWidth * 0.045,
+                            fontSize: Screen.w(context)  * 0.045,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: screenHeight * 0.025),
+                    SizedBox(height: Screen.h(context) * 0.025),
                     TextField(
                       controller: valueController,
                       keyboardType: TextInputType.number,
@@ -1416,16 +1408,16 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                         filled: true,
                         fillColor: Colors.grey[50],
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                          borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                           borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                          borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                           borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: Screen.h(context) * 0.02),
                     TextField(
                       controller: descController,
                       decoration: InputDecoration(
@@ -1434,21 +1426,21 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                         filled: true,
                         fillColor: Colors.grey[50],
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                          borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                           borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                          borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                           borderSide: BorderSide(color: Colors.grey[300]!),
                         ),
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: Screen.h(context) * 0.02),
                     Container(
-                      padding: EdgeInsets.all(screenWidth * 0.03),
+                      padding: EdgeInsets.all(Screen.w(context)  * 0.03),
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        borderRadius: BorderRadius.circular(Screen.w(context)  * 0.03),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1456,7 +1448,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                           Text(
                             "Is Percentage?",
                             style: TextStyle(
-                              fontSize: screenWidth * 0.038,
+                              fontSize: Screen.w(context)  * 0.038,
                               fontWeight: FontWeight.w600,
                               color: Colors.black87,
                             ),
@@ -1469,7 +1461,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                         ],
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.03),
+                    SizedBox(height: Screen.h(context) * 0.03),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -1478,13 +1470,13 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                           style: TextButton.styleFrom(
                             foregroundColor: Colors.grey[600],
                             padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.05, vertical: screenHeight * 0.015),
+                                horizontal: Screen.w(context)  * 0.05, vertical: Screen.h(context) * 0.015),
                           ),
                           child: Text("Cancel",
                               style: TextStyle(
-                                  fontSize: screenWidth * 0.038, fontWeight: FontWeight.w600)),
+                                  fontSize: Screen.w(context)  * 0.038, fontWeight: FontWeight.w600)),
                         ),
-                        SizedBox(width: screenWidth * 0.02),
+                        SizedBox(width: Screen.w(context)  * 0.02),
                         ElevatedButton(
                           onPressed: () async {
                             final updated = discount.copyWith(
@@ -1502,15 +1494,15 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                             backgroundColor: Theme.of(context).primaryColor,
                             foregroundColor: Colors.white,
                             padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.05, vertical: screenHeight * 0.015),
+                                horizontal: Screen.w(context)  * 0.05, vertical: Screen.h(context) * 0.015),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                              borderRadius: BorderRadius.circular(Screen.w(context)  * 0.02),
                             ),
                             elevation: 0,
                           ),
                           child: Text("Update",
                               style: TextStyle(
-                                  fontSize: screenWidth * 0.038, fontWeight: FontWeight.w600)),
+                                  fontSize: Screen.w(context)  * 0.038, fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
@@ -1531,19 +1523,11 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
       elevation: 0,
       centerTitle: true,
       leading: IconButton(
-        padding: EdgeInsets.only(left: screenWidth * 0.04),
-        icon: Container(
-          padding: EdgeInsets.all(sw * 0.02),
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(sw * 0.02),
-          ),
-          child: SvgPicture.asset(
-              AppIcons.back_Arrow,
-              colorFilter: ColorFilter.mode(Colors.grey[800]!, BlendMode.srcIn),
-              width: screenWidth * 0.05),
-
-        ),
+        padding: EdgeInsets.only(left: Screen.w(context)  * 0.04),
+        icon: SvgPicture.asset(
+            AppIcons.back_Arrow,
+            colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
+            width: Screen.w(context)  * 0.07),
         onPressed: () => Navigator.pop(context, true),
       ),
       title: Text(
@@ -1590,7 +1574,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
             error: (_, __) => const SizedBox.shrink(),
           ),
           IconButton(
-            padding: EdgeInsets.only(left: screenWidth * 0.01),
+            padding: EdgeInsets.only(left: Screen.w(context)  * 0.01, right: Screen.w(context)  * 0.04),
             icon: Container(
               padding: EdgeInsets.all(sw * 0.02),
               decoration: BoxDecoration(
@@ -1599,50 +1583,148 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
               ),
               child: SvgPicture.asset(
                 AppIcons.delete,
-                width: screenWidth * 0.05,
+                width: Screen.w(context)  * 0.05,
                 colorFilter: ColorFilter.mode(Colors.red[600]!, BlendMode.srcIn),
               ),
             ),
             onPressed: () => _showDeleteDialog(context, dealer.employeeId!),
           ),
-          IconButton(
-            padding: EdgeInsets.only(left: screenWidth * 0.01, right: screenWidth * 0.04),
-            icon: Container(
-              padding: EdgeInsets.all(sw * 0.02),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(sw * 0.02),
-              ),
-              child: SvgPicture.asset(
-                AppIcons.edit,
-                width: screenWidth * 0.05,
-                colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
-              ),
-            ),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (ctx) => EditDealerScreen(dealer: dealer)),
-              );
-              if (result == true) {
-                ref.invalidate(dealerProvider(widget.dealerId));
-              }
-            },
-          ),
+          // IconButton(
+          //   padding: EdgeInsets.only(left: Screen.w(context)  * 0.01, right: Screen.w(context)  * 0.04),
+          //   icon: Container(
+          //     padding: EdgeInsets.all(sw * 0.02),
+          //     decoration: BoxDecoration(
+          //       color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+          //       borderRadius: BorderRadius.circular(sw * 0.02),
+          //     ),
+          //     child: SvgPicture.asset(
+          //       AppIcons.edit,
+          //       width: Screen.w(context)  * 0.05,
+          //       colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
+          //     ),
+          //   ),
+          //   onPressed: () async {
+          //     final result = await Navigator.push(
+          //       context,
+          //       MaterialPageRoute(builder: (ctx) => EditDealerScreen(dealer: dealer)),
+          //     );
+          //     if (result == true) {
+          //       ref.invalidate(dealerProvider(widget.dealerId));
+          //     }
+          //   },
+          // ),
         ],
       ],
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, UserModel dealer, double sw, double sh) {
+
+// Add this method to pick and update photo
+  Future<void> _updateProfilePhoto(BuildContext context, WidgetRef ref, UserModel dealer) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+
+      // Show options dialog
+      final source = await showDialog<ImageSource>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Select Photo Source'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Camera'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Gallery'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (source == null) return;
+
+      // Pick image
+      final XFile? pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 70,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
+
+      if (pickedFile == null) return;
+
+      // Show loading dialog
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: CircularProgressIndicator(color: Theme.of(context).primaryColor,)
+          ),
+        );
+      }
+
+      // Update user with new photo
+      final error = await ref.read(signupControllerProvider.notifier).updateUser(
+        oldUser: dealer,
+        photoFile: File(pickedFile.path),
+      );
+           await ref.read(dealerDiscountControllerProvider.notifier)
+                   .getDealerDiscounts(widget.dealerId);
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.pop(context);
+
+        if (error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update photo: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Profile photo updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog if open
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+
+
+  Widget _buildProfileHeader(BuildContext context, WidgetRef ref, UserModel dealer, double sw, double sh) {
     return Container(
+      width: sw * 1,
       margin: EdgeInsets.all(sw * 0.04),
       padding: EdgeInsets.all(sw * 0.05),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
             Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withOpacity(0.85),
+            Theme.of(context).primaryColor.withValues(alpha: 0.85),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -1650,7 +1732,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
         borderRadius: BorderRadius.circular(sw * 0.05),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).primaryColor.withOpacity(0.3),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -1661,14 +1743,14 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
           Stack(
             children: [
               Container(
-                width: sw * 0.28,
-                height: sw * 0.28,
+                width: sw * 0.38,
+                height: sw * 0.38,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 4),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
                     ),
@@ -1682,36 +1764,41 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
                     errorBuilder: (_, __, ___) => Container(
                       color: Colors.white,
                       child: Icon(Icons.person,
-                          size: sw * 0.12, color: Colors.grey[400]),
+                          size: sw * 0.15, color: Colors.grey[400]),
                     ),
                   )
                       : Container(
                     color: Colors.white,
                     child: Icon(Icons.person,
-                        size: sw * 0.12, color: Colors.grey[400]),
+                        size: sw * 0.15, color: Colors.grey[400]),
                   ),
                 ),
               ),
               Positioned(
                 bottom: 0,
                 right: 0,
-                child: Container(
-                  padding: EdgeInsets.all(sw * 0.02),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                child: GestureDetector(
+                  onTap: () => _updateProfilePhoto(context, ref, dealer),
+                  child: Container(
+                    padding: EdgeInsets.all(sw * 0.02),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: SvgPicture.asset(
+                      AppIcons.edit,
+                      colorFilter: ColorFilter.mode(
+                        Theme.of(context).primaryColor,
+                        BlendMode.srcIn,
                       ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.verified_rounded,
-                    color: Theme.of(context).primaryColor,
-                    size: sw * 0.05,
+                    ),
                   ),
                 ),
               ),
@@ -1732,7 +1819,7 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
           Container(
             padding: EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sh * 0.008),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
+              color: Colors.white.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(sw * 0.05),
             ),
             child: Text(
@@ -1750,235 +1837,261 @@ class _DealerViewState extends ConsumerState<DealerView> with SingleTickerProvid
   }
 
   void _showDeleteDialog(BuildContext context, String dealerId) {
-    TextEditingController reasonController = TextEditingController();
+    final reasonController = TextEditingController();
     bool isButtonEnabled = false;
     int secondsRemaining = 10;
+    Timer? countdownTimer;
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
-            if (!isButtonEnabled && secondsRemaining == 10) {
-              Timer.periodic(const Duration(seconds: 1), (timer) {
+          builder: (dialogContext, setDialogState) {
+            if (countdownTimer == null && !isButtonEnabled) {
+              countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
                 if (secondsRemaining == 1) {
                   timer.cancel();
-                  setDialogState(() {
-                    isButtonEnabled = true;
-                    secondsRemaining = 0;
-                  });
+                  if (dialogContext.mounted) {
+                    setDialogState(() {
+                      isButtonEnabled = true;
+                      secondsRemaining = 0;
+                    });
+                  }
                 } else {
-                  setDialogState(() {
-                    secondsRemaining--;
-                  });
+                  if (dialogContext.mounted) {
+                    setDialogState(() {
+                      secondsRemaining--;
+                    });
+                  }
                 }
               });
             }
 
-            return Dialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.05),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(screenWidth * 0.05),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            return WillPopScope(
+              onWillPop: () async {
+                countdownTimer?.cancel();
+                return true;
+              },
+              child: Dialog(
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Screen.w(context) * 0.05),
+                ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.all(Screen.w(context) * 0.05),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: EdgeInsets.all(screenWidth * 0.025),
-                          decoration: BoxDecoration(
-                            color: Colors.orange[50],
-                            borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                          ),
-                          child: Icon(Icons.warning_amber_rounded,
-                              color: Colors.orange[700], size: screenWidth * 0.07),
-                        ),
-                        SizedBox(width: screenWidth * 0.03),
-                        Expanded(
-                          child: Text(
-                            "Delete User",
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.05,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: screenHeight * 0.025),
-                    Container(
-                      padding: EdgeInsets.all(screenWidth * 0.03),
-                      decoration: BoxDecoration(
-                        color: Colors.red[50],
-                        borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                        border: Border.all(color: Colors.red[200]!),
-                      ),
-                      child: Text(
-                        "⚠️ This action cannot be undone. Please provide a reason for deletion.",
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.035,
-                          color: Colors.red[900],
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: screenHeight * 0.025),
-                    TextField(
-                      controller: reasonController,
-                      decoration: InputDecoration(
-                        labelText: "Reason for deletion",
-                        hintText: "Enter the reason here...",
-                        prefixIcon: Icon(Icons.edit_note),
-                        filled: true,
-                        fillColor: Colors.grey[50],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                          borderSide: BorderSide(color: Theme.of(context).primaryColor),
-                        ),
-                      ),
-                      maxLines: 3,
-                      onChanged: (value) {
-                        setDialogState(() {});
-                      },
-                    ),
-                    if (!isButtonEnabled)
-                      Padding(
-                        padding: EdgeInsets.only(top: screenHeight * 0.02),
-                        child: Container(
-                          padding: EdgeInsets.all(screenWidth * 0.03),
-                          decoration: BoxDecoration(
-                            color: Colors.amber[50],
-                            borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                            border: Border.all(color: Colors.amber[200]!),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.timer_outlined,
-                                  size: screenWidth * 0.045, color: Colors.amber[900]),
-                              SizedBox(width: screenWidth * 0.02),
-                              Text(
-                                "Please wait $secondsRemaining seconds",
-                                style: TextStyle(
-                                    color: Colors.amber[900],
-                                    fontSize: screenWidth * 0.035,
-                                    fontWeight: FontWeight.w600),
+                        Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(Screen.w(context) * 0.025),
+                              decoration: BoxDecoration(
+                                color: Colors.orange[50],
+                                borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    SizedBox(height: screenHeight * 0.03),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            reasonController.dispose();
-                            Navigator.pop(ctx);
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.grey[700],
-                            padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.05, vertical: screenHeight * 0.015),
-                          ),
-                          child: Text("Cancel",
-                              style: TextStyle(
-                                  fontSize: screenWidth * 0.038, fontWeight: FontWeight.w600)),
-                        ),
-                        SizedBox(width: screenWidth * 0.02),
-                        ElevatedButton.icon(
-                          onPressed: isButtonEnabled && reasonController.text.trim().isNotEmpty
-                              ? () async {
-                            final reason = reasonController.text.trim();
-                            final result = await ref
-                                .read(signupControllerProvider.notifier)
-                                .deleteUser(dealerId, reason);
-
-                            if (result == null) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        Icon(Icons.check_circle, color: Colors.white),
-                                        SizedBox(width: screenWidth * 0.02),
-                                        Text("User deleted successfully"),
-                                      ],
-                                    ),
-                                    backgroundColor: Colors.green,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                      BorderRadius.circular(screenWidth * 0.02),
-                                    ),
-                                  ),
-                                );
-                                reasonController.dispose();
-                                Navigator.pop(ctx);
-                                Navigator.pop(context, true);
-                              }
-                            } else {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        Icon(Icons.error_outline, color: Colors.white),
-                                        SizedBox(width: screenWidth * 0.02),
-                                        Expanded(child: Text("Delete failed: $result")),
-                                      ],
-                                    ),
-                                    backgroundColor: Colors.red,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                      BorderRadius.circular(screenWidth * 0.02),
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                              : null,
-                          icon: Icon(Icons.delete_outline, size: screenWidth * 0.045),
-                          label: Text("Delete User",
-                              style: TextStyle(
-                                  fontSize: screenWidth * 0.038, fontWeight: FontWeight.w600)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[600],
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor: Colors.grey[300],
-                            disabledForegroundColor: Colors.grey[500],
-                            padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.05, vertical: screenHeight * 0.015),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                              child: Icon(Icons.warning_amber_rounded,
+                                  color: Colors.orange[700], size: Screen.w(context) * 0.07),
                             ),
-                            elevation: 0,
+                            SizedBox(width: Screen.w(context) * 0.03),
+                            Expanded(
+                              child: Text(
+                                "Delete User",
+                                style: TextStyle(
+                                  fontSize: Screen.w(context) * 0.05,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: Screen.h(context) * 0.025),
+                        Container(
+                          padding: EdgeInsets.all(Screen.w(context) * 0.03),
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
+                            border: Border.all(color: Colors.red[200]!),
                           ),
+                          child: Text(
+                            "⚠️ This action cannot be undone. Please provide a reason for deletion.",
+                            style: TextStyle(
+                              fontSize: Screen.w(context) * 0.035,
+                              color: Colors.red[900],
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: Screen.h(context) * 0.025),
+                        TextField(
+                          controller: reasonController,
+                          decoration: InputDecoration(
+                            labelText: "Reason for deletion",
+                            hintText: "Enter the reason here...",
+                            prefixIcon: Icon(Icons.edit_note),
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
+                              borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                            ),
+                          ),
+                          maxLines: 3,
+                          onChanged: (value) {
+                            if (dialogContext.mounted) {
+                              setDialogState(() {});
+                            }
+                          },
+                        ),
+                        if (!isButtonEnabled)
+                          Padding(
+                            padding: EdgeInsets.only(top: Screen.h(context) * 0.02),
+                            child: Container(
+                              padding: EdgeInsets.all(Screen.w(context) * 0.03),
+                              decoration: BoxDecoration(
+                                color: Colors.amber[50],
+                                borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
+                                border: Border.all(color: Colors.amber[200]!),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.timer_outlined,
+                                      size: Screen.w(context) * 0.045, color: Colors.amber[900]),
+                                  SizedBox(width: Screen.w(context) * 0.02),
+                                  Text(
+                                    "Please wait $secondsRemaining seconds",
+                                    style: TextStyle(
+                                        color: Colors.amber[900],
+                                        fontSize: Screen.w(context) * 0.035,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        SizedBox(height: Screen.h(context) * 0.03),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () {
+                                countdownTimer?.cancel();
+                                Navigator.pop(ctx);
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.grey[700],
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: Screen.w(context) * 0.05,
+                                    vertical: Screen.h(context) * 0.015),
+                              ),
+                              child: Text("Cancel",
+                                  style: TextStyle(
+                                      fontSize: Screen.w(context) * 0.038,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                            SizedBox(width: Screen.w(context) * 0.02),
+                            ElevatedButton.icon(
+                              onPressed: isButtonEnabled && reasonController.text.trim().isNotEmpty
+                                  ? () async {
+                                // STOP the timer first!
+                                countdownTimer?.cancel();
+
+                                // Get the reason
+                                final reason = reasonController.text.trim();
+
+                                // Close dialog and navigate (DON'T dispose yet)
+                                Navigator.pop(ctx); // Close dialog
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => DealersScreen()),
+                                );
+
+                                // Small delay to ensure navigation completes
+                                await Future.delayed(Duration(milliseconds: 100));
+
+                                // NOW perform the delete
+                                final result = await ref
+                                    .read(signupControllerProvider.notifier)
+                                    .deleteUser(dealerId, reason);
+
+                                // NOW dispose (after everything)
+                                reasonController.dispose();
+
+                                // Show result with mounted check
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          Icon(
+                                            result == null ? Icons.check_circle : Icons.error_outline,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: Screen.w(context) * 0.02),
+                                          Expanded(
+                                            child: Text(
+                                              result == null
+                                                  ? "User deleted successfully"
+                                                  : "Delete failed: $result",
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      backgroundColor: result == null ? Colors.green : Colors.red,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                                  : null,
+                              icon: Icon(Icons.delete_outline, size: Screen.w(context) * 0.045),
+                              label: Text("Delete User",
+                                  style: TextStyle(
+                                      fontSize: Screen.w(context) * 0.038,
+                                      fontWeight: FontWeight.w600)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red[600],
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: Colors.grey[300],
+                                disabledForegroundColor: Colors.grey[500],
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: Screen.w(context) * 0.05,
+                                    vertical: Screen.h(context) * 0.015),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             );
           },
         );
       },
-    );
+    ).whenComplete(() {
+      // Final cleanup when dialog is completely dismissed
+      countdownTimer?.cancel();
+    });
   }
 }
