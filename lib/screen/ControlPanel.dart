@@ -56,7 +56,7 @@ class ControlPanel extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ProductsScreen()),
+                MaterialPageRoute(builder: (context) => const BrandsScreen()),
               );
             },
           ),

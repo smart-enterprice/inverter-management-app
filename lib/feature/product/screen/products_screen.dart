@@ -7,6 +7,7 @@ import 'package:inverter_management_app/feature/product/screen/product_create_sc
 import 'package:inverter_management_app/feature/product/screen/product_view.dart';
 import 'package:inverter_management_app/screen/loadingScreen.dart';
 import '../../../core/const/icons.dart';
+import '../../../widgets/circle_button.dart';
 import '../controller/product_controller.dart';
 
 class ProductsScreen extends ConsumerStatefulWidget {
@@ -57,144 +58,143 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          appBar: AppBar(
-            surfaceTintColor: Colors.transparent,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            elevation: 1,
-            leading: IconButton(
-              padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
-              icon: SvgPicture.asset(
-                AppIcons.back_Arrow,
-                width: Screen.w(context) * 0.07,
-                colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
-            centerTitle: true,
-            title: Text(
-              'Products',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            actions: [
-              IconButton(
-                padding: EdgeInsets.only(right: Screen.w(context) * 0.04),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ProductCreateScreen()),
-                  );
-                },
-                icon: SvgPicture.asset(
-                  AppIcons.add,
-                  width: Screen.w(context) * 0.07,
-                  colorFilter: ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
+          body: SafeArea(
+            child: RefreshIndicator(
+              backgroundColor: Colors.white,
+              color: Theme.of(context).primaryColor,
+              onRefresh: () async {
+                await ref.read(productControllerProvider.notifier).fetchProducts();
+              },
+              child: Padding(
+                padding:  EdgeInsets.symmetric(
+                  horizontal: Screen.w(context) * 0.04,
                 ),
-              ),
-            ],
-          ),
-          body: RefreshIndicator(
-            backgroundColor: Colors.white,
-            color: Theme.of(context).primaryColor,
-            onRefresh: () async {
-              await ref.read(productControllerProvider.notifier).fetchProducts();
-            },
-            child: Column(
-              children: [
-                // Header Section with Filter and Stats
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: Screen.w(context) * 0.04,
-                    vertical: Screen.h(context) * 0.02,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Filter Chips
-                      SizedBox(
-                        height: Screen.w(context) * 0.1,
-                        child: ListView.builder(
-
-                          scrollDirection: Axis.horizontal,
-                          itemCount: statusOptions.length,
-                          itemBuilder: (context, index) {
-                            final status = statusOptions[index];
-                            final isSelected = status == selectedFilter;
-                            return Padding(
-                              padding: EdgeInsets.only(right: Screen.w(context) * 0.03),
-                              child: FilterChip(
-                                showCheckmark: false,
-                                backgroundColor: Colors.white,
-                                selectedColor: Theme.of(context).primaryColor,
-                                label: Text(
-                                  status,
-                                  style: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.grey[800],
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: Screen.w(context) * 0.035,
-                                  ),
-                                ),
-                                selected: isSelected,
-                                onSelected: (_) {
-                                  setState(() => selectedFilter = status);
-                                },
-                              ),
-                            );
-                          },
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        CircularIconButton(
+                          icon: Icons.arrow_back_ios_rounded,
+                          onTap: () => Navigator.pop(context),
                         ),
-                      ),
-                      SizedBox(height: Screen.h(context) * 0.01),
-                      // Statistics Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Products',
-                            style: TextStyle(
-                              fontSize: Screen.w(context) * 0.045,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).primaryColor,
+                        const Spacer(),
+                        Text(
+                          'Brands',
+                          style: TextStyle(
+                            fontSize: Screen.w(context) * 0.05,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const Spacer(),
+                        CircularIconButton(
+                          icon: Icons.add,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ProductCreateScreen(),
                             ),
                           ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: Screen.w(context) * 0.03,
-                              vertical: Screen.h(context) * 0.005,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: Screen.h(context) * 0.02),
+                    // Header Section with Filter and Stats
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        vertical: Screen.h(context) * 0.02,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Filter Chips
+                          SizedBox(
+                            height: Screen.w(context) * 0.1,
+                            child: ListView.builder(
+
+                              scrollDirection: Axis.horizontal,
+                              itemCount: statusOptions.length,
+                              itemBuilder: (context, index) {
+                                final status = statusOptions[index];
+                                final isSelected = status == selectedFilter;
+                                return Padding(
+                                  padding: EdgeInsets.only(right: Screen.w(context) * 0.03),
+                                  child: FilterChip(
+                                    showCheckmark: false,
+                                    backgroundColor: Colors.white,
+                                    selectedColor: Theme.of(context).primaryColor,
+                                    label: Text(
+                                      status,
+                                      style: TextStyle(
+                                        color: isSelected ? Colors.white : Colors.grey[800],
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: Screen.w(context) * 0.035,
+                                      ),
+                                    ),
+                                    selected: isSelected,
+                                    onSelected: (_) {
+                                      setState(() => selectedFilter = status);
+                                    },
+                                  ),
+                                );
+                              },
                             ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${filteredProducts.length} of ${products.length}',
-                              style: TextStyle(
-                                fontSize: Screen.w(context) * 0.035,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).primaryColor,
+                          ),
+                          SizedBox(height: Screen.h(context) * 0.01),
+                          // Statistics Row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Products',
+                                style: TextStyle(
+                                  fontSize: Screen.w(context) * 0.045,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).primaryColor,
+                                ),
                               ),
-                            ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: Screen.w(context) * 0.03,
+                                  vertical: Screen.h(context) * 0.005,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${filteredProducts.length} of ${products.length}',
+                                  style: TextStyle(
+                                    fontSize: Screen.w(context) * 0.035,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
 
-                // Products List
-                Expanded(
-                  child: filteredProducts.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.separated(
-                    padding: EdgeInsets.only(left: Screen.w(context) * 0.04,right: Screen.w(context) * 0.04,bottom: Screen.h(context) * 0.02),
-                    itemCount: filteredProducts.length,
-                    separatorBuilder: (context, index) => SizedBox(height: Screen.h(context) * 0.015),
-                    itemBuilder: (context, index) {
-                      final product = filteredProducts[index];
-                      final isActive = product.status?.toLowerCase() == 'active';
-                      return _buildProductCard(context, product, isActive);
-                    },
-                  ),
+                    // Products List
+                    Expanded(
+                      child: filteredProducts.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.separated(
+                        padding: EdgeInsets.only(bottom: Screen.h(context) * 0.02),
+                        itemCount: filteredProducts.length,
+                        separatorBuilder: (context, index) => SizedBox(height: Screen.h(context) * 0.015),
+                        itemBuilder: (context, index) {
+                          final product = filteredProducts[index];
+                          final isActive = product.status?.toLowerCase() == 'active';
+                          return _buildProductCard(context, product, isActive);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );

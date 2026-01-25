@@ -5,6 +5,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:inverter_management_app/core/media_query/media_query.dart';
 import '../../../core/const/icons.dart';
 import '../../../model/brand_model.dart';
+import '../../../widgets/circle_button.dart';
 import '../controller/brand_controller.dart';
 
 class BrandCreateScreen extends ConsumerStatefulWidget {
@@ -168,101 +169,96 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        surfaceTintColor: Colors.transparent,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 1,
-        leading: IconButton(
-          padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
-          icon: SvgPicture.asset(
-            AppIcons.back_Arrow,
-            width: Screen.w(context) * 0.07,
-            colorFilter: ColorFilter.mode(
-              Theme.of(context).primaryColor,
-              BlendMode.srcIn,
-            ),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-        title: Text(
-          'Create Brand',
-          style: Theme.of(context)
-              .textTheme
-              .bodyLarge
-              ?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(Screen.w(context) * 0.04),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInputField(
-                  label: 'Brand Name',
-                  hint: 'Enter brand name',
-                  controller: _nameController,
-                ),
-                _buildInputField(
-                  label: 'Description',
-                  hint: 'Enter brand description',
-                  controller: _descController,
-                  maxLines: 3,
-                ),
-                Text('Brand Models', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold,color: Colors.black)),
-                SizedBox(height: Screen.h(context) * 0.01),
-            
-                ..._modelControllers.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final controller = entry.value;
-            
-                  return Row(
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(Screen.w(context) * 0.04),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Expanded(
-                        child: _buildInputField(
-                          label: 'Model ${index + 1}',
-                          hint: 'Enter model name',
-                          controller: controller,
+                      CircularIconButton(
+                        icon: Icons.arrow_back_ios_rounded,
+                        onTap: () => Navigator.pop(context),
+                      ),
+                      SizedBox(width: Screen.w(context) * 0.2),
+                      Text(
+                        'Create Brand',
+                        style: TextStyle(
+                          fontSize: Screen.w(context) * 0.05,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
-                      if (_modelControllers.length > 1)
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle, color: Colors.red),
-                          onPressed: () => _removeModelField(index),
-                        ),
                     ],
-                  );
-                }),
-            
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: _addModelField,
-                    icon:  Icon(Icons.add,color: Theme.of(context).primaryColor,),
-                    label: Text('Add Model',style: TextStyle(color: Theme.of(context).primaryColor),),
                   ),
-                ),
-            
-                SizedBox(height: Screen.h(context) * 0.03),
-                Center(
-                  child: SizedBox(
-                    width: Screen.w(context) * 0.5,
-                    height: Screen.h(context)*0.06,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                      ),
-                      onPressed: _isLoading ? null : _createBrand,
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          :  Text('Create Brand',style: TextStyle(color: Colors.white,fontSize: 16,fontWeight: FontWeight.bold),),
+                  SizedBox(height: Screen.h(context) * 0.03),
+                  _buildInputField(
+                    label: 'Brand Name',
+                    hint: 'Enter brand name',
+                    controller: _nameController,
+                  ),
+                  _buildInputField(
+                    label: 'Description',
+                    hint: 'Enter brand description',
+                    controller: _descController,
+                    maxLines: 3,
+                  ),
+                  Text('Brand Models', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold,color: Colors.black)),
+                  SizedBox(height: Screen.h(context) * 0.01),
+              
+                  ..._modelControllers.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final controller = entry.value;
+              
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _buildInputField(
+                            label: 'Model ${index + 1}',
+                            hint: 'Enter model name',
+                            controller: controller,
+                          ),
+                        ),
+                        if (_modelControllers.length > 1)
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle, color: Colors.red),
+                            onPressed: () => _removeModelField(index),
+                          ),
+                      ],
+                    );
+                  }),
+              
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _addModelField,
+                      icon:  Icon(Icons.add,color: Theme.of(context).primaryColor,),
+                      label: Text('Add Model',style: TextStyle(color: Theme.of(context).primaryColor),),
                     ),
                   ),
-                ),
-              ],
+              
+                  SizedBox(height: Screen.h(context) * 0.03),
+                  Center(
+                    child: SizedBox(
+                      width: Screen.w(context) * 0.5,
+                      height: Screen.h(context)*0.06,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                        ),
+                        onPressed: _isLoading ? null : _createBrand,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            :  Text('Create Brand',style: TextStyle(color: Colors.white,fontSize: 16,fontWeight: FontWeight.bold),),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -82,12 +82,13 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
   }
 
   /// Get employee by ID
-  Future<UserModel?> getEmployeeById(String id) async {
+  Future<UserModel> getEmployeeById(String id) async {
     try {
-      return await _repository.getEmployeeById(id);
+      final user = await _repository.getEmployeeById(id);
+
+      return user;
     } catch (e) {
-      print('Error fetching user by ID: $e');
-      return null;
+      rethrow;
     }
   }
 

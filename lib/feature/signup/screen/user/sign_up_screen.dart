@@ -7,6 +7,7 @@ import 'dart:io';
 import '../../../../../../core/media_query/media_query.dart';
 import '../../../../../../core/theme/theme.dart';
 import '../../../../../../core/const/icons.dart';
+import '../../../../widgets/circle_button.dart';
 import '../../../../widgets/expandedSectionDropdown.dart';
 import '../../../../widgets/scrollbar.dart';
 import '../../controller/signUp_controller.dart';
@@ -29,6 +30,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
   final _passwordController = TextEditingController();
   final _addressController = TextEditingController();
   late ScrollController _roleScrollController; // define at State level
+  AutovalidateMode _autoValidateMode = AutovalidateMode.disabled;
   final List<String> _roles = [
     'ROLE_ADMIN',
     'ROLE_SALESMAN',
@@ -140,55 +142,65 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
       //   padding: EdgeInsets.only(left: screenWidth * 0.04,right: screenWidth * 0.04,bottom:  screenWidth * 0.04),
       //   child: _buildSubmitButton(),
       // ),
-      appBar: _buildAppBar(),
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                _buildProfileImageSection(),
-                _buildInputField(label: 'Name',
-                    hint: 'Enter full name',
-                    controller: _nameController),
-                _buildInputField(label: 'Email',
-                    hint: 'Enter email address',
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress),
-                _buildInputField(label: 'Phone',
-                    hint: 'Enter phone number',
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    digitsOnly: true),
-                _buildInputField(
-                  label: 'Password',
-                  hint: 'Enter password',
-                  controller: _passwordController,
-                  obscureText: isPasswordHidden,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      isPasswordHidden ? Icons.visibility_off : Icons
-                          .visibility,
-                      color: Colors.grey,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isPasswordHidden = !isPasswordHidden;
-                      });
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircularIconButton(
+                    icon: Icons.arrow_back_ios_sharp,
+                    onTap: () {
+                      Navigator.pop(context);
                     },
-                  ),),
-                _buildInputField(label: 'Address',
-                    hint: 'Enter address',
-                    controller: _addressController,
-                    maxLines: 3),
-                _buildRoleDropdown(),
-                SizedBox(height: screenHeight * 0.03),
-                _buildSubmitButton(
-                    _handleSubmit
-                ),
-                SizedBox(height: screenHeight * 0.02),
-              ],
+                  ),
+                  _buildProfileImageSection(),
+                  _buildInputField(label: 'Name',
+                      hint: 'Enter full name',
+                      controller: _nameController),
+                  _buildInputField(label: 'Email',
+                      hint: 'Enter email address',
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress),
+                  _buildInputField(label: 'Phone',
+                      hint: 'Enter phone number',
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      digitsOnly: true),
+                  _buildInputField(
+                    label: 'Password',
+                    hint: 'Enter password',
+                    controller: _passwordController,
+                    obscureText: isPasswordHidden,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        isPasswordHidden ? Icons.visibility_off : Icons
+                            .visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          isPasswordHidden = !isPasswordHidden;
+                        });
+                      },
+                    ),),
+                  _buildInputField(label: 'Address',
+                      hint: 'Enter address',
+                      controller: _addressController,
+                      maxLines: 3),
+                  _buildRoleDropdown(),
+                  SizedBox(height: screenHeight * 0.03),
+                  Center(
+                    child: _buildSubmitButton(
+                        _handleSubmit
+                    ),
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
+                ],
+              ),
             ),
           ),
         ),
@@ -196,28 +208,6 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
     );
   }
 
-  AppBar _buildAppBar() {
-    return AppBar(
-      surfaceTintColor: Colors.transparent,
-      backgroundColor: Theme
-          .of(context)
-          .scaffoldBackgroundColor,
-      elevation: 0,
-      leading: IconButton(
-        icon: SvgPicture.asset(AppIcons.back_Arrow, width: screenWidth * 0.06,
-          colorFilter: ColorFilter.mode(Theme
-              .of(context)
-              .primaryColor, BlendMode.srcIn),),
-        onPressed: () => Navigator.pop(context),
-      ),
-      centerTitle: true,
-      title: Text('Add user', style: Theme
-          .of(context)
-          .textTheme
-          .bodyLarge
-          ?.copyWith(fontWeight: FontWeight.bold)),
-    );
-  }
 
   Widget _buildProfileImageSection() {
     return Padding(
@@ -301,6 +291,7 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
             keyboardType: keyboardType,
             obscureText: obscureText,
             maxLines: maxLines,
+            autovalidateMode: _autoValidateMode,
             inputFormatters: digitsOnly ? [
               FilteringTextInputFormatter.digitsOnly
             ] : null,
@@ -485,53 +476,51 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
   }
 
   void _handleSubmit() async {
-    if (_formKey.currentState!.validate()) {
-      final controller = ref.read(signupControllerProvider.notifier);
+    setState(() {
+      _autoValidateMode = AutovalidateMode.onUserInteraction;
+    });
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
+    if (!_formKey.currentState!.validate()) return;
+
+    final controller = ref.read(signupControllerProvider.notifier);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final error = await controller.signup(
+      UserModel(
+        employeeName: _nameController.text,
+        employeeEmail: _emailController.text,
+        employeePhone: _phoneController.text,
+        password: _passwordController.text,
+        address: _addressController.text,
+        role: _selectedRole!,
+        photo: _selectedImage?.path ?? '',
+      ),
+      photoFile: _selectedImage,
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context);
+
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: Colors.red),
       );
-
-      final error = await controller.signup(
-        UserModel(
-          employeeName: _nameController.text,
-          employeeEmail: _emailController.text,
-          employeePhone: _phoneController.text,
-          password: _passwordController.text,
-          address: _addressController.text,
-          role: _selectedRole!,
-          photo: _selectedImage?.path ?? '',
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User created successfully!'),
+          backgroundColor: Colors.green,
         ),
-        photoFile: _selectedImage,
       );
-
-      // ✅ Check if widget is still mounted before using context
-      if (!mounted) return;
-
-      Navigator.pop(context); // Remove loader
-
-      if (error != null) {
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } else {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User created successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context); // Go back
-      }
+      Navigator.pop(context);
     }
   }
+
 }
 
 

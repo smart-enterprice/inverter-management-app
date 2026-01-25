@@ -203,7 +203,7 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: sh * 0.02),
                     ElevatedButton(
                       onPressed: () {
                         ref.invalidate(userProvider(widget.userId));
@@ -505,162 +505,239 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
       String userName,
       String employeeId,
       ) {
-    final TextEditingController reasonController = TextEditingController();
-    Timer? countdownTimer;
-    int secondsRemaining = 10;
+    final reasonController = TextEditingController();
     bool isButtonEnabled = false;
+    int secondsRemaining = 10;
+    Timer? countdownTimer;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) {
+      builder: (ctx) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
-            // Start timer ONLY ONCE
-            countdownTimer ??= Timer.periodic(
-              const Duration(seconds: 1),
-                  (timer) {
-                if (!Navigator.of(dialogContext).mounted) {
-                  timer.cancel();
-                  return;
-                }
-
-                if (secondsRemaining <= 1) {
+            // Start countdown timer
+            if (countdownTimer == null && !isButtonEnabled) {
+              countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+                if (secondsRemaining == 1) {
                   timer.cancel();
                   setDialogState(() {
-                    secondsRemaining = 0;
                     isButtonEnabled = true;
+                    secondsRemaining = 0;
                   });
                 } else {
-                  setDialogState(() {
-                    secondsRemaining--;
-                  });
+                  setDialogState(() => secondsRemaining--);
                 }
-              },
-            );
+              });
+            }
 
             return Dialog(
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.05),
               ),
-              child: Padding(
-                padding: EdgeInsets.all(Screen.w(context) * 0.05),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.warning_amber_rounded,
-                            color: Colors.orange,
-                            size: Screen.w(context) * 0.06),
-                        SizedBox(width: Screen.w(context) * 0.02),
-                        Text(
-                          "Delete User",
-                          style: TextStyle(
-                            fontSize: Screen.w(context) * 0.045,
-                            fontWeight: FontWeight.bold,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.all(Screen.w(context) * 0.05),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(Screen.w(context) * 0.025),
+                            decoration: BoxDecoration(
+                              color: Colors.orange[50],
+                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
+                            ),
+                            child: Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.orange[700],
+                              size: Screen.w(context) * 0.07,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-
-                    SizedBox(height: Screen.h(context) * 0.02),
-
-                    Text(
-                      'Are you sure you want to delete "$userName"?',
-                      style: TextStyle(
-                        fontSize: Screen.w(context) * 0.038,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-
-                    SizedBox(height: Screen.h(context) * 0.02),
-
-                    TextField(
-                      controller: reasonController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        hintText: "Reason for deletion",
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (_) => setDialogState(() {}),
-                    ),
-
-                    if (!isButtonEnabled)
-                      Padding(
-                        padding: EdgeInsets.only(top: Screen.h(context) * 0.015),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.timer_outlined, size: 18),
-                            const SizedBox(width: 8),
-                            Text("Please wait $secondsRemaining seconds"),
-                          ],
-                        ),
-                      ),
-
-                    SizedBox(height: Screen.h(context) * 0.03),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            countdownTimer?.cancel();
-                            // reasonController.dispose();
-                            Navigator.pop(dialogContext);
-                          },
-                          child: Text("Cancel",style: TextStyle(color: Theme.of(context).primaryColor),),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton(
-                          onPressed: isButtonEnabled &&
-                              reasonController.text.trim().isNotEmpty
-                              ? () async {
-                            countdownTimer?.cancel();
-                            reasonController.dispose();
-
-                            final result = await ref
-                                .read(signupControllerProvider.notifier)
-                                .deleteUser(
-                              employeeId,
-                              reasonController.text.trim(),
-                            );
-
-                            if (!mounted) return;
-
-                            Navigator.pop(dialogContext);
-                            Navigator.pop(context);
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  result == null
-                                      ? "User deleted successfully"
-                                      : "Delete failed: $result",
-                                ),
+                          SizedBox(width: Screen.w(context) * 0.03),
+                          Expanded(
+                            child: Text(
+                              'Delete "$userName"?',
+                              style: TextStyle(
+                                fontSize: Screen.w(context) * 0.05,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
-                            );
-                          }
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
+                            ),
                           ),
-                          child: Text(
-                            isButtonEnabled ? "Delete" : "Wait...",
+                        ],
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.025),
+
+                      // Reason input
+                      TextField(
+                        controller: reasonController,
+                        decoration: InputDecoration(
+                          hintText: "Enter the reason here...",
+                          prefixIcon: const Icon(Icons.edit_note),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
+                            borderSide: BorderSide(color: Theme.of(context).primaryColor),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                        maxLines: 3,
+                        onChanged: (_) => setDialogState(() {}),
+                      ),
+
+                      // Countdown timer
+                      if (!isButtonEnabled)
+                        Padding(
+                          padding: EdgeInsets.only(top: Screen.h(context) * 0.02),
+                          child: Container(
+                            padding: EdgeInsets.all(Screen.w(context) * 0.03),
+                            decoration: BoxDecoration(
+                              color: Colors.amber[50],
+                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
+                              border: Border.all(color: Colors.amber[200]!),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.timer_outlined,
+                                  size: Screen.w(context) * 0.045,
+                                  color: Colors.amber[900],
+                                ),
+                                SizedBox(width: Screen.w(context) * 0.02),
+                                Text(
+                                  "Please wait $secondsRemaining seconds",
+                                  style: TextStyle(
+                                    color: Colors.amber[900],
+                                    fontSize: Screen.w(context) * 0.035,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      SizedBox(height: Screen.h(context) * 0.03),
+
+                      // Action buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              countdownTimer?.cancel();
+                              reasonController.dispose();
+                              Navigator.pop(ctx);
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.grey[700],
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Screen.w(context) * 0.05,
+                                vertical: Screen.h(context) * 0.015,
+                              ),
+                            ),
+                            child: Text(
+                              "Cancel",
+                              style: TextStyle(
+                                fontSize: Screen.w(context) * 0.038,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: Screen.w(context) * 0.02),
+                          ElevatedButton.icon(
+                            onPressed: isButtonEnabled && reasonController.text.trim().isNotEmpty
+                                ? () async {
+                              countdownTimer?.cancel();
+                              final reason = reasonController.text.trim();
+                              reasonController.dispose();
+
+                              Navigator.pop(ctx);
+
+                              final result = await ref
+                                  .read(signupControllerProvider.notifier)
+                                  .deleteUser(employeeId, reason);
+
+                              if (!context.mounted) return;
+
+                              ref.invalidate(dealerListProvider);
+                              Navigator.pop(context);
+
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        Icon(
+                                          result == null ? Icons.check_circle : Icons.error_outline,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(width: Screen.w(context) * 0.02),
+                                        Expanded(
+                                          child: Text(
+                                            result == null
+                                                ? "User deleted successfully"
+                                                : "Delete failed: $result",
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    backgroundColor: result == null ? Colors.green : Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
+                                    ),
+                                  ),
+                                );
+                              });
+                            }
+                                : null,
+                            icon: Icon(Icons.delete_outline, size: Screen.w(context) * 0.045),
+                            label: Text(
+                              "Delete User",
+                              style: TextStyle(
+                                fontSize: Screen.w(context) * 0.038,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red[600],
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.grey[300],
+                              disabledForegroundColor: Colors.grey[500],
+                              padding: EdgeInsets.symmetric(
+                                horizontal: Screen.w(context) * 0.05,
+                                vertical: Screen.h(context) * 0.015,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
           },
         );
       },
-    );
+    ).whenComplete(() => countdownTimer?.cancel());
   }
 
   Future<void> _makeCall(String phone) async {

@@ -10,6 +10,7 @@ import 'package:inverter_management_app/feature/signup/screen/dealer/dealer_view
 import 'package:inverter_management_app/feature/signup/screen/dealer/dealers_sign_up_screen.dart';
 import 'package:inverter_management_app/screen/loadingScreen.dart';
 import '../../../../model/user_model.dart';
+import '../../../../widgets/circle_button.dart';
 import '../../repository/signUp_repository.dart';
 
 // StateNotifier to handle pagination
@@ -113,29 +114,77 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
           town.contains(query);
     }).toList();
   }
-
   @override
   Widget build(BuildContext context) {
     final dealersAsync = ref.watch(dealerListProvider);
     return dealersAsync.when(
       loading: () => GlobalLoader(),
       error: (e, st) => Scaffold(
-        body: Center(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.wifi_off, size: 50, color: Colors.grey),
-              const SizedBox(height: 10),
-              const Text(
-                "No Internet Connection",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              /// TOP BAR (custom, no AppBar)
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Screen.w(context) * 0.04,
+                  vertical: Screen.h(context) * 0.02,
+                ),
+                child: Row(
+                  children: [
+                    CircularIconButton(
+                      icon: Icons.arrow_back_ios_rounded,
+                      onTap: () => Navigator.pop(context),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Dealers',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    // keeps title centered
+                    SizedBox(width: Screen.w(context) * 0.1),
+                    // balance back button space
+                  ],
+                ),
               ),
-              SizedBox(height: Screen.h(context) * 0.01),
-              ElevatedButton(
-                onPressed: () {
-                  ref.invalidate(dealerListProvider);
-                },
-                child: const Text("Retry"),
+
+              /// ERROR BODY
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.wifi_off,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.01),
+                      const Text(
+                        "No Internet Connection",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.02),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.invalidate(dealerListProvider);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(18),
+                        ),
+                        child: const Icon(Icons.refresh),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -143,311 +192,314 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
       ),
       data: (dealers) {
         final filteredDealers = _filterDealers(dealers);
-
         return Scaffold(
-          appBar: AppBar(
-            surfaceTintColor: Colors.transparent,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            elevation: 1,
-            leading: IconButton(
-              padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
-              icon: SvgPicture.asset(
-                AppIcons.back_Arrow,
-                width: Screen.w(context) * 0.07,
-                colorFilter: ColorFilter.mode(
-                    Theme.of(context).primaryColor, BlendMode.srcIn),
-              ),
-              onPressed: () => Navigator.pop(context),
-            ),
-            centerTitle: true,
-            title: Text(
-              'Dealers',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            actions: [
-              IconButton(
-                padding: EdgeInsets.only(right: Screen.w(context) * 0.02),
-                onPressed: _toggleSearch,
-                icon: SvgPicture.asset(_isSearching?AppIcons.close:AppIcons.search,
-                    width: Screen.w(context) * 0.07,colorFilter: ColorFilter.mode(
-                      Theme.of(context).primaryColor, BlendMode.srcIn),)
-              ),
-              IconButton(
-                padding: EdgeInsets.only(right: Screen.w(context) * 0.04),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddDealerScreen()),
-                  );
-                },
-                icon: SvgPicture.asset(
-                  AppIcons.add,
-                  width: Screen.w(context) * 0.07,
-                  colorFilter: ColorFilter.mode(
-                      Theme.of(context).primaryColor, BlendMode.srcIn),
-                ),
-              ),
-            ],
-          ),
-          body: Column(
-            children: [
-              // Search Bar - Only show when _isSearching is true
-              if (_isSearching)
+          body: SafeArea(
+            child: Column(
+              children: [
                 Padding(
-                  padding: EdgeInsets.all(Screen.w(context) * 0.04),
-                  child: TextField(
-                    controller: _searchController,
-                    autofocus: true,
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search by name, phone, or location',
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                            _searchQuery = '';
-                          });
+                  padding: EdgeInsets.only(
+                    top: Screen.w(context) * 0.02,
+                    bottom: Screen.w(context) * 0.03,
+                  left: Screen.w(context) * 0.04,
+                    right: Screen.w(context) * 0.04,
+                  ),
+                  child: Row(
+                    children: [
+                      /// BACK BUTTON
+                      CircularIconButton(
+                        icon: Icons.arrow_back_ios_sharp,
+                        onTap: () {
+                          Navigator.pop(context);
                         },
-                      )
-                          : null,
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.grey.withValues(alpha: 0.3),
-                        ),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.grey.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Theme.of(context).primaryColor,
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Results count
-              if (_isSearching && _searchQuery.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '${filteredDealers.length} result${filteredDealers.length != 1 ? 's' : ''} found',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Dealers List
-              Expanded(
-                child: filteredDealers.isEmpty && _isSearching
-                    ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.search_off,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      SizedBox(height: Screen.h(context) * 0.02),
+                      /// LEFT SPACER (for center title)
+                      const Spacer(),
+                      /// TITLE
                       Text(
-                        _searchQuery.isEmpty
-                            ? 'Start typing to search'
-                            : 'No results found for "$_searchQuery"',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                        textAlign: TextAlign.center,
+                        'Dealers',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+
+                      /// RIGHT SPACER (balances back button)
+                      const Spacer(),
+                      /// SEARCH
+                      CircularIconButton(
+                        icon: Icons.search_rounded,
+                        onTap:_toggleSearch
+                      ),
+                      SizedBox(width: Screen.w(context) * 0.03),
+                      /// ADD
+                      CircularIconButton(
+              icon: Icons.add,
+              onTap:(){
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddDealerScreen()),
+                );
+              }
                       ),
                     ],
                   ),
-                )
-                    : dealers.isEmpty
-                    ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.people_outline,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      SizedBox(height: Screen.h(context) * 0.02),
-                      Text(
-                        'No dealers available',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-                    : Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: Screen.w(context) * 0.04),
-                  child: RefreshIndicator(
-                    backgroundColor: Colors.white,
-                    color: Theme.of(context).primaryColor,
-                    onRefresh: () async {
-                      await Future.delayed(
-                          const Duration(seconds: 2));
-                      ref.invalidate(dealerListProvider);
-                    },
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      itemCount: filteredDealers.length,
-                      itemBuilder: (context, index) {
-                        final dealer = filteredDealers[index];
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => DealerView(
-                                    dealerId: dealer.employeeId
-                                        .toString()),
-                              ),
-                            );
-                          },
-                          child: Card(
-                            margin: EdgeInsets.symmetric(vertical: Screen.w(context) * 0.012),
-                            color: Colors.white,
-                            elevation: 2,
-                            shadowColor: Colors.black.withValues(alpha: 0.1),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.05),
-                            ),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(Screen.w(context) * 0.05),
-                                border: Border.all(
-                                  color: Colors.grey.withValues(alpha: 0.1),
-                                  width: 1,
-                                ),
-                              ),
-                              child: ListTile(
-                                contentPadding: EdgeInsets.all(Screen.w(context) * 0.045),
-                                leading: Container(
-                                  width: Screen.w(context) * 0.14,
-                                  height: Screen.w(context) * 0.14,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.grey.withValues(alpha: 0.2),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: ClipOval(
-                                    child: dealer.photo != null && dealer.photo!.isNotEmpty
-                                        ? CachedNetworkImage(
-                                      imageUrl: dealer.photo!,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => Container(
-                                        color: Colors.grey[100],
-                                        child: Icon(
-                                          Icons.person,
-                                          size: Screen.w(context) * 0.06,
-                                          color: Colors.grey[400],
-                                        ),
-                                      ),
-                                      errorWidget: (context, url, error) => Container(
-                                        color: Colors.grey[100],
-                                        child: Icon(
-                                          Icons.person,
-                                          size: Screen.w(context) * 0.06,
-                                          color: Colors.grey[400],
-                                        ),
-                                      ),
-                                    )
-                                        : Container(
-                                      color: Colors.grey[100],
-                                      child: Icon(
-                                        Icons.person_rounded,
-                                        size: Screen.w(context) * 0.06,
-                                        color: Colors.grey[400],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                title: Text(
-                                  dealer.employeeName,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[800],
-                                  ),
-                                ),
-                                subtitle: Padding(
-                                  padding: EdgeInsets.only(top: Screen.w(context) * 0.008),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildInfoRow(
-                                        Icons.location_on_outlined,
-                                        dealer.town.toString(),
-                                        context,
-                                      ),
-                                      SizedBox(height: Screen.w(context) * 0.008),
-                                      _buildInfoRow(
-                                        Icons.phone_rounded,
-                                        dealer.employeePhone,
-                                        context,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                trailing: Container(
-                                  width: Screen.w(context) * 0.08,
-                                  height: Screen.w(context) * 0.08,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.chevron_right_rounded,
-                                    size: Screen.w(context) * 0.05,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                        );
+                ),
+                // Search Bar - Only show when _isSearching is true
+                if (_isSearching)
+                  Padding(
+                    padding: EdgeInsets.all(Screen.w(context) * 0.04),
+                    child: TextField(
+                      controller: _searchController,
+                      autofocus: true,
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
                       },
+                      decoration: InputDecoration(
+                        hintText: 'Search by name, phone, or location',
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                            : null,
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Colors.grey.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Colors.grey.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Results count
+                if (_isSearching && _searchQuery.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${filteredDealers.length} result${filteredDealers.length != 1 ? 's' : ''} found',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Dealers List
+                Expanded(
+                  child: filteredDealers.isEmpty && _isSearching
+                      ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        SizedBox(height: Screen.h(context) * 0.02),
+                        Text(
+                          _searchQuery.isEmpty
+                              ? 'Start typing to search'
+                              : 'No results found for "$_searchQuery"',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                      : dealers.isEmpty
+                      ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        SizedBox(height: Screen.h(context) * 0.02),
+                        Text(
+                          'No dealers available',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                      : Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: Screen.w(context) * 0.04),
+                    child: RefreshIndicator(
+                      backgroundColor: Colors.white,
+                      color: Theme.of(context).primaryColor,
+                      onRefresh: () async {
+                        await Future.delayed(
+                            const Duration(seconds: 2));
+                        ref.invalidate(dealerListProvider);
+                      },
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        controller: _scrollController,
+                        itemCount: filteredDealers.length,
+                        itemBuilder: (context, index) {
+                          final dealer = filteredDealers[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => DealerView(
+                                      dealerId: dealer.employeeId
+                                          .toString()),
+                                ),
+                              );
+                            },
+                            child: Card(
+                              margin: EdgeInsets.symmetric(vertical: Screen.w(context) * 0.012),
+                              color: Colors.white,
+                              elevation: 2,
+                              shadowColor: Colors.black.withValues(alpha: 0.1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(Screen.w(context) * 0.05),
+                              ),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(Screen.w(context) * 0.05),
+                                  border: Border.all(
+                                    color: Colors.grey.withValues(alpha: 0.1),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.all(Screen.w(context) * 0.045),
+                                  leading: Container(
+                                    width: Screen.w(context) * 0.14,
+                                    height: Screen.w(context) * 0.14,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.grey.withValues(alpha: 0.2),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: ClipOval(
+                                      child: dealer.photo != null && dealer.photo!.isNotEmpty
+                                          ? CachedNetworkImage(
+                                        imageUrl: dealer.photo!,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => Container(
+                                          color: Colors.grey[100],
+                                          child: Icon(
+                                            Icons.person,
+                                            size: Screen.w(context) * 0.06,
+                                            color: Colors.grey[400],
+                                          ),
+                                        ),
+                                        errorWidget: (context, url, error) => Container(
+                                          color: Colors.grey[100],
+                                          child: Icon(
+                                            Icons.person,
+                                            size: Screen.w(context) * 0.06,
+                                            color: Colors.grey[400],
+                                          ),
+                                        ),
+                                      )
+                                          : Container(
+                                        color: Colors.grey[100],
+                                        child: Icon(
+                                          Icons.person_rounded,
+                                          size: Screen.w(context) * 0.06,
+                                          color: Colors.grey[400],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    dealer.employeeName,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey[800],
+                                    ),
+                                  ),
+                                  subtitle: Padding(
+                                    padding: EdgeInsets.only(top: Screen.w(context) * 0.008),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _buildInfoRow(
+                                          Icons.location_on_outlined,
+                                          dealer.town.toString(),
+                                          context,
+                                        ),
+                                        SizedBox(height: Screen.w(context) * 0.008),
+                                        _buildInfoRow(
+                                          Icons.phone_rounded,
+                                          dealer.employeePhone,
+                                          context,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  trailing: Container(
+                                    width: Screen.w(context) * 0.08,
+                                    height: Screen.w(context) * 0.08,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.withValues(alpha: 0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.chevron_right_rounded,
+                                      size: Screen.w(context) * 0.05,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

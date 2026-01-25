@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:inverter_management_app/screen/loadingScreen.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +13,7 @@ import '../../../../core/const/icons.dart';
 import '../../../../core/media_query/media_query.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../model/user_model.dart';
+import '../../../../widgets/circle_button.dart';
 import '../../../../widgets/expandedSectionDropdown.dart';
 import '../../../../widgets/scrollbar.dart';
 import '../../../brand/controller/brand_controller.dart';
@@ -144,57 +146,46 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
   @override
   Widget build(BuildContext context) {
     final brandState = ref.watch(loadBrandsControllerProvider); // ✅ add this here
-
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: _buildAppBar(),
       body: brandState.when(
         data: (brands) {
           // ✅ Full form when brands are loaded
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
-            child: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildProfileImageSection(),
-                    _buildInputField(label: 'Name', hint: 'Enter full name', controller: _nameController),
-                    _buildInputField(label: 'Email', hint: 'Enter email address', controller: _emailController, keyboardType: TextInputType.emailAddress),
-                    _buildInputField(label: 'Phone', hint: 'Enter phone number', controller: _phoneController, keyboardType: TextInputType.phone, digitsOnly: true),
-                    _buildInputField(label: 'Shop', hint: 'Enter shop name', controller: _shopController,),
-                    _buildDistrictDropdown(),
-                    _buildInputField(label: 'Town', hint: 'Enter Town', controller: _townController),
-                    _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
-                    _buildBrandDropdown(ref), // ✅ brands loaded here
-                    SizedBox(height: Screen.h(context) * 0.03),
-                    Center(child: _buildSubmitButton(_handleSubmit)),
-                    SizedBox(height: Screen.h(context) * 0.02),
-                  ],
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircularIconButton(
+                        icon: Icons.arrow_back_ios_sharp,
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                      _buildProfileImageSection(),
+                      _buildInputField(label: 'Name', hint: 'Enter full name', controller: _nameController),
+                      _buildInputField(label: 'Email', hint: 'Enter email address', controller: _emailController, keyboardType: TextInputType.emailAddress),
+                      _buildInputField(label: 'Phone', hint: 'Enter phone number', controller: _phoneController, keyboardType: TextInputType.phone, digitsOnly: true),
+                      _buildInputField(label: 'Shop', hint: 'Enter shop name', controller: _shopController,),
+                      _buildDistrictDropdown(),
+                      _buildInputField(label: 'Town', hint: 'Enter Town', controller: _townController),
+                      _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
+                      _buildBrandDropdown(ref), // ✅ brands loaded here
+                      SizedBox(height: Screen.h(context) * 0.03),
+                      Center(child: _buildSubmitButton(_handleSubmit)),
+                      SizedBox(height: Screen.h(context) * 0.02),
+                    ],
+                  ),
                 ),
               ),
             ),
           );
         },
-        loading: () {
-          // ⏳ Show shimmer placeholders for whole body
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _shimmerCircle(), // profile image placeholder
-                  SizedBox(height: 20),
-                  ...List.generate(6, (_) => _shimmerBox()), // input fields shimmer
-                  SizedBox(height: 20),
-                  _shimmerButton(), // submit button shimmer
-                ],
-              ),
-            ),
-          );
-        },
+        loading: ()=>GlobalLoader(),
         error: (e, st) {
           // ❌ Retry option if brands not loaded
           return FutureBuilder(

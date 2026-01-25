@@ -8,6 +8,7 @@ import 'package:inverter_management_app/core/theme/theme.dart';
 import 'package:inverter_management_app/model/brand_model.dart';
 import 'package:inverter_management_app/screen/loadingScreen.dart';
 import '../../../model/dealer_discount_model.dart';
+import '../../../widgets/circle_button.dart';
 import '../../brand/controller/brand_controller.dart';
 import '../controller/discount_controller.dart';
 
@@ -44,32 +45,7 @@ class _DealerDiscountCreatePageState
         data: (brands){
           return Scaffold(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            appBar: AppBar(
-              title: const Text(
-                "Create Dealer Discount",
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              elevation: 0,
-              backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-              actions: [
-                IconButton(
-                  icon: SvgPicture.asset(AppIcons.brand),
-                  tooltip: "Add Brand",
-                  onPressed: brandsAsync.hasValue ? _showBrandSelectionDialog : null,
-                ),
-              ],
-              leading: IconButton(
-                padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
-                icon: SvgPicture.asset(
-                  AppIcons.back_Arrow,
-                  width: Screen.w(context) * 0.07,
-                  colorFilter: ColorFilter.mode(
-                      Theme.of(context).primaryColor, BlendMode.srcIn),
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            body: _buildContent(discountState),
+            body: SafeArea(child: _buildContent(discountState, brandsAsync)),
           );
         },
         error: (error, _) =>
@@ -158,209 +134,257 @@ class _DealerDiscountCreatePageState
       ),
     );
   }
-  Widget _buildContent(AsyncValue discountState) {
+  Widget _buildContent(AsyncValue discountState,brandsAsync) {
     return Padding(
       padding: EdgeInsets.all(Screen.w(context) * 0.04),
       child: Form(
         key: _formKey,
-        child: ListView(
+        child: Column(
           children: [
-            if (_brandDiscounts.isEmpty)
-              Container(
-                padding: EdgeInsets.all(Screen.w(context) * 0.06),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.info_outline,
-                        size: 48, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text(
-                      "No brand discounts added yet.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[700],
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: Screen.h(context) * 0.015,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  /// BACK BUTTON
+                  CircularIconButton(
+                    icon: Icons.arrow_back_ios_rounded,
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  /// LEFT SPACER (for center title)
+                  const Spacer(),
+
+                  /// TITLE
+                  Text(
+                    "Create Dealer Discount",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  /// RIGHT SPACER (balances back button)
+                  const Spacer(),
+
+                  /// ACTION (Add Brand)
+                  IconButton(
+                    tooltip: "Add Brand",
+                    onPressed: brandsAsync.hasValue
+                        ? _showBrandSelectionDialog
+                        : null,
+                    icon: SvgPicture.asset(
+                      AppIcons.brand,
+                      width: Screen.w(context) * 0.07,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                children: [
+                  if (_brandDiscounts.isEmpty)
+                    Container(
+                      padding: EdgeInsets.all(Screen.w(context) * 0.06),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Tap the + icon above to add a brand and its model discounts.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _brandDiscounts.length,
-                itemBuilder: (context, brandIndex) {
-                  final brandDiscount = _brandDiscounts[brandIndex];
-                  return Card(
-                    elevation: 0,
-                    color: Colors.white,
-                    margin: EdgeInsets.only(bottom: Screen.h(context) * 0.02),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Brand Header
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                brandDiscount.brand.brandName,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              IconButton(
-                                icon: SvgPicture.asset(
-                                  AppIcons.delete,
-                                  width: Screen.w(context) * 0.06,
-                                  colorFilter: ColorFilter.mode(
-                                      Colors.red, BlendMode.srcIn),
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _brandDiscounts.removeAt(brandIndex);
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                          const Divider(),
-                          // Add model button
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: ElevatedButton.icon(
-                              onPressed: () =>
-                                  _showModelDiscountDialog(brandIndex),
-                              icon: SvgPicture.asset(
-                                AppIcons.add,
-                                width: Screen.w(context) * 0.06,
-                                colorFilter: ColorFilter.mode(
-                                    Colors.white, BlendMode.srcIn),
-                              ),
-                              label: const Text("Add Model"),
+                          Icon(Icons.info_outline,
+                              size: 48, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No brand discounts added yet.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[700],
                             ),
                           ),
                           const SizedBox(height: 8),
-
-                          // Models list
-                          if (brandDiscount.modelDiscounts.isEmpty)
-                            Text(
-                              "No models added",
-                              style: TextStyle(color: Colors.grey[600]),
-                            )
-                          else
-                            ...brandDiscount.modelDiscounts
-                                .asMap()
-                                .entries
-                                .map(
-                                  (entry) {
-                                final index = entry.key;
-                                final md = entry.value;
-                                return ListTile(
-                                  title: Text(md.modelName),
-                                  subtitle: Text(md.isPercentage
-                                      ? "${md.discountValue}%"
-                                      : "₹${md.discountValue}"),
-                                  trailing: Wrap(
-                                    spacing: 8,
-                                    children: [
-                                      IconButton(
-                                        icon: SvgPicture.asset(
-                                          AppIcons.edit,
-                                          width: screenWidth * 0.06,
-                                          colorFilter: ColorFilter.mode(
-                                              Theme.of(context).primaryColor,
-                                              BlendMode.srcIn),
-                                        ),
-                                        onPressed: () =>
-                                            _showModelDiscountDialog(
-                                                brandIndex,
-                                                editIndex: index),
-                                      ),
-                                      IconButton(
-                                        icon: SvgPicture.asset(
-                                          AppIcons.delete,
-                                          width: Screen.w(context) * 0.06,
-                                          colorFilter: ColorFilter.mode(
-                                              Colors.red, BlendMode.srcIn),
-                                        ),
-                                        onPressed: () {
-                                          setState(() {
-                                            brandDiscount.modelDiscounts
-                                                .removeAt(index);
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
+                          Text(
+                            "Tap the + icon above to add a brand and its model discounts.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
                         ],
                       ),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _brandDiscounts.length,
+                      itemBuilder: (context, brandIndex) {
+                        final brandDiscount = _brandDiscounts[brandIndex];
+                        return Card(
+                          elevation: 0,
+                          color: Colors.white,
+                          margin: EdgeInsets.only(bottom: Screen.h(context) * 0.02),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Brand Header
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      brandDiscount.brand.brandName,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: SvgPicture.asset(
+                                        AppIcons.delete,
+                                        width: Screen.w(context) * 0.06,
+                                        colorFilter: ColorFilter.mode(
+                                            Colors.red, BlendMode.srcIn),
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _brandDiscounts.removeAt(brandIndex);
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const Divider(),
+                                // Add model button
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () =>
+                                        _showModelDiscountDialog(brandIndex),
+                                    icon: SvgPicture.asset(
+                                      AppIcons.add,
+                                      width: Screen.w(context) * 0.06,
+                                      colorFilter: ColorFilter.mode(
+                                          Colors.white, BlendMode.srcIn),
+                                    ),
+                                    label: const Text("Add Model"),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+
+                                // Models list
+                                if (brandDiscount.modelDiscounts.isEmpty)
+                                  Text(
+                                    "No models added",
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  )
+                                else
+                                  ...brandDiscount.modelDiscounts
+                                      .asMap()
+                                      .entries
+                                      .map(
+                                        (entry) {
+                                      final index = entry.key;
+                                      final md = entry.value;
+                                      return ListTile(
+                                        title: Text(md.modelName),
+                                        subtitle: Text(md.isPercentage
+                                            ? "${md.discountValue}%"
+                                            : "₹${md.discountValue}"),
+                                        trailing: Wrap(
+                                          spacing: 8,
+                                          children: [
+                                            IconButton(
+                                              icon: SvgPicture.asset(
+                                                AppIcons.edit,
+                                                width: screenWidth * 0.06,
+                                                colorFilter: ColorFilter.mode(
+                                                    Theme.of(context).primaryColor,
+                                                    BlendMode.srcIn),
+                                              ),
+                                              onPressed: () =>
+                                                  _showModelDiscountDialog(
+                                                      brandIndex,
+                                                      editIndex: index),
+                                            ),
+                                            IconButton(
+                                              icon: SvgPicture.asset(
+                                                AppIcons.delete,
+                                                width: Screen.w(context) * 0.06,
+                                                colorFilter: ColorFilter.mode(
+                                                    Colors.red, BlendMode.srcIn),
+                                              ),
+                                              onPressed: () {
+                                                setState(() {
+                                                  brandDiscount.modelDiscounts
+                                                      .removeAt(index);
+                                                });
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
 
-            const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-            // Description
-            TextFormField(
-              controller: _descriptionController,
-              decoration: InputDecoration(
-                labelText: "Description (Optional)",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              maxLines: 3,
-            ),
-
-            const SizedBox(height: 24),
-
-            // Create Button
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed:
-                _brandDiscounts.isNotEmpty ? _createDiscounts : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                  _brandDiscounts.isNotEmpty ? null : Colors.grey[400],
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  // Description
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: InputDecoration(
+                      labelText: "Description (Optional)",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    maxLines: 3,
                   ),
-                ),
-                child: discountState.isLoading
-                    ? const CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2)
-                    : const Text(
-                  "Create Discounts",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+
+                  const SizedBox(height: 24),
+
+                  // Create Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed:
+                      _brandDiscounts.isNotEmpty ? _createDiscounts : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                        _brandDiscounts.isNotEmpty ? null : Colors.grey[400],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: discountState.isLoading
+                          ? const CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2)
+                          : const Text(
+                        "Create Discounts",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],
