@@ -2,14 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:inverter_management_app/screen/loadingScreen.dart';
-import 'package:shimmer/shimmer.dart';
-
-import '../../../core/const/icons.dart';
 import '../../../core/media_query/media_query.dart';
 import '../../../model/brand_model.dart';
 import '../../../model/product_model.dart';
+import '../../../widgets/circle_button.dart';
 import '../../brand/controller/brand_controller.dart';
 import '../controller/product_controller.dart';
 
@@ -110,51 +107,45 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     super.dispose();
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      surfaceTintColor: Colors.transparent,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      elevation: 0,
-      leading: IconButton(
-        icon: SvgPicture.asset(
-          AppIcons.back_Arrow,
-          width: Screen.w(context) * 0.07,
-          colorFilter: ColorFilter.mode(
-              Theme.of(context).primaryColor,
-              BlendMode.srcIn
-          ),
-        ),
-        onPressed: () => Navigator.pop(context),
-      ),
-      centerTitle: true,
-      title: Text(
-        'New Product',
-        style: Theme.of(context)
-            .textTheme
-            .bodyLarge
-            ?.copyWith(fontWeight: FontWeight.bold),
-      ),
-    );
-  }
 
   Widget _buildBody(List<BrandModel> brands) {
     final brandController = ref.read(activeBrandControllerProvider.notifier);
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(Screen.w(context) * 0.04),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildBrandDropdown(brands, brandController),
-            _buildModelDropdown(brandController),
-            ..._buildBasicInputs(),
-            ..._buildStockInputs(),
-            SizedBox(height: Screen.h(context) * 0.02),
-            _buildSubmitButton(),
-            SizedBox(height: Screen.h(context) * 0.02),
-          ],
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(Screen.w(context) * 0.04),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  CircularIconButton(
+                    icon: Icons.arrow_back_ios_rounded,
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  SizedBox(width: Screen.w(context) * 0.2),
+                  Text(
+                    'Create Product',
+                    style: TextStyle(
+                      fontSize: Screen.w(context) * 0.05,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: Screen.h(context) * 0.03),
+              _buildBrandDropdown(brands, brandController),
+              _buildModelDropdown(brandController),
+              ..._buildBasicInputs(),
+              ..._buildStockInputs(),
+              SizedBox(height: Screen.h(context) * 0.02),
+              _buildSubmitButton(),
+              SizedBox(height: Screen.h(context) * 0.02),
+            ],
+          ),
         ),
       ),
     );
@@ -597,12 +588,78 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
         body: GlobalLoader(),
       ),
       error: (err, st) => Scaffold(
-        body: Center(child: Text('❌ Error loading brands: $err')),
+        body: SafeArea(
+          child: Column(
+            children: [
+              /// TOP BAR (custom, no AppBar)
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Screen.w(context) * 0.04,
+                  vertical: Screen.h(context) * 0.02,
+                ),
+                child: Row(
+                  children: [
+                    CircularIconButton(
+                      icon: Icons.arrow_back_ios_rounded,
+                      onTap: () => Navigator.pop(context),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Create Product',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    // keeps title centered
+                    SizedBox(width: Screen.w(context) * 0.1),
+                    // balance back button space
+                  ],
+                ),
+              ),
+
+              /// ERROR BODY
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.wifi_off,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.01),
+                      const Text(
+                        "No Internet Connection",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.02),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(18),
+                        ),
+                        child: const Icon(Icons.arrow_back),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
       data: (brands) {
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          appBar: _buildAppBar(),
           body: _buildBody(brands), // pass data down
         );
       },

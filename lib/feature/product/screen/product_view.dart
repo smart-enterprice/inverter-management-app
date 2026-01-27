@@ -7,6 +7,7 @@ import '../../../core/const/icons.dart';
 import '../../../core/media_query/media_query.dart';
 import '../../../model/product_model.dart';
 import '../../../model/user_model.dart';
+import '../../../widgets/circle_button.dart';
 import '../../signup/controller/signUp_controller.dart';
 import '../controller/product_controller.dart';
 
@@ -116,27 +117,69 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
 
   Widget _buildErrorScreen(String message, ThemeData theme) {
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Center(
+      body: SafeArea(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-            SizedBox(height: Screen.h(context) * 0.02),
-            Text(
-              message,
-              style: theme.textTheme.titleMedium?.copyWith(color: Colors.red),
-              textAlign: TextAlign.center,
+            /// TOP BAR (custom, no AppBar)
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: Screen.w(context) * 0.04,
+                vertical: Screen.h(context) * 0.02,
+              ),
+              child: Row(
+                children: [
+                  CircularIconButton(
+                    icon: Icons.arrow_back_ios_rounded,
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Brands',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  // keeps title centered
+                  SizedBox(width: Screen.w(context) * 0.1),
+                  // balance back button space
+                ],
+              ),
             ),
-            SizedBox(height: Screen.h(context) * 0.03),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.pop(context),
-              icon: Icon(Icons.arrow_back, size: 20),
-              label: Text("Go Back"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.primaryColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+
+            /// ERROR BODY
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.wifi_off,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
+                    SizedBox(height: Screen.h(context) * 0.01),
+                    const Text(
+                      "No Internet Connection",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: Screen.h(context) * 0.02),
+                    ElevatedButton(
+                      onPressed: () {
+                        ref.watch(productByIdProvider(widget.productId));
+                      },
+                      style: ElevatedButton.styleFrom(
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(18),
+                      ),
+                      child: const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -155,12 +198,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
         padding: EdgeInsets.only(left: Screen.w(context) * 0.04),
-        icon: SvgPicture.asset(
-          AppIcons.back_Arrow,
-          width: Screen.w(context) * 0.07,
-          colorFilter: ColorFilter.mode(theme.primaryColor, BlendMode.srcIn),
+        icon: CircularIconButton(
+          icon: Icons.arrow_back_ios_rounded,
+          onTap: () => Navigator.pop(context),
         ),
-        onPressed: () => Navigator.pop(context),
+        onPressed: (){},
       ),
       flexibleSpace: FlexibleSpaceBar(
         titlePadding: EdgeInsets.only(left: Screen.w(context) * 0.15, bottom: Screen.h(context) * 0.016),
@@ -340,7 +382,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
       String model,
       String brand,
       String productType,
-      ) async {
+      ) async
+  {
     final productUpdate = ref.read(productControllerProvider.notifier);
 
     try {

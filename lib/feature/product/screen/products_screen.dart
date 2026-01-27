@@ -28,26 +28,77 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     return productState.when(
       loading: () => const Scaffold(body: GlobalLoader()),
       error: (err, st){
-        return Scaffold(body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.wifi_off, size: 50, color: Colors.grey),
-            SizedBox(height: 10),
-            Text(
-              "No Internet Connection",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        return Scaffold(
+          body: SafeArea(
+            child: Column(
+              children: [
+                /// TOP BAR (custom, no AppBar)
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Screen.w(context) * 0.04,
+                    vertical: Screen.h(context) * 0.02,
+                  ),
+                  child: Row(
+                    children: [
+                      CircularIconButton(
+                        icon: Icons.arrow_back_ios_rounded,
+                        onTap: () => Navigator.pop(context),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'Products',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      // keeps title centered
+                      SizedBox(width: Screen.w(context) * 0.1),
+                      // balance back button space
+                    ],
+                  ),
+                ),
+
+                /// ERROR BODY
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.wifi_off,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: Screen.h(context) * 0.01),
+                        const Text(
+                          "No Internet Connection",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: Screen.h(context) * 0.02),
+                        ElevatedButton(
+                          onPressed: () {
+                            ref.read(productControllerProvider.notifier).fetchProducts();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            shape: const CircleBorder(),
+                            padding: const EdgeInsets.all(18),
+                          ),
+                          child: const Icon(Icons.refresh),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: Screen.h(context) * 0.01),
-            ElevatedButton(
-              onPressed: () {
-                ref.read(productControllerProvider.notifier).fetchProducts();
-              },
-              child: const Text("Retry"),
-            ),
-          ],
-        ),
-      ));},
+          ),
+        );
+        },
       data: (products) {
         // Filter based on status
         final filteredProducts = products.where((product) {
@@ -79,7 +130,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                         ),
                         const Spacer(),
                         Text(
-                          'Brands',
+                          'Products',
                           style: TextStyle(
                             fontSize: Screen.w(context) * 0.05,
                             fontWeight: FontWeight.bold,
@@ -111,7 +162,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                           SizedBox(
                             height: Screen.w(context) * 0.1,
                             child: ListView.builder(
-
+                              physics: const AlwaysScrollableScrollPhysics(),
                               scrollDirection: Axis.horizontal,
                               itemCount: statusOptions.length,
                               itemBuilder: (context, index) {
