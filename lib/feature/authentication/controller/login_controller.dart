@@ -23,7 +23,9 @@ class LoginController {
   // Keys
   static const _roleKey = 'user_role';
   static const _tokenKey = 'token';
+  static const _userIdKey = 'user_id';
   static const _loggedInKey = 'is_logged_in';
+
 
   /// Login
   Future<LoginResult> login(String email, String password) async {
@@ -53,6 +55,7 @@ class LoginController {
 
     final role = data['employee']?['role'];
     final token = data['token'];
+    final id = data['employee']['employee_id'].toString();
 
     if (role == null || token == null) {
       return LoginResult.failure('Missing user data');
@@ -62,6 +65,7 @@ class LoginController {
     await prefs.setString(_roleKey, role);
     await prefs.setString(_tokenKey, token);
     await prefs.setBool(_loggedInKey, true);
+    await prefs.setString(_userIdKey, id);
 
     return LoginResult.success('Login successful', role, token);
   }

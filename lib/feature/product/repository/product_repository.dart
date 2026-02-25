@@ -90,4 +90,32 @@ class ProductRepository {
       'reason': reason,
     });
   }
+
+  /// low stock products
+  Future<List<ProductModel>> getLowStockProducts({int threshold = 5}) async {
+    try {
+      final response = await _dio.get(
+        '/product-details/low-stock',
+        queryParameters: {
+          'page': 1,
+          'limit': 1000,
+          'threshold': threshold,
+        },
+      );
+      final dynamic dataList = response.data['data'];
+      final List productsList = dataList is List ? dataList : dataList['data'] ?? [];
+
+      final products = productsList
+          .map((json) => ProductModel.fromJson(json))
+          .toList();
+      return products;
+    } on DioException catch (e) {
+      final errorMessage = e.response?.data['message'] ?? 'Failed to fetch low stock products';
+      print('❌ Error: $errorMessage');
+      throw errorMessage;
+    } catch (e) {
+      print('⚠️ Unknown error: $e');
+      throw Exception('Unexpected error occurred while fetching low stock');
+    }
+  }
 }

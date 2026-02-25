@@ -6,7 +6,7 @@ import '../repository/order_repository.dart';
 
 final orderControllerProvider =
 StateNotifierProvider<OrderController, AsyncValue<List<OrderModel>>>((ref) {
-  return OrderController(ref.read(orderRepositoryProvider));
+  return OrderController(ref.read(orderRepositoryProvider),);
 });
 final orderByIdProvider = FutureProvider.family<OrderModel?, String>((ref, orderId) async {
   final repository = ref.watch(orderRepositoryProvider);
@@ -14,8 +14,7 @@ final orderByIdProvider = FutureProvider.family<OrderModel?, String>((ref, order
 });
 class OrderController extends StateNotifier<AsyncValue<List<OrderModel>>> {
   final OrderRepository _orderRepository;
-
-  OrderController(this._orderRepository) : super(const AsyncValue.loading()) {
+  OrderController(this._orderRepository,) : super(const AsyncValue.loading()) {
     getAllOrders();
   }
 
@@ -74,10 +73,10 @@ print(_orderRepository.createOrder(order));
     }
   }
 
-  /// 🔹 Update order status and refresh order list
-  Future<void> updateOrderStatus(OrderModel order) async {
+  /// 🔹 Update order item status and refresh order list
+  Future<void> updateOrderItemStatus(OrderModel order) async {
     try {
-      await _orderRepository.updateOrderStatus(order);
+      await _orderRepository.updateOrderItemStatus(order);
       // Refresh orders after update
       await getAllOrders();
     } on DioException catch (e) {
@@ -86,5 +85,33 @@ print(_orderRepository.createOrder(order));
       rethrow;
     }
   }
+  /// 🔹 Update entire order and refresh order list
+  Future<void> updateOrder(OrderModel order) async {
+    try {
+      await _orderRepository.updateOrder(order);
+      // Refresh orders after update
+      await getAllOrders();
+    } on DioException catch (e) {
+      rethrow;
+    } catch (_) {
+      rethrow;
+    }
+  }
+
+  Future<void> updatePaymentOrder(OrderModel order) async {
+    try {
+      await _orderRepository.updateOrderPayment(order);
+      // Refresh orders after update
+      await getAllOrders();
+    } on DioException catch (e) {
+      rethrow;
+    } catch (_) {
+      rethrow;
+    }
+  }
+
+
+
+
 
 }

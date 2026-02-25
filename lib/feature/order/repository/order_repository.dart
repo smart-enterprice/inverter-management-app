@@ -86,14 +86,37 @@ class OrderRepository {
   }
 
   /// 🔹 Update order status only (packed, production, unpack)
-  Future<void> updateOrderStatus(OrderModel order) async {
+  Future<void> updateOrderItemStatus(OrderModel order) async {
     try {
       await _dio.put(
         '/order-details/status/${order.orderNumber}',
-        data: order.toUpdateJson(),
+        data: order.toUpdateItemJson(),
+      );
+
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?["message"] ?? e.message ?? 'Unknown error');
+    }
+  }
+  /// 🔹 Update entire order status
+  Future<void> updateOrder(OrderModel order,{bool isPaymentUpdate = false}) async {
+    try {
+      await _dio.put(
+        '/order-details/status/${order.orderNumber}',
+        data: order.toUpdateJson(isPaymentUpdate: isPaymentUpdate),
       );
     } on DioException catch (e) {
       throw Exception(e.response?.data?["message"] ?? e.message ?? 'Unknown error');
     }
   }
+  Future<void> updateOrderPayment(OrderModel order) async {
+    try {
+      await _dio.put(
+        '/order-details/status/${order.orderNumber}',
+        data: order.toUpdatePaymentJson(),
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?["message"] ?? e.message ?? 'Unknown error');
+    }
+  }
+
 }

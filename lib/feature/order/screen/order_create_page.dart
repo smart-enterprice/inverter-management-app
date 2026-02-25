@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:inverter_management_app/core/theme/theme.dart';
 import 'package:inverter_management_app/screen/loadingScreen.dart';
 import '../../../core/const/icons.dart';
 import '../../../core/media_query/media_query.dart';
@@ -10,6 +9,7 @@ import '../../../model/dealer_discount_model.dart';
 import '../../../model/order_model.dart';
 import '../../../model/product_model.dart';
 import '../../../model/user_model.dart';
+import '../../../widgets/circle_button.dart';
 import '../../brand/controller/brand_controller.dart';
 import '../../discount/controller/discount_controller.dart';
 import '../../product/controller/product_controller.dart';
@@ -41,7 +41,6 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar(),
       bottomNavigationBar: Container(
         padding: EdgeInsets.all(Screen.w(context) * 0.05),
         child: ElevatedButton(
@@ -61,366 +60,374 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
               : const Text('Create'),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Existing dealer, brand, salesman selection buttons...
-            Container(
-              width: Screen.w(context) * 0.9,
-              height: Screen.h(context) * 0.3,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
-                  color: Colors.white),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: Padding(
+          padding:  EdgeInsets.all(
+            Screen.w(context) * 0.04,
+          ),
+          child: Column(
+            children: [
+              Row(
                 children: [
-                  SizedBox(
-                    width: Screen.w(context) * 0.8,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        elevation: 0,
-                        side: BorderSide(color: Colors.grey, width: 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(Screen.w(context) * 0.03),
-                        ),
-                      ),
-                      onPressed: () => _showSalesmanDialog(context),
-                      child: Text(selectedSalesman == null
-                          ? 'Select Salesman'
-                          : selectedSalesman!.employeeName),
-                    ),
+                  CircularIconButton(
+                    icon: Icons.arrow_back_ios_rounded,
+                    onTap: () => Navigator.pop(context),
                   ),
-                  SizedBox(height: Screen.h(context) * 0.02),
-                  SizedBox(
-                    width: Screen.w(context) * 0.8,
-                    child: ElevatedButton(
-                      onPressed: () => _showDealerDialog(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        elevation: 0,
-                        side: BorderSide(color: Colors.grey, width: 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(Screen.w(context) * 0.03),
-                        ),
-                      ),
-                      child: Text(
-                        selectedDealer == null
-                            ? 'Select Dealer'
-                            : '${selectedDealer!.employeeName} (${selectedDealer!.shopName ?? 'No Shop'})',
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: Screen.h(context) * 0.02),
-                  SizedBox(
-                    width: Screen.w(context) * 0.8,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        elevation: 0,
-                        side: BorderSide(color: Colors.grey, width: 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(Screen.w(context) * 0.03),
-                        ),
-                      ),
-                      onPressed: selectedDealer == null
-                          ? null
-                          : () => _showBrandDialog(
-                              context, selectedDealer!.employeeId!),
-                      child: Text(selectedBrand == null
-                          ? 'Select Brand'
-                          : selectedBrand!.brandName),
-                    ),
-                  ),
-                  SizedBox(height: Screen.h(context) * 0.02),
-                  SizedBox(
-                    width: Screen.w(context) * 0.8,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        elevation: 0,
-                        side: BorderSide(color: Colors.grey, width: 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(Screen.w(context) * 0.03),
-                        ),
-                      ),
-                      onPressed: selectedBrand == null
-                          ? null
-                          : () => _showProductDialog(
-                              context, [selectedBrand!.brandName]),
-                      child: Text(selectedProduct == null
-                          ? 'Select Product'
-                          : selectedProduct!.productName.toString()),
+                  SizedBox(width: Screen.w(context) * 0.2),
+                  Text(
+                    'Create Product',
+                    style: TextStyle(
+                      fontSize: Screen.w(context) * 0.05,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                 ],
               ),
-            ),
-            SizedBox(height: Screen.h(context) * 0.03),
-            // Selected Products List
-            if (selectedProducts.isNotEmpty) ...[
-              Container(
-                width: Screen.w(context) * 0.9,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
-                    color: Colors.white),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    SizedBox(height: Screen.h(context) * 0.03),
-                    Center(
-                      child: Text(
-                        'Selected Products (${selectedProducts.length})',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.01),
-                    // if (selectedProducts.isNotEmpty)
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      // prevent nested scroll
-                      itemCount: selectedProducts.length,
-                      itemBuilder: (context, index) {
-                        return _buildProductItem(
-                            selectedProducts[index], index);
-                      },
-                    ),
-                    // divider
-                    SizedBox(height: Screen.h(context) * 0.01),
-                    Center(
-                      child:
-                          SizedBox(width: Screen.w(context) * 0.8, child: Divider()),
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.01),
-                    // ▼▼▼ ORDER TOTAL ▼▼▼
-                    Padding(
-                      padding: EdgeInsets.only(right: Screen.w(context) * 0.05),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text(
-                            "Order Total",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          Text(
-                            '₹ ${_calculateOrderTotal().toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.02),
-                  ],
-                ),
-              ),
-            ],
-            SizedBox(height: Screen.h(context) * 0.015),
-            Center(
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                    vertical: Screen.h(context) * 0.02,
-                    horizontal: Screen.w(context) * 0.05),
-                width: Screen.w(context) * 0.9,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
-                    color: Colors.white),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Order Details',
-                        style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16)),
-                    SizedBox(
-                      height: Screen.h(context) * 0.02,
-                    ),
-                    TextFormField(
-                      controller: orderNoteController,
-                      minLines: 2,
-                      maxLines: 5,
-                      keyboardType: TextInputType.multiline,
-                      decoration: const InputDecoration(
-                        // labelText: 'Order Note',
-                        border: OutlineInputBorder(borderSide: BorderSide.none),
-                        prefixIcon: Icon(Icons.note_alt_outlined),
-                        hintText:
-                            'Add any special instruction or notes  (optional)',
-                      ),
-                    ),
-                    // Priority selection
-                    SizedBox(height: Screen.h(context) * 0.02),
-                    Text(
-                      'Order Priority',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.02),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: priorities.map((p) {
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              selectedPriority = p;
-                            });
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  selectedPriority == p
-                                      ? Icons.radio_button_checked
-                                      : Icons.radio_button_unchecked,
-                                  color: p == 'HIGH'
-                                      ? Colors.red
-                                      : p == 'MEDIUM'
-                                          ? Colors.orange
-                                          : Colors.green,
-                                  size: 26,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  p, // ← Show the name
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: p == 'HIGH'
-                                        ? Colors.red
-                                        : p == 'MEDIUM'
-                                            ? Colors.orange
-                                            : Colors.green,
+              SizedBox(height: Screen.h(context) * 0.03),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: Screen.w(context) * 0.9,
+                        height: Screen.h(context) * 0.3,
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
+                            color: Colors.white),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: Screen.w(context) * 0.8,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  elevation: 0,
+                                  side: BorderSide(color: Colors.grey, width: 1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                    BorderRadius.circular(Screen.w(context) * 0.03),
                                   ),
                                 ),
-                              ],
+                                onPressed: () => _showSalesmanDialog(context),
+                                child: Text(selectedSalesman == null
+                                    ? 'Select Salesman'
+                                    : selectedSalesman!.employeeName),
+                              ),
                             ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-
-                    // Amount field
-                    SizedBox(height: Screen.h(context) * 0.02),
-                    TextFormField(
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        hintText: 'Amount paid',
-                        border: OutlineInputBorder(borderSide: BorderSide.none),
-                        prefixIcon: Icon(Icons.currency_rupee),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          amountPaid = num.tryParse(value) ?? 0;
-                        });
-                      },
-                    ),
-                    // Payment method
-                    SizedBox(height: Screen.h(context) * 0.02),
-                    Text(
-                      'Order Priority',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Row(
-                          children: [
-                            Radio<String>(
-                              value: 'CASH',
-                              groupValue: paymentMethod,
-                              activeColor: Colors.green,
-                              onChanged: (value) {
-                                setState(() {
-                                  paymentMethod = value!;
-                                });
-                              },
+                            SizedBox(height: Screen.h(context) * 0.02),
+                            SizedBox(
+                              width: Screen.w(context) * 0.8,
+                              child: ElevatedButton(
+                                onPressed: () => _showDealerDialog(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  elevation: 0,
+                                  side: BorderSide(color: Colors.grey, width: 1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                    BorderRadius.circular(Screen.w(context) * 0.03),
+                                  ),
+                                ),
+                                child: Text(
+                                  selectedDealer == null
+                                      ? 'Select Dealer'
+                                      : '${selectedDealer!.employeeName} (${selectedDealer!.shopName ?? 'No Shop'})',
+                                ),
+                              ),
                             ),
-                            Text(
-                              'Cash',
-                              style: TextStyle(fontSize: 16,color:Colors.black,fontWeight: FontWeight.bold),
+                            SizedBox(height: Screen.h(context) * 0.02),
+                            SizedBox(
+                              width: Screen.w(context) * 0.8,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  elevation: 0,
+                                  side: BorderSide(color: Colors.grey, width: 1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                    BorderRadius.circular(Screen.w(context) * 0.03),
+                                  ),
+                                ),
+                                onPressed: selectedDealer == null
+                                    ? null
+                                    : () => _showBrandDialog(
+                                    context, selectedDealer!.employeeId!),
+                                child: Text(selectedBrand == null
+                                    ? 'Select Brand'
+                                    : selectedBrand!.brandName),
+                              ),
+                            ),
+                            SizedBox(height: Screen.h(context) * 0.02),
+                            SizedBox(
+                              width: Screen.w(context) * 0.8,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  elevation: 0,
+                                  side: BorderSide(color: Colors.grey, width: 1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                    BorderRadius.circular(Screen.w(context) * 0.03),
+                                  ),
+                                ),
+                                onPressed: selectedBrand == null
+                                    ? null
+                                    : () => _showProductDialog(
+                                    context, [selectedBrand!.brandName]),
+                                child: Text(selectedProduct == null
+                                    ? 'Select Product'
+                                    : selectedProduct!.productName.toString()),
+                              ),
                             ),
                           ],
                         ),
-                        SizedBox(width: Screen.w(context)*0.05), // spacing
-                        Row(
-                          children: [
-                            Radio<String>(
-                              value: 'BANK',
-                              groupValue: paymentMethod,
-                              activeColor: Colors.blue,
-                              onChanged: (value) {
-                                setState(() {
-                                  paymentMethod = value!;
-                                });
-                              },
-                            ),
-                            Text(
-                              'Bank',
-                              style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),
-                            ),
-                          ],
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.03),
+                      // Selected Products List
+                      if (selectedProducts.isNotEmpty) ...[
+                        Container(
+                          width: Screen.w(context) * 0.9,
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
+                              color: Colors.white),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              SizedBox(height: Screen.h(context) * 0.03),
+                              Center(
+                                child: Text(
+                                  'Selected Products (${selectedProducts.length})',
+                                  style:
+                                  Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: Screen.h(context) * 0.01),
+                              // if (selectedProducts.isNotEmpty)
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                // prevent nested scroll
+                                itemCount: selectedProducts.length,
+                                itemBuilder: (context, index) {
+                                  return _buildProductItem(
+                                      selectedProducts[index], index);
+                                },
+                              ),
+                              // divider
+                              SizedBox(height: Screen.h(context) * 0.01),
+                              Center(
+                                child:
+                                SizedBox(width: Screen.w(context) * 0.8, child: Divider()),
+                              ),
+                              SizedBox(height: Screen.h(context) * 0.01),
+                              // ▼▼▼ ORDER TOTAL ▼▼▼
+                              Padding(
+                                padding: EdgeInsets.only(right: Screen.w(context) * 0.05),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    const Text(
+                                      "Order Total",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
+                                    Text(
+                                      '₹ ${_calculateOrderTotal().toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: Screen.h(context) * 0.02),
+                            ],
+                          ),
                         ),
                       ],
-                    )
+                      SizedBox(height: Screen.h(context) * 0.015),
+                      Center(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                              vertical: Screen.h(context) * 0.02,
+                              horizontal: Screen.w(context) * 0.05),
+                          width: Screen.w(context) * 0.9,
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
+                              color: Colors.white),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Order Details',
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16)),
+                              SizedBox(
+                                height: Screen.h(context) * 0.02,
+                              ),
+                              TextFormField(
+                                controller: orderNoteController,
+                                minLines: 2,
+                                maxLines: 5,
+                                keyboardType: TextInputType.multiline,
+                                decoration: const InputDecoration(
+                                  // labelText: 'Order Note',
+                                  border: OutlineInputBorder(borderSide: BorderSide.none),
+                                  prefixIcon: Icon(Icons.note_alt_outlined),
+                                  hintText:
+                                  'Add any special instruction or notes  (optional)',
+                                ),
+                              ),
+                              // Priority selection
+                              SizedBox(height: Screen.h(context) * 0.02),
+                              Text(
+                                'Order Priority',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              SizedBox(height: Screen.h(context) * 0.02),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: priorities.map((p) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        selectedPriority = p;
+                                      });
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            selectedPriority == p
+                                                ? Icons.radio_button_checked
+                                                : Icons.radio_button_unchecked,
+                                            color: p == 'HIGH'
+                                                ? Colors.red
+                                                : p == 'MEDIUM'
+                                                ? Colors.orange
+                                                : Colors.green,
+                                            size: 26,
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            p, // ← Show the name
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: p == 'HIGH'
+                                                  ? Colors.red
+                                                  : p == 'MEDIUM'
+                                                  ? Colors.orange
+                                                  : Colors.green,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
 
-                  ],
+                              // Amount field
+                              SizedBox(height: Screen.h(context) * 0.02),
+                              TextFormField(
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  hintText: 'Amount paid',
+                                  border: OutlineInputBorder(borderSide: BorderSide.none),
+                                  prefixIcon: Icon(Icons.currency_rupee),
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    amountPaid = num.tryParse(value) ?? 0;
+                                  });
+                                },
+                              ),
+                              // Payment method
+                              SizedBox(height: Screen.h(context) * 0.02),
+                              Text(
+                                'Order Priority',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Radio<String>(
+                                        value: 'CASH',
+                                        groupValue: paymentMethod,
+                                        activeColor: Colors.green,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            paymentMethod = value!;
+                                          });
+                                        },
+                                      ),
+                                      Text(
+                                        'Cash',
+                                        style: TextStyle(fontSize: 16,color:Colors.black,fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(width: Screen.w(context)*0.05), // spacing
+                                  Row(
+                                    children: [
+                                      Radio<String>(
+                                        value: 'BANK',
+                                        groupValue: paymentMethod,
+                                        activeColor: Colors.blue,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            paymentMethod = value!;
+                                          });
+                                        },
+                                      ),
+                                      Text(
+                                        'Bank',
+                                        style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              )
+
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              )
+              // Existing dealer, brand, salesman selection buttons...
 
-            // Create Order Button
-          ],
+              // Create Order Button
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // App Bar
-  AppBar _buildAppBar() {
-    return AppBar(
-      surfaceTintColor: Colors.transparent,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      elevation: 0,
-      leading: IconButton(
-        icon: SvgPicture.asset(
-          AppIcons.back_Arrow,
-          width: Screen.w(context) * 0.07,
-          colorFilter:
-              ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
-        ),
-        onPressed: () => Navigator.pop(context),
-      ),
-      centerTitle: true,
-      title: Text('Create New Order',
-          style: Theme.of(context)
-              .textTheme
-              .bodyLarge
-              ?.copyWith(fontWeight: FontWeight.bold)),
-    );
-  }
 
   // Dealer Dialog with Search
   Future<void> _showDealerDialog(BuildContext context) async {
@@ -933,6 +940,20 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                   initialDate: selectedProduct.deliveryDate ?? DateTime.now(),
                   firstDate: DateTime.now(),
                   lastDate: DateTime.now().add(const Duration(days: 365)),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: ColorScheme.light(
+                          primary: Theme.of(context).primaryColor, // Header background color
+                          onPrimary: Colors.white, // Header text color
+                          surface: Colors.white, // Calendar background
+                          onSurface: Colors.black, // Calendar text color
+                        ),
+                        dialogBackgroundColor: Colors.white, // Dialog background
+                      ),
+                      child: child!,
+                    );
+                  },
                 );
                 if (pickedDate != null) {
                   setState(() {

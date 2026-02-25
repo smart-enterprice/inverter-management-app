@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:inverter_management_app/screen/superAdminMobileView.dart';
+import 'package:inverter_management_app/screen/rolebasescreen/superAdminMobileView.dart';
 import 'package:inverter_management_app/screen/superAdminTabletView.dart';
 import '../../../core/utils/screen_type.dart';
 

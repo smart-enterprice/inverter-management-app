@@ -25,9 +25,6 @@ final userProvider =
     FutureProvider.family<UserModel, String>((ref, userId) async {
   final user =
       await ref.read(signupControllerProvider.notifier).getEmployeeById(userId);
-  if (user == null) {
-    throw Exception('User not found');
-  }
   return user;
 });
 
@@ -71,58 +68,58 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
-          child: RefreshIndicator(
-            backgroundColor: Colors.white,
-            color: Theme.of(context).primaryColor,
-            onRefresh: () async {
-              await Future.delayed(const Duration(milliseconds: 500));
-              // Invalidate the provider to reload user details
-              ref.invalidate(userProvider(widget.userId));
-            },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(
-                    top: Screen.w(context) * 0.02,
-                    bottom: Screen.w(context) * 0.03,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      CircularIconButton(
-                        icon: Icons.arrow_back_ios_sharp,
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                      Text(
-                        'Employee Details',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      CircularIconButton(
-                        icon: Icons.delete,
-                        iconColor: Colors.red,
-                        onTap: () => _showDeleteDialog(
-                            context, user.employeeName, user.employeeId!),
-                      ),
-                      CircularIconButton(
-                        icon: Icons.edit,
-                        iconColor: Theme.of(context).primaryColor,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                EditUserScreen(user: user,),
-                          ),
-                      ),
-                      ),
-                    ],
-                  ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(
+                  top: Screen.w(context) * 0.02,
+                  bottom: Screen.w(context) * 0.03,
                 ),
-                Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CircularIconButton(
+                      icon: Icons.arrow_back_ios_sharp,
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                    Text(
+                      'Employee Details',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    // CircularIconButton(
+                    //   icon: Icons.delete,
+                    //   iconColor: Colors.red,
+                    //   onTap: () => _showDeleteDialog(
+                    //       context, user.employeeName, user.employeeId!),
+                    // ),
+                    CircularIconButton(
+                      icon: Icons.edit,
+                      iconColor: Theme.of(context).primaryColor,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              EditUserScreen(user: user,),
+                        ),
+                    ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  backgroundColor: Colors.white,
+                  color: Theme.of(context).primaryColor,
+                  onRefresh: () async {
+                    await Future.delayed(const Duration(milliseconds: 500));
+                    // Invalidate the provider to reload user details
+                    ref.invalidate(userProvider(widget.userId));
+                  },
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
@@ -137,8 +134,8 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

@@ -19,6 +19,9 @@ FutureProvider.family<List<ProductModel>, List<String>>((ref, brands) async {
   return await controller.fetchProductsByBrand(brands);
 });
 
+final lowStockProvider = FutureProvider.family<List<ProductModel>, int>((ref, threshold) async {
+  return await ref.read(productControllerProvider.notifier).fetchLowStockProducts(threshold);
+});
 
 class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
   final Ref _ref;
@@ -112,6 +115,15 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
       return await _ref.read(productRepositoryProvider).getProductById(id);
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Fetch Low Stock Products
+  Future<List<ProductModel>> fetchLowStockProducts(int threshold) async {
+    try {
+      return await _ref.read(productRepositoryProvider).getLowStockProducts(threshold: threshold);
+    } catch (e) {
+      rethrow;
     }
   }
 

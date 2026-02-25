@@ -160,11 +160,16 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircularIconButton(
-                        icon: Icons.arrow_back_ios_sharp,
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: Screen.h(context) * 0.02,
+                        ),
+                        child: CircularIconButton(
+                          icon: Icons.arrow_back_ios_sharp,
+                          onTap: () {
+                            Navigator.pop(context);
+                          },
+                        ),
                       ),
                       _buildProfileImageSection(),
                       _buildInputField(label: 'Name', hint: 'Enter full name', controller: _nameController),
@@ -235,19 +240,6 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       ),
     );
   }
-  AppBar _buildAppBar() {
-    return AppBar(
-      surfaceTintColor: Colors.transparent,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      elevation: 0,
-      leading: IconButton(
-        icon: SvgPicture.asset(AppIcons.back_Arrow, width: Screen.w(context) * 0.06,colorFilter:ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn) ,),
-        onPressed: () => Navigator.pop(context),
-      ),
-      centerTitle: true,
-      title:  Text('Add user', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
-    );
-  }
 
   Widget _buildProfileImageSection() {
     return Padding(
@@ -259,10 +251,11 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
             child: Stack(
               children: [
                 CircleAvatar(
+                  backgroundColor: Colors.grey.shade200,
                   radius: Screen.w(context) * 0.08,
                   backgroundImage: _selectedImage != null
                       ? FileImage(_selectedImage!)
-                      : const NetworkImage('https://i.pravatar.cc/150?img=3') as ImageProvider,
+                      : const NetworkImage('') as ImageProvider,
                 ),
                 Positioned(
                   bottom: 0,

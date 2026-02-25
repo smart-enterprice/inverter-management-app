@@ -151,11 +151,16 @@ class _AddUserScreenState extends ConsumerState<AddUserScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircularIconButton(
-                    icon: Icons.arrow_back_ios_sharp,
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: Screen.h(context) * 0.02,
+                    ),
+                    child: CircularIconButton(
+                      icon: Icons.arrow_back_ios_sharp,
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                    ),
                   ),
                   _buildProfileImageSection(),
                   _buildInputField(label: 'Name',

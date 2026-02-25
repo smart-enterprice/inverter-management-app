@@ -86,13 +86,35 @@ class OrderModel {
     );
   }
   /// 🔹 Use for updating only status flags + order details
-  Map<String, dynamic> toUpdateJson() {
+  Map<String, dynamic> toUpdateItemJson() {
     return {
       "order_number": orderNumber,
-      "status":status,
-      "order_details": orderDetails.map((x) => x.toUpdateJson()).toList(),
+      // Only send items that have actual updates
+      "order_details": orderDetails
+          .where((item) =>
+      item.hasPackedCompleted != null ||
+          item.hasProductionCompleted != null ||
+          item.nextStatus != null
+      )
+          .map((x) => x.toUpdateJson())
+          .toList(),
     };
   }
+
+  Map<String, dynamic> toUpdateJson({bool isPaymentUpdate = false}) {
+    return {
+      "order_number": orderNumber,
+       "status": status,
+    };
+  }
+  Map<String, dynamic> toUpdatePaymentJson({bool isPaymentUpdate = false}) {
+    return {
+      "order_number": orderNumber,
+      "amount_paid": amountPaid,
+    };
+  }
+
+
   Map<String, dynamic> toJson() {
     return {
       "order_number": orderNumber,
@@ -253,6 +275,7 @@ class OrderDetailsModel {
   final int? discountPrice;
   final int? qtyOrdered;
   final DateTime? deliveryDate;
+  final DateTime? deliveredDate;
   final String? dealerDiscountId;
   final bool isProductScheme;
   final int? deliveredQty;
@@ -279,7 +302,7 @@ class OrderDetailsModel {
   final bool? hasProduction;
   final bool? hasPackedCompleted;
   final bool? hasProductionCompleted;
-
+  final String? nextStatus;
   OrderDetailsModel({
     required this.productId,
     required this.productBrand,
@@ -290,6 +313,7 @@ class OrderDetailsModel {
     this.discountPrice,
     this.qtyOrdered,
     this.deliveryDate,
+    this.deliveredDate,
     this.dealerDiscountId,
     this.isProductScheme = false,
     this.deliveredQty,
@@ -310,6 +334,7 @@ class OrderDetailsModel {
     this.hasProduction,
     this.hasPackedCompleted,
     this.hasProductionCompleted,
+    this.nextStatus
   });
 
   // Convenience getter for quantity (since UI uses it)
@@ -367,11 +392,17 @@ class OrderDetailsModel {
   Map<String, dynamic> toUpdateJson() {
     return {
       "order_details_number": orderDetailsNumber,
-      // "has_unPacked_completed": hasUnPackedCompleted,
-      "has_unPacked_completed": hasPackedCompleted,
-      "has_production_completed": hasProductionCompleted,
+
+      if (hasPackedCompleted != null)
+        "has_unPacked_completed": hasPackedCompleted,
+
+      if (hasProductionCompleted != null)
+        "has_production_completed": hasProductionCompleted,
+         if(nextStatus != null)
+        "status": nextStatus,
     };
   }
+
 
   // Factory to create from ProductModel (for UI)
   factory OrderDetailsModel.fromProduct(
@@ -406,6 +437,7 @@ class OrderDetailsModel {
       "dealer_discount_id": dealerDiscountId,
       "is_product_scheme": isProductScheme,
       "delivered_qty": deliveredQty,
+      'delivered_date': deliveredDate?.toIso8601String().split('T').first,
       "status": status,
     };
   }
@@ -437,6 +469,7 @@ class OrderDetailsModel {
     int? qtyDelivered,
     bool? hasProductionCompleted,
     bool? hasPackedCompleted, String? orderDetailsNumber,
+    String? newStatus,
   }) {
     return OrderDetailsModel(
       productId: productId ?? this.productId,
@@ -466,6 +499,7 @@ class OrderDetailsModel {
       orderDetailsNumber:orderDetailsNumber??this.orderDetailsNumber,
       hasPackedCompleted: hasPackedCompleted ?? this.hasPackedCompleted,
       hasProductionCompleted: hasProductionCompleted ?? this.hasProductionCompleted,
+      nextStatus: newStatus ?? nextStatus,
     );
   }
 

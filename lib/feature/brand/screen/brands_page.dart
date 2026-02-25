@@ -129,32 +129,37 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                 },
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        CircularIconButton(
-                          icon: Icons.arrow_back_ios_rounded,
-                          onTap: () => Navigator.pop(context),
-                        ),
-                        const Spacer(),
-                        Text(
-                          'Brands',
-                          style: TextStyle(
-                            fontSize: Screen.w(context) * 0.05,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                    Padding(
+                padding: EdgeInsets.symmetric(
+                vertical: Screen.h(context) * 0.02,
+                ),
+                      child: Row(
+                        children: [
+                          CircularIconButton(
+                            icon: Icons.arrow_back_ios_rounded,
+                            onTap: () => Navigator.pop(context),
                           ),
-                        ),
-                        const Spacer(),
-                        CircularIconButton(
-                          icon: Icons.add,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const BrandCreateScreen(),
+                          const Spacer(),
+                          Text(
+                            'Brands',
+                            style: TextStyle(
+                              fontSize: Screen.w(context) * 0.05,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                           ),
-                        ),
-                      ],
+                          const Spacer(),
+                          CircularIconButton(
+                            icon: Icons.add,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const BrandCreateScreen(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     SizedBox(height: Screen.h(context) * 0.02),
                     /// FILTER CHIPS

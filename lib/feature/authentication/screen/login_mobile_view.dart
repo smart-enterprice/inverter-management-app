@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/media_query/media_query.dart';
+import '../../../screen/rolebasescreen/salesmanmobileview.dart';
 import '../../../screen/superAdmin_home_screen.dart';
 import '../controller/login_controller.dart';
 
@@ -75,7 +76,7 @@ class _LoginScreenState extends ConsumerState<LoginMobileView> {
             duration: const Duration(seconds: 3),
           ),
         );
-
+print(result.message);
         if (result.success) {
           switch (result.role) {
             case 'ROLE_SUPER_ADMIN':
@@ -88,7 +89,7 @@ class _LoginScreenState extends ConsumerState<LoginMobileView> {
               // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
               break;
             case 'ROLE_SALESMAN':
-              // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesmanHomeScreen()));
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesmanMobileView()));
               break;
             case 'ROLE_ACCOUNT':
               // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AccountHomeScreen()));

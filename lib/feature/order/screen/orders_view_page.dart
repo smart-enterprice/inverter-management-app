@@ -21,7 +21,17 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isSearching = false;
-
+  String _selectedStatus = 'ALL';
+  final List<String> _statuses = [
+    'ALL',
+    'PENDING',
+    'PRODUCTION',
+    'PACKED',
+    'INVOICE',
+    'SHIPPED',
+    'COMPLETED',
+    'CANCELLED'
+  ];
   @override
   void dispose() {
     _searchController.dispose();
@@ -39,28 +49,27 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
   }
 
   List<OrderModel> _filterOrders(List<OrderModel> orders) {
-    if (_searchQuery.isEmpty) {
-      return orders;
-    }
-
-    final query = _searchQuery.toLowerCase();
     return orders.where((order) {
-      final dealerName = order.dealer?.employeeName.toLowerCase() ?? '';
-      final shopName = order.dealer?.shopName.toLowerCase() ?? '';
-      final orderId = order.orderNumber.toString().toLowerCase() ?? '';
-      final phone = order.dealer?.employeePhone.toString() ?? '';
+      // Check Status Match
+      final matchesStatus = _selectedStatus == 'ALL' ||
+          (order.status?.toUpperCase() == _selectedStatus);
 
-      return dealerName.contains(query) ||
-          shopName.contains(query) ||
-          orderId.contains(query) ||
-          phone.contains(query);
+      // Check Search Match
+      final query = _searchQuery.toLowerCase();
+      final matchesSearch = query.isEmpty ||
+          (order.dealer?.employeeName.toLowerCase() ?? '').contains(query) ||
+          (order.dealer?.shopName.toLowerCase() ?? '').contains(query) ||
+          (order.orderNumber.toString().toLowerCase()).contains(query) ||
+          (order.dealer?.employeePhone.toString() ?? '').contains(query);
+
+      // Return true only if BOTH match
+      return matchesStatus && matchesSearch;
     }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(orderControllerProvider);
-
     return ordersAsync.when(
       loading: () => const GlobalLoader(),
       error: (err, st) {
@@ -74,7 +83,7 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                 "No Internet Connection",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
-              SizedBox(height: screenHeight * 0.01),
+              SizedBox(height: Screen.h(context) * 0.01),
               ElevatedButton(
                 onPressed: () {
                   ref.refresh(orderControllerProvider.notifier).getAllOrders();
@@ -90,39 +99,39 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
         if (orders.isEmpty) {
           return  Center(
               child: Padding(
-                padding: EdgeInsets.all(screenWidth * 0.05),
+                padding: EdgeInsets.all(Screen.w(context) * 0.05),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: screenWidth * 0.3,
-                      height: screenWidth * 0.3,
+                      width: Screen.w(context) * 0.3,
+                      height: Screen.w(context) * 0.3,
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
                         shape: BoxShape.circle,
                       ),
                       child: SvgPicture.asset(
                         AppIcons.box,
-                        width: screenWidth * 0.15,
-                        height: screenWidth * 0.15,
+                        width: Screen.w(context) * 0.15,
+                        height: Screen.w(context) * 0.15,
                         colorFilter: ColorFilter.mode(
                             Colors.grey[500]!, BlendMode.srcIn),
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.025),
+                    SizedBox(height: Screen.h(context) * 0.025),
                     Text(
                       "No Orders Yet",
                       style: TextStyle(
-                        fontSize: screenWidth * 0.045,
+                        fontSize: Screen.w(context) * 0.045,
                         fontWeight: FontWeight.w600,
                         color: Colors.grey[700],
                       ),
                     ),
-                    SizedBox(height: screenHeight * 0.01),
+                    SizedBox(height: Screen.h(context) * 0.01),
                     Text(
                       "Your orders will appear here",
                       style: TextStyle(
-                        fontSize: screenWidth * 0.035,
+                        fontSize: Screen.w(context) * 0.035,
                         color: Colors.grey[500],
                       ),
                     ),
@@ -133,103 +142,220 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
         }
           return Column(
             children: [
-              // Search Bar - Only show when _isSearching is true
-              // if (_isSearching)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal:screenWidth * 0.04,vertical: screenHeight*0.01),
+              // --- NEW CUSTOM HEADER WITH SEARCH TOGGLE ---
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Screen.w(context) * 0.04,
+                  vertical: Screen.h(context) * 0.015,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Orders',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+
+                    // Search Toggle Button
+                    GestureDetector(
+                      onTap: _toggleSearch,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _isSearching
+                              ? Colors.redAccent.withValues(alpha: 0.1)
+                              : Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _isSearching ? Icons.close_rounded : Icons.search_rounded,
+                          color: _isSearching ? Colors.redAccent : Theme.of(context).primaryColor,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // --- Animated Search Bar ---
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _isSearching
+                    ? Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Screen.w(context) * 0.04,
+                    vertical: Screen.h(context) * 0.01,
+                  ),
                   child: TextField(
                     controller: _searchController,
-                    autofocus: false,
+                    autofocus: true, // Automatically pops up keyboard
                     onChanged: (value) {
                       setState(() {
                         _searchQuery = value;
                       });
                     },
                     decoration: InputDecoration(
-                      hintText:
-                          'Search by order number, dealer name, phone or shop',
+                      hintText: 'Search by order number, dealer, phone...',
+                      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                       prefixIcon: Icon(
                         Icons.search,
                         color: Theme.of(context).primaryColor,
                       ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                setState(() {
-                                  _searchController.clear();
-                                  _searchQuery = '';
-                                });
-                              },
-                            )
+                        icon: const Icon(Icons.clear, size: 20),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            _searchQuery = '';
+                          });
+                        },
+                      )
                           : null,
                       filled: true,
                       fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0), // Keeps it compact
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: Colors.grey.withValues(alpha: 0.3),
+                          color: Colors.grey.withValues(alpha: 0.2),
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: Colors.grey.withValues(alpha: 0.3),
+                          color: Colors.grey.withValues(alpha: 0.2),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
                           color: Theme.of(context).primaryColor,
-                          width: 2,
+                          width: 1.5,
                         ),
                       ),
                     ),
                   ),
-                ),
+                )
+                    : const SizedBox.shrink(),
+              ),
+              SizedBox(height: Screen.h(context) * 0.01),
 
+              // --- ✅ NEW: Status Filter Chips ---
+              SizedBox(
+                height: 40, // Fixed height for the horizontal list
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
+                  itemCount: _statuses.length,
+                  itemBuilder: (context, index) {
+                    final status = _statuses[index];
+                    final isSelected = _selectedStatus == status;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedStatus = status;
+                        });
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: EdgeInsets.only(right: Screen.w(context) * 0.02),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Theme.of(context).primaryColor
+                              : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(20), // Pill shape
+                          border: Border.all(
+                            color: isSelected
+                                ? Theme.of(context).primaryColor
+                                : Colors.grey.shade300,
+                            width: 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                            BoxShadow(
+                              color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            )
+                          ]
+                              : [],
+                        ),
+                        child: Center(
+                          child: Text(
+                            status,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.grey[700],
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                              fontSize: 13,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: Screen.h(context) * 0.01),
               // Results count
               if (_isSearching && _searchQuery.isNotEmpty)
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                  padding: EdgeInsets.only(
+                      left: Screen.w(context) * 0.04,
+                      right: Screen.w(context) * 0.04,
+                      bottom: Screen.h(context) * 0.01
+                  ),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       '${filteredOrders.length} result${filteredOrders.length != 1 ? 's' : ''} found',
                       style: TextStyle(
                         color: Colors.grey[600],
-                        fontSize: 14,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                 ),
 
-              // Orders List
+              // --- Orders List ---
               Expanded(
                 child: filteredOrders.isEmpty && _isSearching
                     ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            SizedBox(height: screenHeight * 0.02),
-                            Text(
-                              _searchQuery.isEmpty
-                                  ? 'Start typing to search'
-                                  : 'No results found for "$_searchQuery"',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.search_off_rounded,
+                        size: 64,
+                        color: Colors.grey[300],
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.02),
+                      Text(
+                        _searchQuery.isEmpty
+                            ? 'Start typing to search'
+                            : 'No results found for "$_searchQuery"',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
                         ),
-                      )
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
                     : RefreshIndicator(
                         backgroundColor: Colors.white,
                         color: Theme.of(context).primaryColor,
@@ -241,8 +367,8 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                         },
                         child: ListView.builder(
                           padding: EdgeInsets.symmetric(
-                            horizontal: screenWidth * 0.04,
-                            vertical: screenHeight * 0.0,
+                            horizontal: Screen.w(context) * 0.04,
+                            vertical: Screen.h(context) * 0.0,
                           ),
                           itemCount: filteredOrders.length,
                           itemBuilder: (context, index) {
@@ -269,7 +395,6 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                 priorityColor = Colors.grey[700]!;
                                 priorityBg = Colors.grey[100]!;
                             }
-
                             return GestureDetector(
                               onTap: () => Navigator.push(
                                   context,
@@ -280,7 +405,7 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                           ))),
                               child: Container(
                                 margin: EdgeInsets.only(
-                                    bottom: screenHeight * 0.02),
+                                    bottom: Screen.h(context) * 0.02),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16),
                                   color: Colors.white,
@@ -295,7 +420,7 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                 ),
                                 child: Padding(
                                   padding:
-                                      EdgeInsets.all(screenWidth * 0.04),
+                                      EdgeInsets.all(Screen.w(context) * 0.04),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -311,9 +436,9 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                                 SvgPicture.asset(
                                                   AppIcons.orders,
                                                   width:
-                                                      screenWidth * 0.045,
+                                                  Screen.w(context) * 0.045,
                                                   height:
-                                                      screenWidth * 0.045,
+                                                  Screen.w(context) * 0.045,
                                                   colorFilter:
                                                       ColorFilter.mode(
                                                           Theme.of(context)
@@ -321,16 +446,16 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                                           BlendMode.srcIn),
                                                 ),
                                                 SizedBox(
-                                                    width: screenWidth *
+                                                    width: Screen.w(context) *
                                                         0.015),
                                                 Expanded(
                                                   child: Text(
-                                                    "Order #${order.orderNumber}",
+                                                    "#${order.orderNumber}",
                                                     style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.w700,
                                                       fontSize:
-                                                          screenWidth *
+                                                      Screen.w(context) *
                                                               0.04,
                                                       color:
                                                           Colors.grey[800],
@@ -345,9 +470,9 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                           Container(
                                             padding: EdgeInsets.symmetric(
                                               horizontal:
-                                                  screenWidth * 0.03,
+                                              Screen.w(context) * 0.03,
                                               vertical:
-                                                  screenHeight * 0.005,
+                                              Screen.h(context) * 0.005,
                                             ),
                                             decoration: BoxDecoration(
                                               color: isDelivered
@@ -370,9 +495,9 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                                   isDelivered
                                                       ? AppIcons.delivery
                                                       : AppIcons.time,
-                                                  width: screenWidth * 0.03,
+                                                  width: Screen.w(context) * 0.03,
                                                   height:
-                                                      screenWidth * 0.03,
+                                                  Screen.w(context) * 0.03,
                                                   colorFilter:
                                                       ColorFilter.mode(
                                                     isDelivered
@@ -384,7 +509,7 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                                 ),
                                                 SizedBox(
                                                     width:
-                                                        screenWidth * 0.01),
+                                                    Screen.w(context) * 0.01),
                                                 Text(
                                                   order.status??'',
                                                   style: TextStyle(
@@ -395,7 +520,7 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                                     fontWeight:
                                                         FontWeight.w600,
                                                     fontSize:
-                                                        screenWidth * 0.03,
+                                                    Screen.w(context) * 0.03,
                                                   ),
                                                 ),
                                               ],
@@ -404,26 +529,26 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                         ],
                                       ),
                                       SizedBox(
-                                          height: screenHeight * 0.015),
+                                          height: Screen.h(context) * 0.015),
                                       // Dealer Information
                                       Row(
                                         children: [
                                           SvgPicture.asset(
                                             AppIcons.dealers,
-                                            width: screenWidth * 0.04,
-                                            height: screenWidth * 0.04,
+                                            width: Screen.w(context) * 0.04,
+                                            height: Screen.w(context) * 0.04,
                                             colorFilter: ColorFilter.mode(
                                                 AppTheme.accentGreen,
                                                 BlendMode.srcIn),
                                           ),
                                           SizedBox(
-                                              width: screenWidth * 0.02),
+                                              width: Screen.w(context) * 0.02),
                                           Expanded(
                                             child: Text(
                                               "Dealer: ${order.dealer?.employeeName ?? "N/A"}",
                                               style: TextStyle(
                                                 fontSize:
-                                                    screenWidth * 0.035,
+                                                Screen.w(context) * 0.035,
                                                 color: Colors.grey[700],
                                                 fontWeight: FontWeight.w400,
                                               ),
@@ -432,81 +557,25 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                         ],
                                       ),
                                       SizedBox(
-                                          height: screenHeight * 0.008),
-                                      Row(
-                                        children: [
-                                          SvgPicture.asset(
-                                            AppIcons.shop,
-                                            width: screenWidth * 0.04,
-                                            height: screenWidth * 0.04,
-                                            colorFilter: ColorFilter.mode(
-                                                Theme.of(context)
-                                                    .primaryColor,
-                                                BlendMode.srcIn),
-                                          ),
-                                          SizedBox(
-                                              width: screenWidth * 0.02),
-                                          Expanded(
-                                            child: Text(
-                                              "Shop: ${order.dealer?.shopName ?? "-"}",
-                                              style: TextStyle(
-                                                fontSize:
-                                                    screenWidth * 0.035,
-                                                color: Colors.grey[700],
-                                                fontWeight: FontWeight.w400,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(
-                                          height: screenHeight * 0.008),
+                                          height: Screen.h(context) * 0.008),
                                       Row(
                                         children: [
                                           Icon(
                                             Icons.phone_rounded,
-                                            size: screenWidth * 0.04,
+                                            size: Screen.w(context) * 0.04,
                                             color: Theme.of(context)
                                                 .primaryColor,
                                           ),
                                           SizedBox(
-                                              width: screenWidth * 0.02),
+                                              width: Screen.w(context) * 0.02),
                                           Expanded(
                                             child: Text(
                                               "Phone: ${order.dealer?.employeePhone ?? "-"}",
                                               style: TextStyle(
                                                 fontSize:
-                                                    screenWidth * 0.035,
+                                                Screen.w(context) * 0.035,
                                                 color: Colors.grey[700],
                                                 fontWeight: FontWeight.w400,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(
-                                          height: screenHeight * 0.008),
-                                      Row(
-                                        children: [
-                                          SvgPicture.asset(
-                                            AppIcons.bills,
-                                            width: screenWidth * 0.04,
-                                            height: screenWidth * 0.04,
-                                            colorFilter:
-                                                const ColorFilter.mode(
-                                                    Colors.pink,
-                                                    BlendMode.srcIn),
-                                          ),
-                                          SizedBox(
-                                              width: screenWidth * 0.02),
-                                          Expanded(
-                                            child: Text(
-                                              "Amount Paid: ₹${order.amountPaid}",
-                                              style: TextStyle(
-                                                fontSize:
-                                                    screenWidth * 0.035,
-                                                color: Colors.grey[700],
-                                                fontWeight: FontWeight.w600,
                                               ),
                                             ),
                                           ),
@@ -514,11 +583,11 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                       ),
                                       // Order Summary
                                       SizedBox(
-                                          height: screenHeight * 0.015),
+                                          height: Screen.h(context) * 0.015),
                                       Container(
                                         padding: EdgeInsets.symmetric(
-                                          horizontal: screenWidth * 0.03,
-                                          vertical: screenHeight * 0.01,
+                                          horizontal: Screen.w(context) * 0.03,
+                                          vertical: Screen.h(context) * 0.01,
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.grey[50],
@@ -529,19 +598,19 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                           children: [
                                             SvgPicture.asset(
                                               AppIcons.box,
-                                              width: screenWidth * 0.035,
-                                              height: screenWidth * 0.035,
+                                              width: Screen.w(context) * 0.035,
+                                              height: Screen.w(context) * 0.035,
                                               colorFilter: ColorFilter.mode(
                                                   AppTheme.accentBlue,
                                                   BlendMode.srcIn),
                                             ),
                                             SizedBox(
-                                                width: screenWidth * 0.015),
+                                                width: Screen.w(context) * 0.015),
                                             Text(
                                               "${order.orderDetails.length} item${order.orderDetails.length > 1 ? 's' : ''}",
                                               style: TextStyle(
                                                 fontSize:
-                                                    screenWidth * 0.035,
+                                                Screen.w(context) * 0.035,
                                                 color: Colors.grey[700],
                                                 fontWeight: FontWeight.w500,
                                               ),
@@ -550,9 +619,9 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                             Container(
                                               padding: EdgeInsets.symmetric(
                                                 horizontal:
-                                                    screenWidth * 0.03,
+                                                Screen.w(context) * 0.03,
                                                 vertical:
-                                                    screenHeight * 0.005,
+                                                Screen.h(context) * 0.005,
                                               ),
                                               decoration: BoxDecoration(
                                                 color: priorityBg,
@@ -573,7 +642,7 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
                                                   fontWeight:
                                                       FontWeight.w600,
                                                   fontSize:
-                                                      screenWidth * 0.03,
+                                                  Screen.w(context) * 0.03,
                                                 ),
                                               ),
                                             ),

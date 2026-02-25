@@ -1580,95 +1580,100 @@ class _DealerViewState extends ConsumerState<DealerView>
 
   Widget _buildAppBar(BuildContext context, UserModel? dealer,
       AsyncValue<List<BrandModel>> brandAsync, double sw) {
-    return Row(
-      children: [
-        /// BACK BUTTON
-        CircularIconButton(
-          icon: Icons.arrow_back_ios_rounded,
-          onTap: () => Navigator.pop(context),
-        ),
-        const Spacer(),
-
-        /// TITLE
-        Text(
-          'Dealer Details',
-          style: TextStyle(
-            color: Colors.grey[900],
-            fontSize: sw * 0.048,
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.5,
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        vertical: Screen.h(context) * 0.02,
+      ),
+      child: Row(
+        children: [
+          /// BACK BUTTON
+          CircularIconButton(
+            icon: Icons.arrow_back_ios_rounded,
+            onTap: () => Navigator.pop(context),
           ),
-        ),
+          const Spacer(),
 
-        const Spacer(),
+          /// TITLE
+          Text(
+            'Dealer Details',
+            style: TextStyle(
+              color: Colors.grey[900],
+              fontSize: sw * 0.048,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.5,
+            ),
+          ),
 
-        /// ACTIONS
-        if (dealer != null) ...[
-          brandAsync.when(
-            data: (brands) => IconButton(
-              onPressed: () {
-                final dealerBrands = brands
-                    .where((b) => dealer.brand?.contains(b.brandId) ?? false)
-                    .toList();
+          const Spacer(),
 
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => DealerDiscountCreatePage(
-                      dealerId: widget.dealerId,
+          /// ACTIONS
+          if (dealer != null) ...[
+            brandAsync.when(
+              data: (brands) => IconButton(
+                onPressed: () {
+                  final dealerBrands = brands
+                      .where((b) => dealer.brand?.contains(b.brandId) ?? false)
+                      .toList();
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DealerDiscountCreatePage(
+                        dealerId: widget.dealerId,
+                      ),
+                    ),
+                  );
+                },
+                icon: Container(
+                  padding: EdgeInsets.all(sw * 0.02),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(sw * 0.02),
+                  ),
+                  child: SvgPicture.asset(
+                    AppIcons.percentage,
+                    width: sw * 0.05,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.green,
+                      BlendMode.srcIn,
                     ),
                   ),
-                );
-              },
-              icon: Container(
-                padding: EdgeInsets.all(sw * 0.02),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(sw * 0.02),
-                ),
-                child: SvgPicture.asset(
-                  AppIcons.percentage,
-                  width: sw * 0.05,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.green,
-                    BlendMode.srcIn,
-                  ),
                 ),
               ),
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
             ),
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
-          ),
-          IconButton(
-            padding: EdgeInsets.only(
-              left: Screen.w(context) * 0.01,
-              right: Screen.w(context) * 0.04,
-            ),
-            onPressed: () => _showDeleteDialog(
-              context,
-              dealer.employeeId!,
-            ),
-            icon: Container(
-              padding: EdgeInsets.all(sw * 0.02),
-              decoration: BoxDecoration(
-                color: Colors.red[50],
-                borderRadius: BorderRadius.circular(sw * 0.02),
-              ),
-              child: SvgPicture.asset(
-                AppIcons.delete,
-                width: Screen.w(context) * 0.05,
-                colorFilter: ColorFilter.mode(
-                  Colors.red[600]!,
-                  BlendMode.srcIn,
-                ),
-              ),
-            ),
-          ),
-        ] else
+            // IconButton(
+            //   padding: EdgeInsets.only(
+            //     left: Screen.w(context) * 0.01,
+            //     right: Screen.w(context) * 0.04,
+            //   ),
+            //   onPressed: () => _showDeleteDialog(
+            //     context,
+            //     dealer.employeeId!,
+            //   ),
+            //   icon: Container(
+            //     padding: EdgeInsets.all(sw * 0.02),
+            //     decoration: BoxDecoration(
+            //       color: Colors.red[50],
+            //       borderRadius: BorderRadius.circular(sw * 0.02),
+            //     ),
+            //     child: SvgPicture.asset(
+            //       AppIcons.delete,
+            //       width: Screen.w(context) * 0.05,
+            //       colorFilter: ColorFilter.mode(
+            //         Colors.red[600]!,
+            //         BlendMode.srcIn,
+            //       ),
+            //     ),
+            //   ),
+            // ),
+          ] else
 
-          /// balance right side if no actions
-          SizedBox(width: Screen.w(context) * 0.18),
-      ],
+            /// balance right side if no actions
+            SizedBox(width: Screen.w(context) * 0.18),
+        ],
+      ),
     );
   }
 

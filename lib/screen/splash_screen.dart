@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:inverter_management_app/screen/rolebasescreen/salesmanmobileview.dart';
 import 'package:inverter_management_app/screen/superAdmin_home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/media_query/media_query.dart';
@@ -92,14 +93,14 @@ class _SplashScreenState extends State<SplashScreen>
         // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
         break;
       case 'ROLE_SALESMAN':
-        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesmanHomeScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesmanMobileView()));
         break;
       case 'ROLE_ACCOUNT':
         // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AccountHomeScreen()));
         break;
       default:
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const LoginPage()));
+            context, MaterialPageRoute(builder: (_) => const LoginMobileView()));
     }
   }
 

@@ -7,6 +7,7 @@ import 'package:inverter_management_app/model/user_model.dart';
 import '../../../core/const/icons.dart';
 import '../../../core/media_query/media_query.dart';
 import '../../../screen/loadingScreen.dart';
+import '../../../widgets/circle_button.dart';
 import '../controller/order_controller.dart';
 import '../../../model/order_model.dart';
 import 'package:intl/intl.dart';
@@ -27,151 +28,170 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
     return orderAsync.when(
       loading: () => const Scaffold(body: GlobalLoader()),
       error: (err, st) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Order Details'),
-        ),
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.all(Screen.w(context) * 0.05),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: Screen.w(context) * 0.2,
-                  height: Screen.w(context) * 0.2,
-                  decoration: BoxDecoration(
-                    color: Colors.red.withAlpha(30),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.error_outline,
-                    size: Screen.w(context) * 0.1,
-                    color: Colors.red,
-                  ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              /// TOP BAR (custom, no AppBar)
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Screen.w(context) * 0.04,
+                  vertical: Screen.h(context) * 0.02,
                 ),
-                SizedBox(height: Screen.h(context) * 0.03),
-                Text(
-                  'Unable to Load Order',
-                  style: TextStyle(
-                    fontSize: Screen.w(context) * 0.045,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                SizedBox(height: Screen.h(context) * 0.01),
-                Text(
-                  'Error: ${err.toString()}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: Screen.w(context) * 0.035,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                SizedBox(height: Screen.h(context) * 0.03),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: Screen.w(context) * 0.06,
-                      vertical: Screen.h(context) * 0.015,
+                child: Row(
+                  children: [
+                    CircularIconButton(
+                      icon: Icons.arrow_back_ios_rounded,
+                      onTap: () => Navigator.pop(context),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    const Spacer(),
+                    Text(
+                      'Order Details',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  child: Text(
-                    'Go Back',
-                    style: TextStyle(
-                      fontSize: Screen.w(context) * 0.038,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    const Spacer(),
+                    // keeps title centered
+                    SizedBox(width: Screen.w(context) * 0.1),
+                    // balance back button space
+                  ],
+                ),
+              ),
+
+              /// ERROR BODY
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.wifi_off,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.01),
+                      const Text(
+                        "No Internet Connection",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.02),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.invalidate(orderByIdProvider(widget.orderNumber));
+                        },
+                        style: ElevatedButton.styleFrom(
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(18),
+                        ),
+                        child: const Icon(Icons.refresh),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
       data: (order) => Scaffold(
         backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          elevation: 0,
-          backgroundColor: Colors.white,
-          leading: IconButton(
-            icon: SvgPicture.asset(
-              AppIcons.back_Arrow,
-              width: Screen.w(context) * 0.07,
-              colorFilter:
-              ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn),
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Order Details',
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontSize: Screen.w(context) * 0.042,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: Screen.h(context) * 0.002),
-              Text(
-                order!.orderNumber ?? 'N/A',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: Screen.w(context) * 0.03,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            _buildStatusChip(order.status!, context,onTap:(){
-              print('Packed status tapped');
-              _showOrderStatusUpdateDialog(context, order);
-            }),
-            SizedBox(width: Screen.w(context) * 0.03),
-          ],
+        body: SafeArea(
+          child: Padding(
+            padding:  EdgeInsets.symmetric(
+          horizontal: Screen.w(context) * 0.04,
         ),
-        body: RefreshIndicator(
-          backgroundColor: Colors.white,
-          color: Theme.of(context).primaryColor,
-          onRefresh: () async {
-            await Future.delayed(Duration(seconds: 2));
-            ref.refresh(orderByIdProvider(widget.orderNumber));
-          },
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
+                Padding(
+                  padding: EdgeInsets.only(top :Screen.h(context) * 0.02),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      /// BACK BUTTON
+                      CircularIconButton(
+                        icon: Icons.arrow_back_ios_rounded,
+                        onTap: () => Navigator.pop(context),
+                      ),
+                      SizedBox(width: Screen.w(context) * 0.02),
+                      /// TITLE + SUBTITLE
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Order Details',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: Screen.w(context) * 0.042,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: Screen.h(context) * 0.002),
+                            Text(
+                              order?.orderNumber ?? 'N/A',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: Screen.w(context) * 0.03,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      /// STATUS CHIP
+                      _buildStatusChip(
+                        order!.status!,
+                        context,
+                        onTap: () {
+                          print('Packed status tapped');
+                          _showOrderStatusUpdateDialog(context, order);
+                        },
+                      ),
+
+                    ],
+                  ),
+                ),
                 SizedBox(height: Screen.h(context) * 0.02),
-          
                 // Order Summary Card
-                _buildOrderSummaryCard(order, context),
-          
-                // Dealer Information Card
-                if (order.dealer != null)
-                  _buildDealerCard(order.dealer!, context),
-          
-          
-                // Order Items
-                _buildOrderItemsSection(order.orderDetails, context,order),
-          
-                // Price Breakdown
-                _buildPriceBreakdown(order, context),
-          
-                // Order Notes
-                if (order.orderNote.isNotEmpty)
-                  _buildNotesCard(order, context),
-          
-                // Payment Information Card
-                _buildPaymentCard(order, context),
-          
+                Expanded(
+                  child: RefreshIndicator(
+                      backgroundColor: Colors.white,
+                      color: Theme.of(context).primaryColor,
+                      onRefresh: () async {
+                        await Future.delayed(Duration(seconds: 2));
+                        ref.invalidate(orderByIdProvider(widget.orderNumber));
+                      },
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          _buildOrderSummaryCard(order, context),
+                          // Dealer Information Card
+                          if (order.dealer != null)
+                            _buildDealerCard(order.dealer!, context),
+                                        
+                                        
+                          // Order Items
+                          _buildOrderItemsSection(order.orderDetails, context,order),
+                                        
+                          // Price Breakdown
+                          _buildPriceBreakdown(order, context),
+                                        
+                          // Order Notes
+                          if (order.orderNote.isNotEmpty)
+                            _buildNotesCard(order, context),
+                          // Payment Information Card
+                          _buildPaymentCard(order, context),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 SizedBox(height: Screen.h(context) * 0.04),
               ],
             ),
@@ -194,6 +214,11 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
         'PENDING',
         'PACKED',
         'INVOICE',
+        'SHIPPED',
+        'Delivered',
+        'Completed',
+        'CANCELLED',
+        'Rejected',
       ];
 
       return updatableStatuses.contains(status.toUpperCase());
@@ -201,34 +226,89 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
 
     switch (status) {
       case 'pending':
-        bgColor = const Color(0xFFFFF4E6);
-        textColor = const Color(0xFFE65100);
-        displayText = 'Pending';
+        bgColor = Colors.amber.shade50;
+        textColor = Colors.amber.shade800;
+        displayText = status;
         iconWidget = Icon(
           Icons.pending_actions,
-          size: Screen.w(context) * 0.035,
+          size: Screen.w(context) * 0.045,
           color: textColor,
         );
         break;
 
       case 'confirmed':
-        bgColor = const Color(0xFFE3F2FD);
-        textColor = const Color(0xFF1565C0);
-        displayText = 'Confirmed';
+        bgColor = Colors.blue.shade50;
+        textColor = Colors.blue.shade800;
+        displayText = status;
         iconWidget = Icon(
           Icons.verified,
-          size: Screen.w(context) * 0.035,
+          size: Screen.w(context) * 0.045,
+          color: textColor,
+        );
+        break;
+
+      case 'PRODUCTION':
+        bgColor = Colors.orange.shade50;
+        textColor = Colors.orange.shade800;
+        displayText = status;
+        iconWidget = Icon(
+          Icons.precision_manufacturing_rounded,
+          size: Screen.w(context) * 0.045,
+          color: textColor,
+        );
+        break;
+
+      case 'PACKED':
+        bgColor =Colors.blue.shade50;
+        textColor = Colors.blue.shade800;
+        displayText = status;
+        iconWidget = SvgPicture.asset(
+          AppIcons.box,
+          width: Screen.w(context) * 0.045,
+          colorFilter: ColorFilter.mode(textColor, BlendMode.srcIn),
+        );
+        break;
+
+      case 'INVOICE':
+        bgColor = Colors.purple.shade50;
+        textColor = Colors.purple.shade800;
+        displayText = status;
+        iconWidget = Icon(
+          Icons.receipt_long,
+          size: Screen.w(context) * 0.045,
+          color: textColor,
+        );
+        break;
+
+      case 'SHIPPED':
+        bgColor = Colors.indigo.shade50;
+        textColor = Colors.indigo.shade800;
+        displayText = status;
+        iconWidget = SvgPicture.asset(
+          AppIcons.delivery,
+          width: Screen.w(context) * 0.045,
+          colorFilter: ColorFilter.mode(textColor, BlendMode.srcIn),
+        );
+        break;
+
+      case 'COMPLETED':
+        bgColor = Colors.green.shade50;
+        textColor = Colors.green.shade800;
+        displayText = status;
+        iconWidget = Icon(
+          Icons.check_circle_outline_rounded,
+          size: Screen.w(context) * 0.045,
           color: textColor,
         );
         break;
 
       case 'delivered':
-        bgColor = const Color(0xFFE8F5E8);
-        textColor = const Color(0xFF2E7D32);
-        displayText = 'Delivered';
+        bgColor = Colors.teal;
+        textColor = Colors.white;
+        displayText = status;
         iconWidget = Icon(
           Icons.local_shipping,
-          size: Screen.w(context) * 0.035,
+          size: Screen.w(context) * 0.045,
           color: textColor,
         );
         break;
@@ -236,24 +316,25 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
       case 'cancelled':
         bgColor = const Color(0xFFFFEBEE);
         textColor = const Color(0xFFC62828);
-        displayText = 'Cancelled';
+        displayText = status;
         iconWidget = Icon(
           Icons.cancel,
-          size: Screen.w(context) * 0.035,
+          size: Screen.w(context) * 0.045,
           color: textColor,
         );
         break;
 
-      case 'PACKED':
-        bgColor = const Color(0xFFE3F2FD);
-        textColor = const Color(0xFF1565C0);
-        displayText = 'Packed';
-        iconWidget = SvgPicture.asset(
-          AppIcons.box,
-          width: Screen.w(context) * 0.035,
-          colorFilter: ColorFilter.mode(textColor, BlendMode.srcIn),
+      case 'REJECTED':
+        bgColor = Colors.deepOrange.shade50;
+        textColor = Colors.deepOrange.shade800;
+        displayText = status;
+        iconWidget = Icon(
+          Icons.block,
+          size: Screen.w(context) * 0.045,
+          color: textColor,
         );
         break;
+
 
       default:
         bgColor = const Color(0xFFF5F5F5);
@@ -261,7 +342,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
         displayText = status;
         iconWidget = Icon(
           Icons.info,
-          size: Screen.w(context) * 0.035,
+          size: Screen.w(context) * 0.045,
           color: textColor,
         );
     }
@@ -300,7 +381,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
 
   Widget _buildOrderSummaryCard(OrderModel order, BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
+      // margin: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.04),
       padding: EdgeInsets.all(Screen.w(context) * 0.05),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -387,7 +468,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
 
         return Container(
           margin: EdgeInsets.symmetric(
-            horizontal: Screen.w(context) * 0.04,
+            // horizontal: Screen.w(context) * 0.04,
             vertical: Screen.h(context) * 0.01,
           ),
           decoration: BoxDecoration(
@@ -518,7 +599,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
   Widget _buildPaymentCard(OrderModel order, BuildContext context) {
     return Container(
       margin: EdgeInsets.symmetric(
-        horizontal: Screen.w(context) * 0.04,
+        // horizontal: Screen.w(context) * 0.04,
         vertical: Screen.h(context) * 0.01,
       ),
       padding: EdgeInsets.all(Screen.w(context) * 0.05),
@@ -564,6 +645,125 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                   color: Colors.black87,
                 ),
               ),
+              SizedBox(width: Screen.w(context)*0.1,),
+              TextButton(onPressed: (){
+                final paymentController = TextEditingController();
+                showDialog(
+                  context: context,
+                  builder: (ctx) {
+                    bool isUpdating = false;
+                    return StatefulBuilder(
+                      builder: (context, setState) {
+                        return Dialog(
+                          backgroundColor: Colors.white,
+                          child: Padding(
+                            padding: EdgeInsets.all(Screen.w(context) * 0.05),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Update Payment',style: TextStyle(
+                                  fontSize: Screen.w(context) * 0.045,
+                                  fontWeight: FontWeight.bold,
+                                ),),
+                                SizedBox(height: Screen.h(context) * 0.02),
+                                TextField(
+                                  controller: paymentController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    labelText: "Amount Paid",
+                                    prefixText: "₹ ",
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+
+                                SizedBox(height: Screen.h(context) * 0.03),
+
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+
+                                    TextButton(
+                                      onPressed: isUpdating ? null : () => Navigator.pop(context),
+                                      child:  Text("Cancel",style: TextStyle(color: Theme.of(context).primaryColor),),
+                                    ),
+
+                                    SizedBox(width: Screen.w(context) * 0.02),
+
+                                    ElevatedButton(
+                                      onPressed: isUpdating
+                                          ? null
+                                          : () async {
+
+                                        final newAmount =
+                                        double.tryParse(paymentController.text);
+
+                                        if (newAmount == null) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              backgroundColor: Colors.red,
+                                                content: Text("Enter valid amount")),
+                                          );
+                                          return;
+                                        }
+
+                                        setState(() => isUpdating = true);
+
+                                        final updatedOrder = order.copyWith(
+                                          amountPaid: newAmount,
+                                        );
+
+                                        try {
+                                          await ref
+                                              .read(orderControllerProvider.notifier)
+                                              .updatePaymentOrder(updatedOrder);
+                                            ref.invalidate(orderByIdProvider(order.orderNumber!));
+                                          Navigator.pop(context);
+
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              backgroundColor: Colors.green,
+                                                content: Text("Payment updated")),
+                                          );
+                                        } catch (e) {
+                                          setState(() => isUpdating = false);
+                                          print('error: $e');
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              backgroundColor: Colors.red,
+                                                content:
+                                                Text("$e")),
+                                          );
+                                        }
+                                      },
+
+                                      child: isUpdating
+                                          ? SizedBox(
+                                        height: 18,
+                                        width: 18,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                          : const Text("Update"),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              }, child: Text('Update',style: TextStyle(
+                fontSize: Screen.w(context) * 0.03,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).primaryColor,
+              ),))
             ],
           ),
           SizedBox(height: Screen.h(context) * 0.025),
@@ -590,10 +790,74 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
     );
   }
 
+  Widget paymentUpdateDialog({
+    required BuildContext context,
+    required TextEditingController paymentController,
+    required VoidCallback onUpdate,
+  }) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(Screen.w(context) * 0.05),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            Text(
+              "Update Payment",
+              style: TextStyle(
+                fontSize: Screen.w(context) * 0.045,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            SizedBox(height: Screen.h(context) * 0.02),
+
+            TextField(
+              controller: paymentController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: "Amount Paid",
+                prefixText: "₹ ",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+
+            SizedBox(height: Screen.h(context) * 0.03),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+
+                SizedBox(width: Screen.w(context) * 0.02),
+
+                ElevatedButton(
+                  onPressed: onUpdate,
+                  child: const Text("Update"),
+                ),
+
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildOrderItemsSection(List<OrderDetailsModel> items, BuildContext context,OrderModel order) {
     return Container(
       margin: EdgeInsets.symmetric(
-        horizontal: Screen.w(context) * 0.04,
+        // horizontal: Screen.w(context) * 0.04,
         vertical: Screen.h(context) * 0.01,
       ),
       decoration: BoxDecoration(
@@ -834,7 +1098,11 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                                   _buildItemDetail(label: 'Type', value:item.productType,context:context),
                                   _buildItemDetail(label:'Qty Ordered',value:item.qtyOrdered.toString(),context:context),
                                   if (item.qtyDelivered != null)
-                                    _buildItemDetail(label:'Qty Delivered',value:item.qtyDelivered.toString(),context:context),
+                                    GestureDetector(
+                                        onTap: (){
+
+                                        },
+                                        child: _buildItemDetail(label:'Qty Delivered',value:item.qtyDelivered.toString(),context:context)),
                                   if (item.productType.isNotEmpty)
                                     _buildItemDetail(label:'Product Type',value:item.productType,context:context),
                                 ],
@@ -898,14 +1166,31 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                                     ),
                                     SizedBox(width: Screen.w(context) * 0.02),
                                     Expanded(
-                                      child: Text(
-                                        'Delivery Date: ${_formatDate(item.deliveryDate)}',
-                                        style: TextStyle(
-                                          fontSize: Screen.w(context) * 0.034,
-                                          color: const Color(0xFF757575),
-                                          fontWeight: FontWeight.w500,
+                                      child: IconButton(
+                                        icon: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_month,
+                                              size: Screen.w(context) * 0.045,
+                                              color: const Color(0xFF757575),
+                                            ),
+                                            SizedBox(width: Screen.w(context) * 0.015),
+                                            Text(
+                                              _formatDate(item.deliveryDate),
+                                              style: TextStyle(
+                                                fontSize: Screen.w(context) * 0.034,
+                                                color: const Color(0xFF757575),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
                                         ),
+                                        onPressed: () {
+                                          _showDeliveryDateUpdateDialog(context, item, index, order);
+                                        },
                                       ),
+
                                     ),
                                   ],
                                 ),
@@ -925,37 +1210,81 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
       },
     );
   }
-
   void _showOrderStatusUpdateDialog(
       BuildContext context,
       OrderModel order,
-      ) {
-    bool isConfirmed = false;
+      )
+  {
+    bool isStatusConfirmed = false;
+    bool isCancelled = false;
+
+    // For PENDING: track which option is selected
+    // 'CONFIRMED' or 'REJECTED' or null
+    String? pendingSelection;
+
     String? nextStatus;
     String? statusLabel;
 
+    final String currentStatus = order.status?.toUpperCase() ?? '';
+
     // Determine next status based on current status
-    switch (order.status?.toUpperCase()) {
+    switch (currentStatus) {
+      case 'PENDING':
+      // Handled separately with two options
+        break;
+      case 'CONFIRMED':
+        nextStatus = 'PACKED';
+        statusLabel = 'Order Packed';
+        break;
       case 'PACKED':
         nextStatus = 'INVOICE';
         statusLabel = 'Invoice Generated';
         break;
-
       case 'INVOICE':
         nextStatus = 'SHIPPED';
-        statusLabel = 'Product shipped';
+        statusLabel = 'Product Shipped';
         break;
-
+      case 'SHIPPED':
+        nextStatus = 'DELIVERED';
+        statusLabel = 'Product Delivered';
+        break;
       default:
         nextStatus = null;
         statusLabel = null;
     }
+
+    // No update available for these statuses
+    final bool isTerminalStatus =
+        currentStatus == 'CANCELLED' ||
+            currentStatus == 'REJECTED' ||
+            currentStatus == 'DELIVERED';
 
     showDialog(
       context: context,
       builder: (_) {
         return StatefulBuilder(
           builder: (context, setState) {
+            // What value will be sent to API
+            final String? statusToSend = isCancelled
+                ? 'CANCELLED'
+                : currentStatus == 'PENDING'
+                ? pendingSelection
+                : isStatusConfirmed
+                ? nextStatus
+                : null;
+
+            final bool canUpdate = isCancelled ||
+                (currentStatus == 'PENDING'
+                    ? pendingSelection != null
+                    : isStatusConfirmed);
+
+            // Button color logic
+            final Color buttonColor = isCancelled
+                ? const Color(0xFFC62828)
+                : pendingSelection == 'REJECTED'
+                ? const Color(0xFFE65100)
+                : const Color(0xFF1976D2);
+
             return Dialog(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               shape: RoundedRectangleBorder(
@@ -967,18 +1296,22 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header
+                    // ── Header ──
                     Row(
                       children: [
                         Container(
                           padding: EdgeInsets.all(Screen.w(context) * 0.02),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE3F2FD),
+                            color: isCancelled
+                                ? const Color(0xFFFFEBEE)
+                                : const Color(0xFFE3F2FD),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
                             Icons.update_rounded,
-                            color: const Color(0xFF1976D2),
+                            color: isCancelled
+                                ? const Color(0xFFC62828)
+                                : const Color(0xFF1976D2),
                             size: Screen.w(context) * 0.06,
                           ),
                         ),
@@ -1009,9 +1342,9 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                       ],
                     ),
 
-                    SizedBox(height: Screen.h(context) * 0.03),
+                    SizedBox(height: Screen.h(context) * 0.025),
 
-                    // Order info
+                    // ── Order Info ──
                     Container(
                       padding: EdgeInsets.all(Screen.w(context) * 0.03),
                       decoration: BoxDecoration(
@@ -1045,58 +1378,10 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
 
                     SizedBox(height: Screen.h(context) * 0.025),
 
-                    // Checkbox for status update
-                    if (nextStatus != null && statusLabel != null)
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: isConfirmed
-                                ? Theme.of(context).primaryColor
-                                : const Color(0xFFE0E0E0),
-                            width: 1.5,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          color: isConfirmed
-                              ? const Color(0xFFE3F2FD).withValues(alpha: 0.3)
-                              : Colors.white,
-                        ),
-                        child: CheckboxListTile(
-                          value: isConfirmed,
-                          onChanged: (value) {
-                            setState(() {
-                              isConfirmed = value ?? false;
-                            });
-                          },
-                          title: Text(
-                            statusLabel,
-                            style: TextStyle(
-                              fontSize: Screen.w(context) * 0.038,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          subtitle: Text(
-                            nextStatus.isEmpty
-                                ? 'Mark this order as delivered'
-                                : 'Generate invoice for this order',
-                            style: TextStyle(
-                              fontSize: Screen.w(context) * 0.032,
-                              color: const Color(0xFF757575),
-                            ),
-                          ),
-                          activeColor: Theme.of(context).primaryColor,
-                          checkColor: Colors.white,
-                          controlAffinity: ListTileControlAffinity.leading,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: Screen.w(context) * 0.03,
-                            vertical: Screen.h(context) * 0.005,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      )
-                    else
+                    // ── Status Options ──
+
+                    // CASE 1: Terminal status — no options
+                    if (isTerminalStatus)
                       Container(
                         padding: EdgeInsets.all(Screen.w(context) * 0.04),
                         decoration: BoxDecoration(
@@ -1117,7 +1402,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                             SizedBox(width: Screen.w(context) * 0.03),
                             Expanded(
                               child: Text(
-                                'No status updates available for this order.',
+                                'No further updates available for a ${order.status} order.',
                                 style: TextStyle(
                                   fontSize: Screen.w(context) * 0.034,
                                   color: const Color(0xFF757575),
@@ -1126,11 +1411,159 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                             ),
                           ],
                         ),
+                      )
+
+                    // CASE 2: PENDING — show CONFIRMED and REJECTED options
+                    else if (currentStatus == 'PENDING') ...[
+                      Text(
+                        'Select Action',
+                        style: TextStyle(
+                          fontSize: Screen.w(context) * 0.035,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF757575),
+                        ),
                       ),
+                      SizedBox(height: Screen.h(context) * 0.01),
+
+                      // CONFIRMED option
+                      _buildSelectionTile(
+                        context: context,
+                        title: 'Confirm Order',
+                        value: 'CONFIRMED',
+                        groupValue: isCancelled ? null : pendingSelection,
+                        isDisabled: isCancelled,
+                        activeColor: const Color(0xFF1976D2),
+                        activeBgColor: const Color(0xFFE3F2FD),
+                        onTap: () {
+                          setState(() {
+                            pendingSelection = pendingSelection == 'CONFIRMED'
+                                ? null
+                                : 'CONFIRMED';
+                          });
+                        },
+                      ),
+
+                      SizedBox(height: Screen.h(context) * 0.01),
+
+                      // REJECTED option
+                      _buildSelectionTile(
+                        context: context,
+                        title: 'Reject Order',
+                        value: 'REJECTED',
+                        groupValue: isCancelled ? null : pendingSelection,
+                        isDisabled: isCancelled,
+                        activeColor: const Color(0xFFE65100),
+                        activeBgColor: const Color(0xFFFFF4E6),
+                        onTap: () {
+                          setState(() {
+                            pendingSelection = pendingSelection == 'REJECTED'
+                                ? null
+                                : 'REJECTED';
+                          });
+                        },
+                      ),
+                    ]
+
+                    // CASE 3: Normal next status update
+                    else if (nextStatus != null && statusLabel != null)
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: isStatusConfirmed
+                                  ? Theme.of(context).primaryColor
+                                  : const Color(0xFFE0E0E0),
+                              width: 1.5,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            color: isStatusConfirmed
+                                ? const Color(0xFFE3F2FD).withValues(alpha: 0.3)
+                                : Colors.white,
+                          ),
+                          child: CheckboxListTile(
+                            value: isStatusConfirmed,
+                            onChanged: isCancelled
+                                ? null
+                                : (value) {
+                              setState(() {
+                                isStatusConfirmed = value ?? false;
+                              });
+                            },
+                            title: Text(
+                              statusLabel,
+                              style: TextStyle(
+                                fontSize: Screen.w(context) * 0.038,
+                                fontWeight: FontWeight.w600,
+                                color: isCancelled ? Colors.grey : Colors.black87,
+                              ),
+                            ),
+                            activeColor: Theme.of(context).primaryColor,
+                            checkColor: Colors.white,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: Screen.w(context) * 0.03,
+                              vertical: Screen.h(context) * 0.005,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+
+                    // ── Cancel Option (hidden for terminal statuses and PENDING) ──
+                    if (!isTerminalStatus && currentStatus != 'PENDING') ...[
+                      SizedBox(height: Screen.h(context) * 0.015),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: isCancelled
+                                ? const Color(0xFFC62828)
+                                : const Color(0xFFE0E0E0),
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          color: isCancelled
+                              ? const Color(0xFFFFEBEE).withValues(alpha: 0.5)
+                              : Colors.white,
+                        ),
+                        child: CheckboxListTile(
+                          value: isCancelled,
+                          onChanged: (value) {
+                            setState(() {
+                              isCancelled = value ?? false;
+                              // Clear other selections when cancel is checked
+                              if (isCancelled) {
+                                isStatusConfirmed = false;
+                                pendingSelection = null;
+                              }
+                            });
+                          },
+                          title: Text(
+                            'Cancel Order',
+                            style: TextStyle(
+                              fontSize: Screen.w(context) * 0.038,
+                              fontWeight: FontWeight.w600,
+                              color: isCancelled
+                                  ? const Color(0xFFC62828)
+                                  : Colors.black87,
+                            ),
+                          ),
+                          activeColor: const Color(0xFFC62828),
+                          checkColor: Colors.white,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: Screen.w(context) * 0.03,
+                            vertical: Screen.h(context) * 0.005,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
 
                     SizedBox(height: Screen.h(context) * 0.03),
 
-                    // Action buttons
+                    // ── Action Buttons ──
                     Row(
                       children: [
                         Expanded(
@@ -1146,7 +1579,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                               side: const BorderSide(color: Color(0xFF757575)),
                             ),
                             child: Text(
-                              'Cancel',
+                              'Close',
                               style: TextStyle(
                                 fontSize: Screen.w(context) * 0.036,
                                 fontWeight: FontWeight.w600,
@@ -1156,100 +1589,97 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                           ),
                         ),
                         SizedBox(width: Screen.w(context) * 0.03),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: !isConfirmed
-                                ? null
-                                : () async {
-                              try {
-                                // Show loading
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (context) =>  Center(
-                                    child: CircularProgressIndicator(color: Theme.of(context).primaryColor,),
-                                  ),
-                                );
-
-                                // Update with next status
-                                await ref
-                                    .read(orderControllerProvider.notifier)
-                                    .updateOrderStatus(
-                                  order.copyWith(status: nextStatus),
-                                );
-
-                                // Refresh order data
-                                ref.refresh(
-                                  orderByIdProvider(order.orderNumber!),
-                                );
-
-                                // Close loading dialog
-                                Navigator.pop(context);
-
-                                // Close status dialog
-                                Navigator.pop(context);
-
-                                // Show success message
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Order status updated successfully',
-                                      style: TextStyle(
-                                        fontSize: Screen.w(context) * 0.035,
+                        if (!isTerminalStatus)
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: !canUpdate
+                                  ? null
+                                  : () async {
+                                try {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) => Center(
+                                      child: CircularProgressIndicator(
+                                        color: buttonColor,
                                       ),
                                     ),
-                                    backgroundColor: const Color(0xFF4CAF50),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                );
-                              } catch (e) {
-                                // Close loading dialog
-                                Navigator.pop(context);
+                                  );
 
-                                // Show error message
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Failed to update status: ${e.toString()}',
-                                      style: TextStyle(
-                                        fontSize: Screen.w(context) * 0.035,
+                                  await ref
+                                      .read(orderControllerProvider.notifier)
+                                      .updateOrder(
+                                    order.copyWith(status: statusToSend),
+                                  );
+
+                                  ref.refresh(
+                                    orderByIdProvider(order.orderNumber!),
+                                  );
+
+                                  Navigator.pop(context); // close loader
+                                  Navigator.pop(context); // close dialog
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        _getSuccessMessage(statusToSend),
+                                        style: TextStyle(
+                                          fontSize: Screen.w(context) * 0.035,
+                                        ),
+                                      ),
+                                      backgroundColor: buttonColor,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
                                     ),
-                                    backgroundColor: const Color(0xFFD32F2F),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                                  );
+                                } catch (e) {
+                                  Navigator.pop(context); // close loader
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Failed: ${e.toString()}',
+                                        style: TextStyle(
+                                          fontSize: Screen.w(context) * 0.035,
+                                        ),
+                                      ),
+                                      backgroundColor: const Color(0xFFD32F2F),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                     ),
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1976D2),
-                              disabledBackgroundColor: const Color(0xFFE0E0E0),
-                              padding: EdgeInsets.symmetric(
-                                vertical: Screen.h(context) * 0.015,
+                                  );
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: buttonColor,
+                                disabledBackgroundColor: const Color(0xFFE0E0E0),
+                                padding: EdgeInsets.symmetric(
+                                  vertical: Screen.h(context) * 0.015,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              'Update',
-                              style: TextStyle(
-                                fontSize: Screen.w(context) * 0.036,
-                                fontWeight: FontWeight.w700,
-                                color: !isConfirmed
-                                    ? const Color(0xFF9E9E9E)
-                                    : Colors.white,
+                              child: Text(
+                                isCancelled
+                                    ? 'Cancel Order'
+                                    : pendingSelection == 'REJECTED'
+                                    ? 'Reject Order'
+                                    : 'Update',
+                                style: TextStyle(
+                                  fontSize: Screen.w(context) * 0.036,
+                                  fontWeight: FontWeight.w700,
+                                  color: canUpdate
+                                      ? Colors.white
+                                      : const Color(0xFF9E9E9E),
+                                ),
                               ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ],
@@ -1262,13 +1692,122 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
     );
   }
 
+// ── Helper: Selection tile for PENDING options ──
+  Widget _buildSelectionTile({
+    required BuildContext context,
+    required String title,
+    required String value,
+    required String? groupValue,
+    required bool isDisabled,
+    required Color activeColor,
+    required Color activeBgColor,
+    required VoidCallback onTap,
+  }) {
+    final bool isSelected = groupValue == value;
+
+    return GestureDetector(
+      onTap: isDisabled ? null : onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isDisabled
+                ? const Color(0xFFE0E0E0)
+                : isSelected
+                ? activeColor
+                : const Color(0xFFE0E0E0),
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          color: isDisabled
+              ? const Color(0xFFF5F5F5)
+              : isSelected
+              ? activeBgColor.withValues(alpha: 0.4)
+              : Colors.white,
+        ),
+        child: ListTile(
+          leading: Container(
+            width: Screen.w(context) * 0.06,
+            height: Screen.w(context) * 0.06,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isDisabled
+                    ? Colors.grey
+                    : isSelected
+                    ? activeColor
+                    : const Color(0xFFBDBDBD),
+                width: 2,
+              ),
+              color: isSelected ? activeColor : Colors.transparent,
+            ),
+            child: isSelected
+                ? Icon(
+              Icons.check,
+              size: Screen.w(context) * 0.035,
+              color: Colors.white,
+            )
+                : null,
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontSize: Screen.w(context) * 0.038,
+              fontWeight: FontWeight.w600,
+              color: isDisabled
+                  ? Colors.grey
+                  : isSelected
+                  ? activeColor
+                  : Colors.black87,
+            ),
+          ),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: Screen.w(context) * 0.03,
+            vertical: Screen.h(context) * 0.005,
+          ),
+          dense: true,
+        ),
+      ),
+    );
+  }
+
+// ── Helper: Success message ──
+  String _getSuccessMessage(String? status) {
+    switch (status) {
+      case 'CONFIRMED':
+        return 'Order confirmed successfully';
+      case 'REJECTED':
+        return 'Order rejected';
+      case 'CANCELLED':
+        return 'Order cancelled successfully';
+      case 'INVOICE':
+        return 'Invoice generated successfully';
+      case 'SHIPPED':
+        return 'Order marked as shipped';
+      case 'DELIVERED':
+        return 'Order marked as delivered';
+      default:
+        return 'Order status updated successfully';
+    }
+  }
 
   void _showItemStatusUpdateDialog(BuildContext context, OrderDetailsModel item, int index,OrderModel order) {
     bool? hasProduction = item.hasProduction ;
     bool? hasUnpacked = item.hasUnpacked ;
-
     bool productionCompleted = false;
     bool packingCompleted = false;
+
+
+    bool statusChecked = false;
+    String? nextStatus;
+
+    if (item.status == 'PACKED') {
+      nextStatus = 'INVOICE';
+    } else if (item.status == 'INVOICE') {
+      nextStatus = 'SHIPPED';
+    } else if (item.status == 'SHIPPED') {
+      nextStatus = 'DELIVERED';
+    }
+
 
     showDialog(
       context: context,
@@ -1314,7 +1853,6 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                       ],
                     ),
                     SizedBox(height: Screen.h(context) * 0.02),
-
                     // Product info
                     Container(
                       padding: EdgeInsets.all(Screen.w(context) * 0.03),
@@ -1361,7 +1899,6 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                         },
                       ),
                     ]
-
 // If production done & packing pending → show packing completed checkbox
                     else if (hasUnpacked != false) ...[
                       _buildCheckboxTile(
@@ -1376,6 +1913,20 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                         },
                       ),
                     ]
+                      else if(hasUnpacked==false&&hasProduction==false)...[
+                        if (nextStatus != null)
+                          _buildCheckboxTile(
+                            context: context,
+                            title: 'Mark as $nextStatus',
+                            subtitle: 'Update item status to ${nextStatus.toLowerCase()}',
+                            value: statusChecked,
+                            onChanged: (value) {
+                              setState(() {
+                                statusChecked = value ?? false;
+                              });
+                            },
+                          ),
+                            ]
 
 // If everything done → show nothing (future expansion placeholder)
                     else ...[
@@ -1410,15 +1961,17 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                         SizedBox(width: Screen.w(context) * 0.03),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: (productionCompleted || packingCompleted)
+                            onPressed: (productionCompleted || packingCompleted||statusChecked)
                                 ? () {
                               // TODO: Replace with actual API call
                               _updateItemStatus(
                                 item: item,
                                 productionCompleted: productionCompleted,
                                 packingCompleted: packingCompleted,
+                                status: statusChecked ? nextStatus : null,
                               );
-                              ref.refresh(
+
+                              ref.invalidate(
                                 orderByIdProvider(order.orderNumber!),
                               );
                               Navigator.of(context).pop();
@@ -1453,7 +2006,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                               style: TextStyle(
                                 fontSize: Screen.w(context) * 0.036,
                                 fontWeight: FontWeight.w700,
-                                color: (productionCompleted || packingCompleted)
+                                color: (productionCompleted || packingCompleted||statusChecked)
                                     ? Colors.white
                                     : const Color(0xFF9E9E9E),
                               ),
@@ -1524,14 +2077,18 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
     required OrderDetailsModel item,
     bool? productionCompleted,
     bool? packingCompleted,
-  }) async {
+    String? status,
+  }) async
+  {
     try {
       // Create updated item with new status flags
       final updatedItem = item.copyWith(
         orderDetailsNumber: item.orderDetailsNumber,
         hasProductionCompleted: productionCompleted == true ? true : item.hasProductionCompleted,
         hasPackedCompleted: packingCompleted == true ? true : item.hasPackedCompleted,
+        newStatus:status,
       );
+      print("this is the status : $status");
 
       // Get the current order
       final currentOrder = ref.read(orderByIdProvider(widget.orderNumber)).value;
@@ -1551,22 +2108,27 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
       // Create updated order model
       final updatedOrder = currentOrder.copyWith(
         orderDetails: updatedOrderDetails,
+        status: null
       );
-
+      print('📤 Sending to API:');
+      print(updatedOrder.toUpdateItemJson());
+      print('📝 Item update JSON:');
+      print(updatedItem.toUpdateJson());
+      print("✅ Status being sent: ${updatedItem.nextStatus}");
+      print("✅ Full item data: ${updatedItem.toUpdateJson()}");
       // TODO: Call your API here
       // Example:
-      final response = await ref.read(orderControllerProvider.notifier).updateOrderStatus(
+      final response = await ref.read(orderControllerProvider.notifier).updateOrderItemStatus(
       updatedOrder
       );
-
-
+          print('Update data ${updatedOrder.toJson()}');
       // For now, just print the data that would be sent
-      print('Order Number: ${widget.orderNumber}');
-      print('Order Details Number: ${item.orderDetailsNumber}');
-      print('Update Data: ${updatedItem.toUpdateJson()}');
+      // print('Order Number: ${widget.orderNumber}');
+      // print('Order Details Number: ${item.orderDetailsNumber}');
+      // print('Update Data: ${updatedItem.toUpdateJson()}');
 
       // Refresh the order data after successful update
-      ref.refresh(orderByIdProvider(widget.orderNumber));
+      ref.invalidate(orderByIdProvider(widget.orderNumber));
 
     } catch (e) {
       print('Error updating status: $e');
@@ -1617,7 +2179,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
   Widget _buildPriceBreakdown(OrderModel order, BuildContext context) {
     return Container(
       margin: EdgeInsets.symmetric(
-        horizontal: Screen.w(context) * 0.04,
+        // horizontal: Screen.w(context) * 0.04,
         vertical: Screen.h(context) * 0.01,
       ),
       padding: EdgeInsets.all(Screen.w(context) * 0.05),
@@ -1834,4 +2396,381 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
         return const Color(0xFF757575);
     }
   }
+
+  void _showDeliveryDateUpdateDialog(
+      BuildContext context,
+      OrderDetailsModel item,
+      int index,
+      OrderModel order,
+      ) {
+    DateTime selectedDate = item.deliveryDate ?? DateTime.now();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(Screen.w(context) * 0.05),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(Screen.w(context) * 0.05),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(Screen.w(context) * 0.02),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE3F2FD),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.calendar_today_rounded,
+                            color: const Color(0xFF1976D2),
+                            size: Screen.w(context) * 0.06,
+                          ),
+                        ),
+                        SizedBox(width: Screen.w(context) * 0.03),
+                        Expanded(
+                          child: Text(
+                            'Update Delivery Date',
+                            style: TextStyle(
+                              fontSize: Screen.w(context) * 0.045,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: Screen.h(context) * 0.02),
+
+                    // Product info
+                    Container(
+                      padding: EdgeInsets.all(Screen.w(context) * 0.03),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.productName,
+                            style: TextStyle(
+                              fontSize: Screen.w(context) * 0.036,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: Screen.h(context) * 0.005),
+                          Text(
+                            '${item.productBrand} • ${item.productModel}',
+                            style: TextStyle(
+                              fontSize: Screen.w(context) * 0.032,
+                              color: const Color(0xFF757575),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: Screen.h(context) * 0.025),
+
+                    // Current delivery date
+                    if (item.deliveryDate != null) ...[
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: Screen.w(context) * 0.04,
+                            color: const Color(0xFF757575),
+                          ),
+                          SizedBox(width: Screen.w(context) * 0.02),
+                          Text(
+                            'Current Date: ',
+                            style: TextStyle(
+                              fontSize: Screen.w(context) * 0.034,
+                              color: const Color(0xFF757575),
+                            ),
+                          ),
+                          Text(
+                            DateFormat('dd MMM yyyy').format(item.deliveryDate!),
+                            style: TextStyle(
+                              fontSize: Screen.w(context) * 0.034,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: Screen.h(context) * 0.02),
+                    ],
+
+                    // Date picker button
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Theme.of(context).primaryColor,
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFFE3F2FD).withValues(alpha: 0.3),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          padding: EdgeInsets.all(Screen.w(context) * 0.02),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.calendar_month,
+                            color: Theme.of(context).primaryColor,
+                            size: Screen.w(context) * 0.05,
+                          ),
+                        ),
+                        title: Text(
+                          'New Delivery Date',
+                          style: TextStyle(
+                            fontSize: Screen.w(context) * 0.034,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        subtitle: Text(
+                          DateFormat('dd MMM yyyy').format(selectedDate),
+                          style: TextStyle(
+                            fontSize: Screen.w(context) * 0.038,
+                            fontWeight: FontWeight.w700,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                        trailing: Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: Screen.w(context) * 0.04,
+                          color: const Color(0xFF757575),
+                        ),
+                        onTap: () async {
+                          DateTime? pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: ColorScheme.light(
+                                    primary: Theme.of(context).primaryColor,
+                                    onPrimary: Colors.white,
+                                    surface: Colors.white,
+                                    onSurface: Colors.black,
+                                  ),
+                                  dialogBackgroundColor: Colors.white,
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (pickedDate != null) {
+                            setState(() {
+                              selectedDate = pickedDate;
+                            });
+                          }
+                        },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: Screen.h(context) * 0.03),
+
+                    // Action buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(
+                                vertical: Screen.h(context) * 0.015,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: const BorderSide(color: Color(0xFF757575)),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: Screen.w(context) * 0.036,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF757575),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: Screen.w(context) * 0.03),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              try {
+                                // Show loading
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (context) => Center(
+                                    child: CircularProgressIndicator(
+                                      color: Theme.of(context).primaryColor,
+                                    ),
+                                  ),
+                                );
+
+                                // Update delivery date
+                                await _updateDeliveryDate(
+                                  item: item,
+                                  newDate: selectedDate,
+                                  order: order,
+                                );
+
+                                // Close loading dialog
+                                if (mounted) Navigator.pop(context);
+
+                                // Close date dialog
+                                if (mounted) Navigator.pop(context);
+
+                                // Show success message
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Delivery date updated successfully',
+                                        style: TextStyle(
+                                          fontSize: Screen.w(context) * 0.035,
+                                        ),
+                                      ),
+                                      backgroundColor: const Color(0xFF4CAF50),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                // Close loading dialog
+                                if (mounted) Navigator.pop(context);
+
+                                // Show error message
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Failed to update date: ${e.toString()}',
+                                        style: TextStyle(
+                                          fontSize: Screen.w(context) * 0.035,
+                                        ),
+                                      ),
+                                      backgroundColor: const Color(0xFFD32F2F),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1976D2),
+                              padding: EdgeInsets.symmetric(
+                                vertical: Screen.h(context) * 0.015,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Update',
+                              style: TextStyle(
+                                fontSize: Screen.w(context) * 0.036,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+// Update delivery date function
+  Future<void> _updateDeliveryDate({
+    required OrderDetailsModel item,
+    required DateTime newDate,
+    required OrderModel order,
+  }) async
+  {
+    try {
+      // Create updated item with new delivery date
+      final updatedItem = item.copyWith(
+        orderDetailsNumber: item.orderDetailsNumber,
+        deliveryDate: newDate,
+      );
+
+      // Get the current order
+      final currentOrder = ref.read(orderByIdProvider(widget.orderNumber)).value;
+
+      if (currentOrder == null) {
+        throw Exception('Order not found');
+      }
+
+      // Update the order details list with the modified item
+      final updatedOrderDetails = currentOrder.orderDetails.map((detail) {
+        if (detail.orderDetailsNumber == item.orderDetailsNumber) {
+          return updatedItem;
+        }
+        return detail;
+      }).toList();
+
+      // Create updated order model
+      final updatedOrder = currentOrder.copyWith(
+        orderDetails: updatedOrderDetails,
+      );
+
+      // Call your API here
+      await ref.read(orderControllerProvider.notifier).updateOrderItemStatus(
+        updatedOrder,
+      );
+
+      print('✅ Delivery date updated successfully');
+      print('Order Number: ${widget.orderNumber}');
+      print('Order Details Number: ${item.orderDetailsNumber}');
+      print('New Date: ${newDate.toIso8601String()}');
+
+      // Refresh the order data after successful update
+      ref.invalidate(orderByIdProvider(widget.orderNumber));
+    } catch (e) {
+      print('❌ Error updating delivery date: $e');
+      rethrow;
+    }
+  }
+
+
 }
