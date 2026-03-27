@@ -13,4 +13,16 @@ class LoginRepository {
   Future<Response> logout() async {
     return await _dio.post('/auth/logout');
   }
+
+  Future<bool> isTokenActive() async {
+    try {
+      final response = await _dio.get('/auth/token/active');
+      if (response.statusCode == 200) {
+        return response.data['active'] == true; // 👈 check active field
+      }
+      return false;
+    } on DioException {
+      return false;
+    }
+  }
 }

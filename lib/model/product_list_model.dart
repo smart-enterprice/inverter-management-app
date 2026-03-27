@@ -1,5 +1,4 @@
 import 'package:inverter_management_app/model/product_model.dart';
-
 import 'dealer_discount_model.dart';
 
 class SelectedProduct {

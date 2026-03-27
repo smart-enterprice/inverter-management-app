@@ -21,13 +21,27 @@ class OrderRepository {
   }
 
   /// ✅ Get all orders
-  Future<List<OrderModel>> getAllOrders() async {
+  Future<List<OrderModel>> getAllOrders({
+    int? limit,
+    String? status, // null or 'ALL' = no status param; else sent UPPERCASE
+  }) async {
     try {
-      final response = await _dio.get('/order-details');
+      final queryParameters = <String, dynamic>{
+        'includeRejected': false,
+        'page': 1,
+        if (limit != null) 'limit': limit,
+        if (status != null && status != 'ALL') 'status': status,
+      };
+
+      final response = await _dio.get(
+        '/order-details',
+        queryParameters: queryParameters,
+      );
+
       if (response.statusCode == 200) {
         final data = (response.data['data'] as List);
-        print('✅ Status: ${response.statusCode}');
-        return  data.map((e) => OrderModel.fromJson(e['order'])).toList();
+        print('✅ getAllOrders | status=$status');
+        return data.map((e) => OrderModel.fromJson(e['order'])).toList();
       } else {
         throw Exception('Failed to fetch orders');
       }
@@ -57,27 +71,30 @@ class OrderRepository {
 
   /// ✅ Get orders by date filter
   Future<List<OrderModel>> getOrdersByDateFilter({
-    required int year,
-    required int month,
     required String startDate,
     required String endDate,
   }) async {
     try {
+      final start = DateTime.parse(startDate);
+
+      final queryParameters = <String, dynamic>{
+        // 'year': start.year,
+        // 'month': start.month,
+        'start_date': startDate,
+        'end_date': endDate,
+      };
+
       final response = await _dio.get(
         '/order-details/date-filter',
-        queryParameters: {
-          'year': year,
-          'month': month,
-          'start_date': startDate,
-          'end_date': endDate,
-        },
+        queryParameters: queryParameters,
       );
 
       if (response.statusCode == 200) {
-        final List data = response.data;
-        return data.map((e) => OrderModel.fromJson(e)).toList();
+        final data = (response.data['data'] as List);
+        print('✅ getOrdersByDateFilter | $queryParameters');
+        return data.map((e) => OrderModel.fromJson(e['order'])).toList();
       } else {
-        throw Exception('Failed to fetch filtered orders');
+        throw Exception('Failed to fetch orders by date');
       }
     } on DioException catch (e) {
       final errorMsg = e.response?.data?['message'] ?? e.message ?? 'Unknown error';
@@ -118,5 +135,30 @@ class OrderRepository {
       throw Exception(e.response?.data?["message"] ?? e.message ?? 'Unknown error');
     }
   }
+
+  Future<List<OrderModel>> getOrdersByDealer(String dealerId, {int limit = 10000}) async {
+    try {
+      final response = await _dio.get(
+        '/order-details',
+        queryParameters: {
+          'includeRejected': false,
+          'limit': limit,
+          'page': 1,
+          'dealer': dealerId, // ✅ dealer filter
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = (response.data['data'] as List);
+        return data.map((e) => OrderModel.fromJson(e['order'])).toList();
+      } else {
+        throw Exception('Failed to fetch dealer orders');
+      }
+    } on DioException catch (e) {
+      final errorMsg = e.response?.data?['message'] ?? e.message ?? 'Unknown error';
+      throw Exception(errorMsg);
+    }
+  }
+
 
 }

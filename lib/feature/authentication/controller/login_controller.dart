@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/role/app_role.dart';
 import '../../../model/login_model.dart';
 import '../repository/login_repository.dart';
 
@@ -41,6 +42,7 @@ class LoginController {
       }  else {
         return LoginResult.failure('Something went wrong. Try again.');
       }
+
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) {
         return LoginResult.failure('password and email required');
@@ -66,7 +68,8 @@ class LoginController {
     await prefs.setString(_tokenKey, token);
     await prefs.setBool(_loggedInKey, true);
     await prefs.setString(_userIdKey, id);
-
+    _ref.read(roleNotifierProvider.notifier).setRole(role);
+    print(role);
     return LoginResult.success('Login successful', role, token);
   }
 
@@ -88,9 +91,21 @@ class LoginController {
     }
   }
 
+  /// Check if token is active (for splash screen)
+  Future<bool> isTokenActive() async {
+    try {
+      final isLogged = await isLoggedIn();
+      if (!isLogged) return false;
+      return await _repository.isTokenActive();
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _clearUserData() async {
     final prefs = await _ref.read(sharedPreferencesProvider);
     await prefs.clear();
+    _ref.read(roleNotifierProvider.notifier).clearRole();
   }
 
   /// Force logout (without API call)

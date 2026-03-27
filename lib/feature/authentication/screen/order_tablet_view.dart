@@ -63,6 +63,8 @@ class _LoginScreenState extends ConsumerState<LoginTabletView> {
           _passwordController.text.trim(),
         );
 
+        if (!context.mounted) return;
+
         // Show message from LoginResult
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -82,13 +84,13 @@ class _LoginScreenState extends ConsumerState<LoginTabletView> {
               );
               break;
             case 'ROLE_ADMIN':
-            // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
+              // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminHomeScreen()));
               break;
             case 'ROLE_SALESMAN':
-            // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesmanHomeScreen()));
+              // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalesmanHomeScreen()));
               break;
             case 'ROLE_ACCOUNT':
-            // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AccountHomeScreen()));
+              // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AccountHomeScreen()));
               break;
             default:
               Navigator.pushReplacement(
@@ -122,7 +124,8 @@ class _LoginScreenState extends ConsumerState<LoginTabletView> {
         child: Center(
           child: SingleChildScrollView(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.2),
+              padding:
+                  EdgeInsets.symmetric(horizontal: Screen.w(context) * 0.2),
               child: Form(
                 key: _formKey,
                 child: Container(
@@ -308,25 +311,26 @@ class _LoginScreenState extends ConsumerState<LoginTabletView> {
                           ),
                           child: _isLoading
                               ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white),
-                            ),
-                          )
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
                               : Text(
-                            'Login',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: _isButtonEnabled && !_isLoading
-                                  ? Colors.white
-                                  : Colors.grey.shade500,
-                            ),
-                          ),
-                        ),),
+                                  'Login',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: _isButtonEnabled && !_isLoading
+                                        ? Colors.white
+                                        : Colors.grey.shade500,
+                                  ),
+                                ),
+                        ),
+                      ),
                       SizedBox(height: Screen.h(context) * 0.03),
 
                       // Forgot Password

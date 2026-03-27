@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inverter_management_app/core/media_query/media_query.dart';
-import 'package:inverter_management_app/feature/signup/screen/dealer/dealers_screen.dart';
+import 'package:inverter_management_app/core/role/app_role.dart';
 import 'package:inverter_management_app/model/user_model.dart';
 import '../../../../core/const/district.dart';
 import '../../../../core/const/icons.dart';
@@ -16,19 +16,56 @@ import '../../../../screen/loadingScreen.dart';
 import '../../../../widgets/circle_button.dart';
 import '../../../brand/controller/brand_controller.dart';
 import '../../../discount/controller/discount_controller.dart';
-import '../../../discount/screen/discount_create.dart';
+import '../../../discount/screen/discount_create.dart' hide dealerBrandsProvider;
+import '../../../order/screen/dealer_orders_view.dart';
 import '../../controller/signUp_controller.dart';
-import 'edit_dealer_screen.dart';
 
-// Create a provider for the dealer data
 final dealerProvider =
-    FutureProvider.family<UserModel, String>((ref, dealerId) async {
+FutureProvider.family<UserModel, String>((ref, dealerId) async {
   return ref.read(signupControllerProvider.notifier).getEmployeeById(dealerId);
 });
 
+final dealerBrandsProvider =
+FutureProvider.family<List<BrandModel>, String>((ref, dealerId) async {
+  return ref
+      .read(brandControllerProvider.notifier)
+      .getBrandsByDealer(dealerId);
+});
+
+// ─────────────────────────────────────────────
+//  Colour helpers
+// ─────────────────────────────────────────────
+const _kBlue = Color(0xFF1B4FD8);
+const _kBlueBg = Color(0xFFEEF2FF);
+const _kBlueBorder = Color(0xFFC7D4FF);
+
+const _kGreen = Color(0xFF0A8A5C);
+const _kGreenBg = Color(0xFFEDFAF4);
+const _kGreenBorder = Color(0xFF9FE0C5);
+
+const _kRed = Color(0xFFDC2626);
+const _kRedBg = Color(0xFFFEF2F2);
+const _kRedBorder = Color(0xFFFECACA);
+
+const _kPurple = Color(0xFF7C3AED);
+const _kPurpleBg = Color(0xFFF3EEFF);
+const _kPurpleBorder = Color(0xFFC4A8FF);
+
+const _kAmber = Color(0xFFB45309);
+const _kAmberBg = Color(0xFFFFFBEB);
+const _kAmberBorder = Color(0xFFFCD28A);
+
+const _kBg = Color(0xFFF2F4F8);
+const _kCard = Colors.white;
+const _kBorder = Color(0xFFE5E7EB);
+const _kDark = Color(0xFF111827);
+const _kMuted = Color(0xFF9CA3AF);
+
+// ─────────────────────────────────────────────
+//  Main Widget
+// ─────────────────────────────────────────────
 class DealerView extends ConsumerStatefulWidget {
   final String dealerId;
-
   const DealerView({super.key, required this.dealerId});
 
   @override
@@ -38,7 +75,6 @@ class DealerView extends ConsumerStatefulWidget {
 class _DealerViewState extends ConsumerState<DealerView>
     with SingleTickerProviderStateMixin {
   bool _isEditingDiscounts = false;
-  final _scrollController = ScrollController();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -47,12 +83,10 @@ class _DealerViewState extends ConsumerState<DealerView>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 500),
     );
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
+    _fadeAnimation =
+        CurvedAnimation(parent: _animationController, curve: Curves.easeOut);
     _animationController.forward();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -64,375 +98,222 @@ class _DealerViewState extends ConsumerState<DealerView>
 
   @override
   void dispose() {
-    _scrollController.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
+  // ── Chip colour by index ──────────────────
+  static const _chipSets = [
+    (_kBlue, _kBlueBg, _kBlueBorder),
+    (_kGreen, _kGreenBg, _kGreenBorder),
+    (_kPurple, _kPurpleBg, _kPurpleBorder),
+    (_kAmber, _kAmberBg, _kAmberBorder),
+  ];
+
+  (Color, Color, Color) _chipColors(int i) => _chipSets[i % _chipSets.length];
+
+  // ─────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final sw = Screen.w(context);
     final sh = Screen.h(context);
-    final brandAsync = ref.watch(loadBrandsControllerProvider);
-    final dealerDiscountsAsync = ref.watch(dealerDiscountControllerProvider);
     final dealerAsync = ref.watch(dealerProvider(widget.dealerId));
+    final dealerDiscountsAsync = ref.watch(dealerDiscountControllerProvider);
+    final brandAsync = ref.watch(loadBrandsControllerProvider);
 
     return dealerAsync.when(
-      data: (dealer) {
-        return Scaffold(
-          backgroundColor: Colors.grey[50],
+      loading: () => const Scaffold(
+          backgroundColor: _kBg, body: Center(child: GlobalLoader())),
+      error: (e, _) =>
+          _buildErrorState(context, e, brandAsync, sw, sh),
+      data: (dealer) => FadeTransition(
+        opacity: _fadeAnimation,
+        child: Scaffold(
+          backgroundColor: _kBg,
           body: SafeArea(
             child: RefreshIndicator(
-              color: Theme.of(context).primaryColor,
+              color: _kBlue,
               onRefresh: () async {
-                await Future.delayed(const Duration(seconds: 2));
                 ref.invalidate(dealerProvider(widget.dealerId));
               },
-              child: SingleChildScrollView(
+              child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: sw * 0.04),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildAppBar(context, dealer, brandAsync, sw),
-                    SizedBox(height: sh * 0.02),
-                    _buildProfileHeader(context, ref, dealer, sw, sh),
-                    SizedBox(height: sh * 0.02),
-                    _buildPersonalInfoSection(context, dealer, sw),
-                    SizedBox(height: sh * 0.015),
-                    _buildAddressSection(context, dealer, sw),
-                    SizedBox(height: sh * 0.015),
-                    _buildBusinessSection(context, dealer, sw),
-                    SizedBox(height: sh * 0.015),
-                    _buildDiscountsSection(
-                      context,
-                      dealerDiscountsAsync,
-                      sw,
-                      sh,
-                    ),
-                    SizedBox(height: sh * 0.1),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-      loading: () => Scaffold(
-        backgroundColor: Colors.grey[50],
-        body: GlobalLoader(),
-      ),
-      error: (error, stackTrace) =>
-          _buildErrorState(context, error, brandAsync, sw, sh),
-    );
-  }
-
-  Widget _buildErrorState(BuildContext context, Object error,
-      AsyncValue<List<BrandModel>> brandAsync, double sw, double sh) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            /// TOP BAR (custom, no AppBar)
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: Screen.w(context) * 0.04,
-                vertical: Screen.h(context) * 0.02,
-              ),
-              child: Row(
-                children: [
-                  CircularIconButton(
-                    icon: Icons.arrow_back_ios_rounded,
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'Dealers',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  // keeps title centered
-                  SizedBox(width: Screen.w(context) * 0.1),
-                  // balance back button space
-                ],
-              ),
-            ),
-
-            /// ERROR BODY
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.wifi_off,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.01),
-                    const Text(
-                      "No Internet Connection",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.02),
-                    ElevatedButton(
-                      onPressed: () {
-                        ref.invalidate(dealerListProvider);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(18),
-                      ),
-                      child: const Icon(Icons.refresh),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPersonalInfoSection(
-      BuildContext context, UserModel dealer, double sw) {
-    return _buildModernSectionCard(
-      context,
-      'Personal Information',
-      Icons.person_outline_rounded,
-      sw,
-      [
-        _buildModernInfoRow(context, Icons.badge_outlined, 'Employee ID',
-            dealer.employeeId ?? 'N/A', sw),
-        _buildModernInfoRow(context, Icons.person_outline, 'Name',
-            dealer.employeeName ?? 'N/A', sw),
-        _buildModernInfoRow(context, Icons.email_outlined, 'Email',
-            dealer.employeeEmail ?? 'N/A', sw),
-        _buildModernInfoRow(context, Icons.phone_outlined, 'Phone',
-            dealer.employeePhone ?? 'N/A', sw),
-      ],
-      onEdit: () => _showEditPersonalInfoDialog(context, dealer),
-    );
-  }
-
-  Widget _buildAddressSection(
-      BuildContext context, UserModel dealer, double sw) {
-    return _buildModernSectionCard(
-      context,
-      'Address Information',
-      Icons.location_on_outlined,
-      sw,
-      [
-        _buildModernInfoRow(context, Icons.home_outlined, 'Address',
-            dealer.address ?? 'N/A', sw),
-        _buildModernInfoRow(context, Icons.map_outlined, 'District',
-            dealer.district ?? 'N/A', sw),
-        _buildModernInfoRow(context, Icons.location_city_outlined, 'Town',
-            dealer.town ?? 'N/A', sw),
-      ],
-      onEdit: () => _showEditAddressDialog(context, dealer),
-    );
-  }
-
-  Widget _buildBusinessSection(
-      BuildContext context, UserModel dealer, double sw) {
-    return _buildModernSectionCard(
-      context,
-      'Business Information',
-      Icons.business_center_outlined,
-      sw,
-      [
-        _buildModernInfoRow(context, Icons.store_outlined, 'Shop Name',
-            dealer.shopName ?? 'N/A', sw),
-        SizedBox(height: sw * 0.02),
-        FutureBuilder<List<BrandModel>>(
-          future: ref
-              .read(brandControllerProvider.notifier)
-              .getBrandsByDealer(widget.dealerId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return GlobalLoader();
-            } else if (snapshot.hasError) {
-              return Container(
-                padding: EdgeInsets.all(sw * 0.03),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(sw * 0.02),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline,
-                        size: sw * 0.04, color: Colors.red[700]),
-                    SizedBox(width: sw * 0.02),
-                    Expanded(
-                      child: Text('Error loading brands',
-                          style: TextStyle(
-                              fontSize: sw * 0.032, color: Colors.red[700])),
-                    ),
-                  ],
-                ),
-              );
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Container(
-                padding: EdgeInsets.all(sw * 0.03),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(sw * 0.02),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline,
-                        size: sw * 0.04, color: Colors.grey[600]),
-                    SizedBox(width: sw * 0.02),
-                    Text('No active brands assigned',
-                        style: TextStyle(
-                            fontSize: sw * 0.032, color: Colors.grey[600])),
-                  ],
-                ),
-              );
-            } else {
-              final brands = snapshot.data!;
-              final brandNames = brands.map((b) => b.brandName).toList();
-              return _buildModernBrandsList(context, brandNames, sw);
-            }
-          },
-        ),
-      ],
-      onEdit: () => _showEditBusinessDialog(context, ref, dealer),
-    );
-  }
-
-  Widget _buildModernSectionCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    double sw,
-    List<Widget> children, {
-    VoidCallback? onEdit,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(sw * 0.04),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(sw * 0.045),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(sw * 0.025),
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(sw * 0.025),
-                  ),
-                  child: Icon(icon,
-                      color: Theme.of(context).primaryColor, size: sw * 0.055),
-                ),
-                SizedBox(width: sw * 0.03),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: sw * 0.042,
-                      color: Colors.grey[900],
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ),
-                if (onEdit != null)
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: onEdit,
-                      borderRadius: BorderRadius.circular(sw * 0.02),
-                      child: Container(
-                        padding: EdgeInsets.all(sw * 0.02),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .primaryColor
-                              .withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(sw * 0.02),
-                        ),
-                        child: SvgPicture.asset(
-                          AppIcons.edit,
-                          width: sw * 0.045,
-                          colorFilter: ColorFilter.mode(
-                            Theme.of(context).primaryColor,
-                            BlendMode.srcIn,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        // ── Top Nav ──────────────────────────
+                        _TopNav(
+                          dealer: dealer,
+                          brandAsync: brandAsync,
+                          dealerId: widget.dealerId,
+                          onBack: () => Navigator.pop(context),
+                          onHistory: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DealerOrdersScreen(
+                                dealerId: widget.dealerId,
+                                dealerName: dealer.employeeName,
+                              ),
+                            ),
+                          ),
+                          onDiscount: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DealerDiscountCreatePage(
+                                dealerId: widget.dealerId,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+
+                        // ── Profile Card ─────────────────────
+                        _ProfileCard(
+                          dealer: dealer,
+                          onEditPhoto: () =>
+                              _updateProfilePhoto(context, ref, dealer),
+                        ),
+
+                        SizedBox(height: sh * 0.005),
+
+                        // ── Info Sections ────────────────────
+                        Padding(
+                          padding:
+                          EdgeInsets.symmetric(horizontal: sw * 0.038),
+                          child: Column(
+                            children: [
+                              _InfoSection(
+                                icon: Icons.person_outline_rounded,
+                                title: 'Personal Info',
+                                onEdit: () =>
+                                    _showEditPersonalInfoDialog(context, dealer),
+                                rows: [
+                                  ('Name',
+                                  dealer.employeeName
+                                      .replaceAll('_', ' ') ??
+                                      'N/A'),
+                                  ('Email',
+                                  dealer.employeeEmail ?? 'N/A'),
+                                  ('Phone',
+                                  dealer.employeePhone ?? 'N/A'),
+                                ],
+                              ),
+                              SizedBox(height: sh * 0.012),
+                              _InfoSection(
+                                icon: Icons.location_on_outlined,
+                                title: 'Address',
+                                onEdit: () =>
+                                    _showEditAddressDialog(context, dealer),
+                                rows: [
+                                  ('Street', dealer.address ?? 'N/A'),
+                                  ('District', dealer.district ?? 'N/A'),
+                                  ('Town', dealer.town ?? 'N/A'),
+                                ],
+                              ),
+                              SizedBox(height: sh * 0.012),
+                              _buildBusinessSection(context, dealer, sw, sh),
+                              SizedBox(height: sh * 0.012),
+                              RoleGuard(
+                                feature: AppFeature.discountView,
+                                child: _buildDiscountsSection(
+                                    context, dealerDiscountsAsync, sw, sh),
+                              ),
+                              SizedBox(height: sh * 0.06),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-            SizedBox(height: sw * 0.04),
-            ...children,
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildModernInfoRow(BuildContext context, IconData icon, String label,
-      String value, double sw) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: sw * 0.03),
-      child: Row(
+  // ── Business Section ────────────────────────
+  Widget _buildBusinessSection(
+      BuildContext context, UserModel dealer, double sw, double sh) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(sw * 0.04),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(sw * 0.015),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(sw * 0.015),
-            ),
-            child: Icon(icon, size: sw * 0.04, color: Colors.grey[700]),
-          ),
-          SizedBox(width: sw * 0.03),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // header
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: sw * 0.04, vertical: sw * 0.035),
+            child: Row(
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: sw * 0.032,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
+                _SectionIconBox(icon: Icons.business_center_outlined),
+                SizedBox(width: sw * 0.025),
+                Expanded(
+                  child: Text('Business',
+                      style: TextStyle(
+                          fontSize: sw * 0.035,
+                          fontWeight: FontWeight.w700,
+                          color: _kDark)),
                 ),
-                SizedBox(height: sw * 0.01),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: sw * 0.038,
-                    color: Colors.grey[900],
-                    fontWeight: FontWeight.w600,
-                  ),
+                RoleGuard(
+                  feature: AppFeature.editDealer,
+                  child: _EditPill(
+                      onTap: () =>
+                          _showEditBusinessDialog(context, ref, dealer)),
                 ),
               ],
+            ),
+          ),
+          _divider(),
+
+          // shop row
+          _InfoRow(label: 'Shop', value: dealer.shopName ?? 'N/A'),
+          _divider(),
+
+          // brands
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                sw * 0.04, sw * 0.03, sw * 0.04, sw * 0.035),
+            child: ref.watch(dealerBrandsProvider(widget.dealerId)).when(
+              data: (brands) {
+                if (brands.isEmpty) {
+                  return Text('No brands assigned',
+                      style: TextStyle(
+                          fontSize: sw * 0.033, color: _kMuted));
+                }
+                return Wrap(
+                  spacing: sw * 0.02,
+                  runSpacing: sw * 0.02,
+                  children: brands.asMap().entries.map((e) {
+                    final c = _chipColors(e.key);
+                    return _BrandChip(
+                        label: e.value.brandName,
+                        fg: c.$1,
+                        bg: c.$2,
+                        border: c.$3);
+                  }).toList(),
+                );
+              },
+              loading: () => const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: _kBlue)),
+              error: (_, __) => Text('Error loading brands',
+                  style:
+                  TextStyle(fontSize: sw * 0.033, color: _kRed)),
             ),
           ),
         ],
@@ -440,1684 +321,1597 @@ class _DealerViewState extends ConsumerState<DealerView>
     );
   }
 
-  Widget _buildModernBrandsList(
-      BuildContext context, List<String>? brands, double sw) {
-    if (brands == null || brands.isEmpty) {
-      return Container(
-        padding: EdgeInsets.all(sw * 0.03),
-        decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(sw * 0.02),
-        ),
-        child: Text('No brands assigned',
-            style: TextStyle(fontSize: sw * 0.032, color: Colors.grey[600])),
-      );
-    }
-
-    return Wrap(
-      spacing: sw * 0.02,
-      runSpacing: sw * 0.02,
-      children: brands.map((brand) {
-        return Container(
-          padding:
-              EdgeInsets.symmetric(horizontal: sw * 0.035, vertical: sw * 0.02),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                Theme.of(context).primaryColor.withValues(alpha: 0.05),
+  // ── Discounts Section ───────────────────────
+  Widget _buildDiscountsSection(
+      BuildContext context,
+      AsyncValue<List<DealerDiscountModel>> async,
+      double sw,
+      double sh) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(sw * 0.04),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // header
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: sw * 0.04, vertical: sw * 0.035),
+            child: Row(
+              children: [
+                _SectionIconBox(icon: Icons.local_offer_outlined),
+                SizedBox(width: sw * 0.025),
+                Expanded(
+                  child: Text('Discounts',
+                      style: TextStyle(
+                          fontSize: sw * 0.035,
+                          fontWeight: FontWeight.w700,
+                          color: _kDark)),
+                ),
+                if (async.asData?.value.isNotEmpty == true)
+                  RoleGuard(
+                    feature: AppFeature.editDealer,
+                    child: _EditPill(
+                      label: _isEditingDiscounts ? 'Done' : 'Edit',
+                      onTap: () =>
+                          setState(() => _isEditingDiscounts = !_isEditingDiscounts),
+                    ),
+                  ),
               ],
             ),
-            borderRadius: BorderRadius.circular(sw * 0.06),
-            border: Border.all(
-              color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
-              width: 1,
-            ),
           ),
-          child: Text(
-            brand,
-            style: TextStyle(
-              color: Theme.of(context).primaryColor,
-              fontWeight: FontWeight.w600,
-              fontSize: sw * 0.032,
+          _divider(),
+
+          async.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: _kBlue)),
             ),
+            error: (_, __) => Padding(
+              padding: EdgeInsets.all(sw * 0.04),
+              child: _ErrorBanner(message: 'Error loading discounts'),
+            ),
+            data: (discounts) {
+              if (discounts.isEmpty) {
+                return Padding(
+                  padding: EdgeInsets.all(sw * 0.05),
+                  child: Center(
+                    child: Text('No discounts yet',
+                        style: TextStyle(
+                            fontSize: sw * 0.034, color: _kMuted)),
+                  ),
+                );
+              }
+              return Padding(
+                padding: EdgeInsets.fromLTRB(
+                    sw * 0.035, sw * 0.03, sw * 0.035, sw * 0.035),
+                child: Column(
+                  children: discounts.map((d) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: sw * 0.025),
+                      child: _DiscountCard(
+                        discount: d,
+                        showEditBtn: _isEditingDiscounts,
+                        onEdit: () => _showUpdateDialog(context, d),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              );
+            },
           ),
-        );
-      }).toList(),
+        ],
+      ),
     );
   }
 
-  // Edit Personal Info Dialog
+  // ─────────────────────────────────────────
+  //  Dialogs
+  // ─────────────────────────────────────────
+
   void _showEditPersonalInfoDialog(BuildContext context, UserModel dealer) {
-    final nameController = TextEditingController(text: dealer.employeeName);
-    final emailController = TextEditingController(text: dealer.employeeEmail);
-    final phoneController = TextEditingController(text: dealer.employeePhone);
+    final nameController =
+    TextEditingController(text: dealer.employeeName);
+    final emailController =
+    TextEditingController(text: dealer.employeeEmail);
+    final phoneController =
+    TextEditingController(text: dealer.employeePhone);
     final formKey = GlobalKey<FormState>();
 
-    showDialog(
+    _showBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(Screen.w(context) * 0.02),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
-                ),
-                child: Icon(Icons.person_outline_rounded,
-                    color: Theme.of(context).primaryColor,
-                    size: Screen.w(context) * 0.06),
-              ),
-              SizedBox(width: Screen.w(context) * 0.03),
-              const Text('Edit Personal Info'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      hintText: 'Update your name',
-                      prefixIcon: const Icon(Icons.person),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Screen.w(context) * 0.03),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Screen.w(context) * 0.03),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Name is required';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: Screen.h(context) * 0.02),
-                  TextFormField(
-                    controller: emailController,
-                    decoration: InputDecoration(
-                      hintText: 'Update your email',
-                      prefixIcon: const Icon(Icons.email),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Screen.w(context) * 0.03),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Screen.w(context) * 0.03),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Email is required';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: Screen.h(context) * 0.02),
-                  TextFormField(
-                    controller: phoneController,
-                    decoration: InputDecoration(
-                      hintText: 'Update your phone number',
-                      prefixIcon: const Icon(Icons.phone),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Screen.w(context) * 0.03),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Screen.w(context) * 0.03),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                    ),
-                    keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Phone is required';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel',
-                  style: TextStyle(
-                      color: Colors.grey[600], fontWeight: FontWeight.w600)),
-            ),
-            ElevatedButton(
-              onPressed: () {
+      title: 'Edit Personal Info',
+      subtitle: dealer.employeeName ?? '',
+      child: Form(
+        key: formKey,
+        child: Column(
+          children: [
+            _SheetField(
+                controller: nameController,
+                label: 'Full Name',
+                icon: Icons.person_outline,
+                validator: (v) =>
+                v == null || v.trim().isEmpty ? 'Required' : null),
+            SizedBox(height: Screen.h(context) * 0.015),
+            _SheetField(
+                controller: emailController,
+                label: 'Email',
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Required';
+                  if (!v.contains('@')) return 'Invalid email';
+                  return null;
+                }),
+            SizedBox(height: Screen.h(context) * 0.015),
+            _SheetField(
+                controller: phoneController,
+                label: 'Phone',
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+                validator: (v) =>
+                v == null || v.trim().isEmpty ? 'Required' : null),
+            SizedBox(height: Screen.h(context) * 0.025),
+            _SheetActions(
+              onCancel: () => Navigator.pop(context),
+              onSave: () {
                 if (formKey.currentState!.validate()) {
-                  _updateDealerInfo(
-                    dealer,
-                    name: nameController.text.trim(),
-                    email: emailController.text.trim(),
-                    phone: phoneController.text.trim(),
-                  );
+                  _updateDealerInfo(dealer,
+                      name: nameController.text.trim(),
+                      email: emailController.text.trim(),
+                      phone: phoneController.text.trim());
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(
-                    horizontal: Screen.w(context) * 0.05,
-                    vertical: Screen.h(context) * 0.015),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
-                ),
-                elevation: 0,
-              ),
-              child: const Text('Update'),
             ),
           ],
-        );
-      },
-    );
-  }
-
-  // Edit Address Dialog
-  void _showEditAddressDialog(BuildContext context, UserModel dealer) {
-    final addressController = TextEditingController(text: dealer.address);
-    final townController = TextEditingController(text: dealer.town);
-    final formKey = GlobalKey<FormState>();
-
-    String? selectedDistrict;
-    if (dealer.district != null && dealer.district!.isNotEmpty) {
-      final normalizedDealerDistrict = dealer.district!.trim().toLowerCase();
-      selectedDistrict = keralaDistricts.firstWhere(
-        (district) => district.toLowerCase() == normalizedDealerDistrict,
-        orElse: () => dealer.district!,
-      );
-    }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
-              ),
-              title: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(Screen.w(context) * 0.02),
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                      borderRadius:
-                          BorderRadius.circular(Screen.w(context) * 0.02),
-                    ),
-                    child: Icon(Icons.location_on_outlined,
-                        color: Theme.of(context).primaryColor,
-                        size: Screen.w(context) * 0.06),
-                  ),
-                  SizedBox(width: Screen.w(context) * 0.03),
-                  const Text('Edit Address'),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: addressController,
-                        decoration: InputDecoration(
-                          hintText: 'Update your address',
-                          prefixIcon: const Icon(Icons.home),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(Screen.w(context) * 0.03),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(Screen.w(context) * 0.03),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                        ),
-                        maxLines: 2,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Address is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: Screen.h(context) * 0.02),
-                      DropdownButtonFormField<String>(
-                        value: keralaDistricts.contains(selectedDistrict)
-                            ? selectedDistrict
-                            : null,
-                        decoration: InputDecoration(
-                          hintText: selectedDistrict != null &&
-                                  !keralaDistricts.contains(selectedDistrict)
-                              ? 'Current: $selectedDistrict (Select new)'
-                              : 'Select district',
-                          prefixIcon: const Icon(Icons.map),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(Screen.w(context) * 0.03),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(Screen.w(context) * 0.03),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                        ),
-                        items: keralaDistricts.map((district) {
-                          return DropdownMenuItem(
-                            value: district,
-                            child: Text(district),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedDistrict = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'District is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: Screen.h(context) * 0.02),
-                      TextFormField(
-                        controller: townController,
-                        decoration: InputDecoration(
-                          hintText: 'Update your town',
-                          prefixIcon: const Icon(Icons.location_city),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(Screen.w(context) * 0.03),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(Screen.w(context) * 0.03),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Town is required';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel',
-                      style: TextStyle(
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w600)),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (formKey.currentState!.validate()) {
-                      _updateDealerInfo(
-                        dealer,
-                        address: addressController.text.trim(),
-                        district: selectedDistrict!,
-                        town: townController.text.trim(),
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                        horizontal: Screen.w(context) * 0.05,
-                        vertical: Screen.h(context) * 0.015),
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(Screen.w(context) * 0.02),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text('Update'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // FIXED: Edit Business Dialog
-  void _showEditBusinessDialog(
-      BuildContext context, WidgetRef ref, UserModel dealer) async {
-    // Show loading dialog first
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: EdgeInsets.all(Screen.w(context) * 0.05),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
-          ),
-          child: CircularProgressIndicator(),
         ),
       ),
     );
+  }
 
-    try {
-      // Fetch brands
-      ref.watch(activeBrandControllerProvider);
-      final allBrandsAsync = ref.watch(activeBrandControllerProvider);
+  void _showEditAddressDialog(BuildContext context, UserModel dealer) {
+    final addressController =
+    TextEditingController(text: dealer.address);
+    final townController = TextEditingController(text: dealer.town);
+    final formKey = GlobalKey<FormState>();
+    String? selectedDistrict;
 
-      await allBrandsAsync.when(
-        data: (allBrands) async {
-          List<String> selectedBrands = List<String>.from(dealer.brand ?? []);
-          final shopNameController =
-              TextEditingController(text: dealer.shopName ?? '');
+    if (dealer.district != null && dealer.district!.isNotEmpty) {
+      final n = dealer.district!.trim().toLowerCase();
+      selectedDistrict = keralaDistricts.firstWhere(
+              (d) => d.toLowerCase() == n,
+          orElse: () => dealer.district!);
+    }
 
-          // Show the actual dialog
-          await showDialog(
-            context: context,
-            builder: (BuildContext dialogContext) {
-              return StatefulBuilder(
-                builder: (context, setState) {
-                  return AlertDialog(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(Screen.w(context) * 0.04),
-                    ),
-                    title: Row(
+    _showBottomSheet(
+      context: context,
+      title: 'Edit Address',
+      subtitle: dealer.shopName ?? '',
+      isScrollable: true,
+      child: StatefulBuilder(
+        builder: (ctx, setS) => Form(
+          key: formKey,
+          child: Column(
+            children: [
+              _SheetField(
+                  controller: addressController,
+                  label: 'Street Address',
+                  icon: Icons.home_outlined,
+                  maxLines: 2,
+                  validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'Required' : null),
+              SizedBox(height: Screen.h(context) * 0.015),
+              // District dropdown
+              DropdownButtonFormField<String>(
+                value: keralaDistricts.contains(selectedDistrict)
+                    ? selectedDistrict
+                    : null,
+                decoration: _sheetInputDecoration(
+                    'District', Icons.map_outlined, context),
+                items: keralaDistricts
+                    .map((d) =>
+                    DropdownMenuItem(value: d, child: Text(d)))
+                    .toList(),
+                onChanged: (v) => setS(() => selectedDistrict = v),
+                validator: (v) =>
+                v == null || v.isEmpty ? 'Required' : null,
+              ),
+              SizedBox(height: Screen.h(context) * 0.015),
+              _SheetField(
+                  controller: townController,
+                  label: 'Town',
+                  icon: Icons.location_city_outlined,
+                  validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'Required' : null),
+              SizedBox(height: Screen.h(context) * 0.025),
+              _SheetActions(
+                onCancel: () => Navigator.pop(context),
+                onSave: () {
+                  if (formKey.currentState!.validate()) {
+                    _updateDealerInfo(dealer,
+                        address: addressController.text.trim(),
+                        district: selectedDistrict!,
+                        town: townController.text.trim());
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditBusinessDialog(
+      BuildContext context, WidgetRef ref, UserModel dealer) async
+  {
+    final sw = Screen.w(context);
+    final sh = Screen.h(context);
+
+    final allBrandsAsync = ref.read(activeBrandControllerProvider);
+    final List<BrandModel> allBrands =
+    allBrandsAsync.maybeWhen(data: (d) => d, orElse: () => []);
+
+    final List<BrandModel> currentDealerBrands = await ref
+        .read(brandControllerProvider.notifier)
+        .getBrandsByDealer(widget.dealerId);
+
+    if (!context.mounted) return;
+
+    final Set<String> currentBrandNames =
+    currentDealerBrands.map((b) => b.brandName).toSet();
+    final shopNameController =
+    TextEditingController(text: dealer.shopName ?? '');
+    final Set<BrandModel> brandsToRemove = {};
+    final Set<BrandModel> brandsToAdd = {};
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final available = allBrands
+              .where((b) => !currentBrandNames.contains(b.brandName))
+              .toList();
+
+          return DraggableScrollableSheet(
+            initialChildSize: 0.75,
+            maxChildSize: 0.92,
+            minChildSize: 0.4,
+            builder: (_, scrollController) => Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius:
+                BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  // handle + title
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                        sw * 0.05, sw * 0.04, sw * 0.05, 0),
+                    child: Column(
                       children: [
                         Container(
-                          padding: EdgeInsets.all(Screen.w(context) * 0.02),
+                          width: 36,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 18),
                           decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .primaryColor
-                                .withValues(alpha: 0.1),
-                            borderRadius:
-                                BorderRadius.circular(Screen.w(context) * 0.02),
+                            color: const Color(0xFFE5E7EB),
+                            borderRadius: BorderRadius.circular(2),
                           ),
-                          child: Icon(Icons.business_center_outlined,
-                              color: Theme.of(context).primaryColor,
-                              size: Screen.w(context) * 0.06),
                         ),
-                        SizedBox(width: Screen.w(context) * 0.03),
-                        const Text('Edit Business Info'),
-                      ],
-                    ),
-                    content: SizedBox(
-                      width: Screen.w(context) * 0.8,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
-                            TextFormField(
-                              controller: shopNameController,
-                              decoration: InputDecoration(
-                                labelText: 'Shop Name',
-                                prefixIcon: const Icon(Icons.store),
-                                filled: true,
-                                fillColor: Colors.grey[50],
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      Screen.w(context) * 0.03),
-                                  borderSide:
-                                      BorderSide(color: Colors.grey[300]!),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      Screen.w(context) * 0.03),
-                                  borderSide:
-                                      BorderSide(color: Colors.grey[300]!),
-                                ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Text('Edit Business Info',
+                                      style: TextStyle(
+                                          fontSize: sw * 0.045,
+                                          fontWeight: FontWeight.w800,
+                                          color: _kDark)),
+                                  SizedBox(height: 2),
+                                  Text(
+                                      dealer.shopName ??
+                                          ' · ${dealer.employeeId ?? ''}',
+                                      style: TextStyle(
+                                          fontSize: sw * 0.032,
+                                          color: _kMuted,
+                                          fontWeight:
+                                          FontWeight.w500)),
+                                ],
                               ),
-                            ),
-                            SizedBox(height: Screen.h(context) * 0.02),
-                            Text(
-                              'Select Brands',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            SizedBox(height: Screen.h(context) * 0.01),
-                            Container(
-                              height: Screen.h(context) * 0.3,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(
-                                    Screen.w(context) * 0.03),
-                              ),
-                              child: allBrands.isEmpty
-                                  ? const Center(
-                                      child: Text('No brands available'))
-                                  : ListView.builder(
-                                      itemCount: allBrands.length,
-                                      itemBuilder: (context, index) {
-                                        final brand = allBrands[index];
-                                        final brandId = brand.brandId ?? '';
-                                        final isSelected =
-                                            selectedBrands.contains(brandId);
-
-                                        return CheckboxListTile(
-                                          title: Text(
-                                              brand.brandName ?? 'Unknown'),
-                                          value: isSelected,
-                                          activeColor:
-                                              Theme.of(context).primaryColor,
-                                          onChanged: (val) {
-                                            setState(() {
-                                              if (val == true) {
-                                                if (!selectedBrands
-                                                    .contains(brandId)) {
-                                                  selectedBrands.add(brandId);
-                                                }
-                                              } else {
-                                                selectedBrands.remove(brandId);
-                                              }
-                                            });
-                                          },
-                                        );
-                                      },
-                                    ),
                             ),
                           ],
-                        ),
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          shopNameController.dispose();
-                          Navigator.pop(dialogContext);
-                        },
-                        child: Text('Cancel',
-                            style: TextStyle(
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w600)),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          _updateDealerInfo(
-                            dealer,
-                            shopName: shopNameController.text.trim(),
-                            brand: selectedBrands,
-                          );
-                          shopNameController.dispose();
-                          Navigator.pop(dialogContext);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(
-                              horizontal: Screen.w(context) * 0.05,
-                              vertical: Screen.h(context) * 0.015),
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(Screen.w(context) * 0.02),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text('Update'),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          );
-        },
-        loading: () async {
-          // Keep loading dialog open
-          await Future.delayed(Duration(seconds: 30)); // Timeout
-          if (context.mounted) {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text('Loading brands timed out'),
-                  backgroundColor: Colors.red),
-            );
-          }
-        },
-        error: (err, _) async {
-          // Close loading dialog
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('Failed to load brands: $err'),
-                backgroundColor: Colors.red),
-          );
-        },
-      );
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
-  // Update Dealer Info Method
-  void _updateDealerInfo(
-    UserModel dealer, {
-    String? name,
-    String? email,
-    String? phone,
-    String? address,
-    String? district,
-    String? town,
-    String? shopName,
-    List<String>? brand,
-  }) async {
-    try {
-      final result =
-          await ref.read(signupControllerProvider.notifier).updateUser(
-                oldUser: dealer,
-                name: name,
-                email: email,
-                phone: phone,
-                address: address,
-                district: district,
-                town: town,
-                shopName: shopName,
-                brand: brand,
-              );
-
-      if (result == null) {
-        ref.invalidate(dealerProvider(widget.dealerId));
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: Screen.w(context) * 0.02),
-                  Text('Dealer information updated successfully'),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
-              ),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.white),
-                  SizedBox(width: Screen.w(context) * 0.02),
-                  Expanded(child: Text('Update failed: $result')),
-                ],
-              ),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
-              ),
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: Screen.w(context) * 0.02),
-                Expanded(child: Text('Error: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
-            ),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-  }
-
-  Widget _buildDiscountsSection(
-      BuildContext context,
-      AsyncValue<List<DealerDiscountModel>> dealerDiscountsAsync,
-      double sw,
-      double sh) {
-    return dealerDiscountsAsync.when(
-      data: (discounts) {
-        return _buildModernSectionCard(
-          context,
-          'Dealer Discounts',
-          Icons.local_offer_outlined,
-          sw,
-          [
-            if (discounts.isEmpty)
-              Container(
-                padding: EdgeInsets.all(sw * 0.04),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(sw * 0.03),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.discount_outlined,
-                        size: sw * 0.1, color: Colors.grey[400]),
-                    SizedBox(height: sw * 0.02),
-                    Text('No discounts available',
-                        style: TextStyle(
-                          fontSize: sw * 0.035,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        )),
-                  ],
-                ),
-              )
-            else
-              ...discounts.map((discount) {
-                return Container(
-                  margin: EdgeInsets.only(bottom: sw * 0.02),
-                  padding: EdgeInsets.all(sw * 0.035),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.green[50]!,
-                        Colors.green[50]!.withValues(alpha: 0.3)
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(sw * 0.03),
-                    border: Border.all(color: Colors.green[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(sw * 0.02),
-                        decoration: BoxDecoration(
-                          color: Colors.green[100],
-                          borderRadius: BorderRadius.circular(sw * 0.02),
-                        ),
-                        child: Icon(Icons.local_offer,
-                            color: Colors.green[700], size: sw * 0.05),
-                      ),
-                      SizedBox(width: sw * 0.03),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              discount.brandName ?? 'Unknown Brand',
-                              style: TextStyle(
-                                fontSize: sw * 0.038,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[900],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: sw * 0.005),
-                            Text(
-                              discount.modelName ?? 'Unknown Model',
-                              style: TextStyle(
-                                fontSize: sw * 0.032,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: sw * 0.03, vertical: sw * 0.015),
-                        decoration: BoxDecoration(
-                          color: Colors.green[700],
-                          borderRadius: BorderRadius.circular(sw * 0.05),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.green.withValues(alpha: 0.3),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          discount.isPercentage == true
-                              ? '${discount.discountValue}%'
-                              : '₹${discount.discountValue}',
-                          style: TextStyle(
-                            fontSize: sw * 0.036,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      if (_isEditingDiscounts) ...[
-                        SizedBox(width: sw * 0.02),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _showUpdateDialog(context, discount),
-                            borderRadius: BorderRadius.circular(sw * 0.02),
-                            child: Container(
-                              padding: EdgeInsets.all(sw * 0.02),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .primaryColor
-                                    .withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(sw * 0.02),
-                              ),
-                              child: SvgPicture.asset(
-                                AppIcons.edit,
-                                width: sw * 0.04,
-                                colorFilter: ColorFilter.mode(
-                                    Theme.of(context).primaryColor,
-                                    BlendMode.srcIn),
-                              ),
-                            ),
-                          ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                );
-              }),
-            if (discounts.isNotEmpty) ...[
-              SizedBox(height: sw * 0.02),
-              Center(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _isEditingDiscounts = !_isEditingDiscounts;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(sw * 0.05),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: sw * 0.05, vertical: sw * 0.025),
-                      decoration: BoxDecoration(
-                        color: _isEditingDiscounts
-                            ? Colors.grey[300]
-                            : Theme.of(context)
-                                .primaryColor
-                                .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(sw * 0.05),
-                        border: Border.all(
-                          color: _isEditingDiscounts
-                              ? Colors.grey[400]!
-                              : Theme.of(context)
-                                  .primaryColor
-                                  .withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      padding: EdgeInsets.all(sw * 0.05),
+                      child: Column(
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            _isEditingDiscounts
-                                ? Icons.check
-                                : Icons.edit_outlined,
-                            size: sw * 0.04,
-                            color: _isEditingDiscounts
-                                ? Colors.grey[700]
-                                : Theme.of(context).primaryColor,
+                          // shop name field
+                          _SheetFieldLabel('Shop Name'),
+                          SizedBox(height: 6),
+                          TextField(
+                            controller: shopNameController,
+                            decoration: _sheetInputDecoration(
+                                'Shop name',
+                                Icons.storefront_outlined,
+                                ctx),
                           ),
-                          SizedBox(width: sw * 0.02),
-                          Text(
-                            _isEditingDiscounts ? 'Done' : 'Edit Discounts',
-                            style: TextStyle(
-                              color: _isEditingDiscounts
-                                  ? Colors.grey[700]
-                                  : Theme.of(context).primaryColor,
-                              fontSize: sw * 0.035,
-                              fontWeight: FontWeight.w600,
+                          SizedBox(height: sh * 0.025),
+
+                          // current brands
+                          if (currentDealerBrands.isNotEmpty) ...[
+                            _SheetFieldLabel(
+                                'Current Brands — tap to remove'),
+                            SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children:
+                              currentDealerBrands.map((brand) {
+                                final isMarked =
+                                brandsToRemove.contains(brand);
+                                return GestureDetector(
+                                  onTap: () => setS(() => isMarked
+                                      ? brandsToRemove.remove(brand)
+                                      : brandsToRemove.add(brand)),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(
+                                        milliseconds: 200),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: isMarked
+                                          ? _kRedBg
+                                          : _kGreenBg,
+                                      borderRadius:
+                                      BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: isMarked
+                                            ? _kRedBorder
+                                            : _kGreenBorder,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          isMarked
+                                              ? Icons
+                                              .remove_circle_outline
+                                              : Icons
+                                              .check_circle_outline,
+                                          size: 14,
+                                          color: isMarked
+                                              ? _kRed
+                                              : _kGreen,
+                                        ),
+                                        SizedBox(width: 5),
+                                        Text(
+                                          brand.brandName,
+                                          style: TextStyle(
+                                            fontSize: sw * 0.033,
+                                            fontWeight:
+                                            FontWeight.w600,
+                                            color: isMarked
+                                                ? _kRed
+                                                : _kGreen,
+                                            decoration: isMarked
+                                                ? TextDecoration
+                                                .lineThrough
+                                                : null,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
+                            if (brandsToRemove.isNotEmpty) ...[
+                              SizedBox(height: 8),
+                              _SummaryBanner(
+                                  message:
+                                  '${brandsToRemove.length} brand(s) will be removed',
+                                  color: _kRed,
+                                  bg: _kRedBg,
+                                  borderColor: _kRedBorder),
+                            ],
+                            SizedBox(height: sh * 0.025),
+                            Divider(color: _kBorder),
+                            SizedBox(height: sh * 0.015),
+                          ],
+
+                          // add brands
+                          if (available.isNotEmpty) ...[
+                            _SheetFieldLabel('Add Brands'),
+                            SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: available.map((brand) {
+                                final isSel =
+                                brandsToAdd.contains(brand);
+                                return GestureDetector(
+                                  onTap: () => setS(() => isSel
+                                      ? brandsToAdd.remove(brand)
+                                      : brandsToAdd.add(brand)),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(
+                                        milliseconds: 200),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: isSel
+                                          ? _kBlueBg
+                                          : _kBg,
+                                      borderRadius:
+                                      BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: isSel
+                                            ? _kBlueBorder
+                                            : _kBorder,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          isSel
+                                              ? Icons.check_circle
+                                              : Icons
+                                              .add_circle_outline,
+                                          size: 14,
+                                          color: isSel
+                                              ? _kBlue
+                                              : _kMuted,
+                                        ),
+                                        SizedBox(width: 5),
+                                        Text(
+                                          brand.brandName,
+                                          style: TextStyle(
+                                            fontSize: sw * 0.033,
+                                            fontWeight:
+                                            FontWeight.w600,
+                                            color: isSel
+                                                ? _kBlue
+                                                : _kMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            if (brandsToAdd.isNotEmpty) ...[
+                              SizedBox(height: 8),
+                              _SummaryBanner(
+                                  message:
+                                  '${brandsToAdd.length} brand(s) will be added',
+                                  color: _kBlue,
+                                  bg: _kBlueBg,
+                                  borderColor: _kBlueBorder),
+                            ],
+                          ],
+
+                          SizedBox(height: sh * 0.03),
+                          _SheetActions(
+                            onCancel: () {
+                              shopNameController.dispose();
+                              Navigator.pop(ctx);
+                            },
+                            onSave: () async {
+                              Navigator.pop(ctx);
+                              await _updateDealerBusiness(
+                                dealer,
+                                shopName: shopNameController.text
+                                    .trim(),
+                                addBrands: brandsToAdd
+                                    .map((b) => b.brandName)
+                                    .toList(),
+                                removeBrands: brandsToRemove
+                                    .map((b) => b.brandName)
+                                    .toList(),
+                              );
+                              shopNameController.dispose();
+                            },
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ],
-        );
-      },
-      loading: () => _buildModernSectionCard(
-        context,
-        'Dealer Discounts',
-        Icons.local_offer_outlined,
-        sw,
-        [
-          Container(
-            padding: EdgeInsets.symmetric(vertical: sh * 0.03),
-            child: Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
             ),
-          )
-        ],
-      ),
-      error: (err, st) => _buildModernSectionCard(
-        context,
-        'Dealer Discounts',
-        Icons.local_offer_outlined,
-        sw,
-        [
-          Container(
-            padding: EdgeInsets.all(sw * 0.04),
-            decoration: BoxDecoration(
-              color: Colors.red[50],
-              borderRadius: BorderRadius.circular(sw * 0.03),
-              border: Border.all(color: Colors.red[200]!),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.error_outline,
-                    size: sw * 0.05, color: Colors.red[700]),
-                SizedBox(width: sw * 0.03),
-                Expanded(
-                  child: Text('Error loading discounts',
-                      style: TextStyle(
-                          fontSize: sw * 0.035, color: Colors.red[700])),
-                ),
-              ],
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
   void _showUpdateDialog(BuildContext context, DealerDiscountModel discount) {
-    bool isPercentage = discount.isPercentage ?? false;
+    bool isPercentage = discount.isPercentage;
     final valueController =
-        TextEditingController(text: discount.discountValue.toString());
+    TextEditingController(text: discount.discountValue.toString());
     final descController =
-        TextEditingController(text: discount.description ?? '');
+    TextEditingController(text: discount.description);
 
-    showDialog(
+    _showBottomSheet(
       context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return Dialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
+      title: 'Update Discount',
+      subtitle:
+      '${discount.brandName} · ${discount.modelName}',
+      isScrollable: true,
+      child: StatefulBuilder(
+        builder: (ctx, setS) => Column(
+          children: [
+            _SheetField(
+                controller: valueController,
+                label: 'Discount Value',
+                icon: Icons.percent,
+                keyboardType: TextInputType.number),
+            SizedBox(height: Screen.h(context) * 0.015),
+            _SheetField(
+                controller: descController,
+                label: 'Description',
+                icon: Icons.description_outlined),
+            SizedBox(height: Screen.h(context) * 0.015),
+            // toggle
+            Container(
+              padding: EdgeInsets.symmetric(
+                  horizontal: Screen.w(context) * 0.04,
+                  vertical: Screen.w(context) * 0.03),
+              decoration: BoxDecoration(
+                color: _kBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _kBorder),
               ),
-              child: Padding(
-                padding: EdgeInsets.all(Screen.w(context) * 0.05),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(Screen.w(context) * 0.02),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .primaryColor
-                                .withValues(alpha: 0.1),
-                            borderRadius:
-                                BorderRadius.circular(Screen.w(context) * 0.02),
-                          ),
-                          child: Icon(Icons.edit_rounded,
-                              color: Theme.of(context).primaryColor,
-                              size: Screen.w(context) * 0.06),
-                        ),
-                        SizedBox(width: Screen.w(context) * 0.03),
-                        Text(
-                          "Update Discount",
-                          style: TextStyle(
-                            fontSize: Screen.w(context) * 0.045,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.025),
-                    TextField(
-                      controller: valueController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: "Discount Value",
-                        prefixIcon: Icon(Icons.percent),
-                        filled: true,
-                        fillColor: Colors.grey[50],
-                        border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(Screen.w(context) * 0.03),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(Screen.w(context) * 0.03),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.02),
-                    TextField(
-                      controller: descController,
-                      decoration: InputDecoration(
-                        labelText: "Description",
-                        prefixIcon: Icon(Icons.description_outlined),
-                        filled: true,
-                        fillColor: Colors.grey[50],
-                        border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(Screen.w(context) * 0.03),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(Screen.w(context) * 0.03),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.02),
-                    Container(
-                      padding: EdgeInsets.all(Screen.w(context) * 0.03),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius:
-                            BorderRadius.circular(Screen.w(context) * 0.03),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Is Percentage?",
-                            style: TextStyle(
-                              fontSize: Screen.w(context) * 0.038,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          Switch(
-                            value: isPercentage,
-                            onChanged: (v) =>
-                                setDialogState(() => isPercentage = v),
-                            activeColor: Theme.of(context).primaryColor,
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.03),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.grey[600],
-                            padding: EdgeInsets.symmetric(
-                                horizontal: Screen.w(context) * 0.05,
-                                vertical: Screen.h(context) * 0.015),
-                          ),
-                          child: Text("Cancel",
-                              style: TextStyle(
-                                  fontSize: Screen.w(context) * 0.038,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                        SizedBox(width: Screen.w(context) * 0.02),
-                        ElevatedButton(
-                          onPressed: () async {
-                            final updated = discount.copyWith(
-                              dealerDiscountId: discount.dealerDiscountId,
-                              discountValue: int.tryParse(valueController.text),
-                              description: descController.text,
-                              isPercentage: isPercentage,
-                            );
-                            await ref
-                                .read(dealerDiscountControllerProvider.notifier)
-                                .updateDealerDiscount(updated);
-                            if (mounted) Navigator.pop(ctx);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).primaryColor,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                                horizontal: Screen.w(context) * 0.05,
-                                vertical: Screen.h(context) * 0.015),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                  Screen.w(context) * 0.02),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text("Update",
-                              style: TextStyle(
-                                  fontSize: Screen.w(context) * 0.038,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Is Percentage?',
+                      style: TextStyle(
+                          fontSize: Screen.w(context) * 0.036,
+                          fontWeight: FontWeight.w600,
+                          color: _kDark)),
+                  Switch(
+                      value: isPercentage,
+                      onChanged: (v) => setS(() => isPercentage = v),
+                      activeColor: _kBlue),
+                ],
               ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildAppBar(BuildContext context, UserModel? dealer,
-      AsyncValue<List<BrandModel>> brandAsync, double sw) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: Screen.h(context) * 0.02,
-      ),
-      child: Row(
-        children: [
-          /// BACK BUTTON
-          CircularIconButton(
-            icon: Icons.arrow_back_ios_rounded,
-            onTap: () => Navigator.pop(context),
-          ),
-          const Spacer(),
-
-          /// TITLE
-          Text(
-            'Dealer Details',
-            style: TextStyle(
-              color: Colors.grey[900],
-              fontSize: sw * 0.048,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -0.5,
             ),
-          ),
-
-          const Spacer(),
-
-          /// ACTIONS
-          if (dealer != null) ...[
-            brandAsync.when(
-              data: (brands) => IconButton(
-                onPressed: () {
-                  final dealerBrands = brands
-                      .where((b) => dealer.brand?.contains(b.brandId) ?? false)
-                      .toList();
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => DealerDiscountCreatePage(
-                        dealerId: widget.dealerId,
-                      ),
-                    ),
-                  );
-                },
-                icon: Container(
-                  padding: EdgeInsets.all(sw * 0.02),
-                  decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    borderRadius: BorderRadius.circular(sw * 0.02),
-                  ),
-                  child: SvgPicture.asset(
-                    AppIcons.percentage,
-                    width: sw * 0.05,
-                    colorFilter: const ColorFilter.mode(
-                      Colors.green,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
-              ),
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+            SizedBox(height: Screen.h(context) * 0.025),
+            _SheetActions(
+              onCancel: () => Navigator.pop(context),
+              onSave: () async {
+                final updated = discount.copyWith(
+                    discountValue:
+                    num.tryParse(valueController.text),
+                    description: descController.text,
+                    isPercentage: isPercentage,
+                    productId: discount.productId);
+                await ref
+                    .read(dealerDiscountControllerProvider.notifier)
+                    .updateDealerDiscount(updated);
+                if (!context.mounted) return;
+                Navigator.pop(context);
+              },
             ),
-            // IconButton(
-            //   padding: EdgeInsets.only(
-            //     left: Screen.w(context) * 0.01,
-            //     right: Screen.w(context) * 0.04,
-            //   ),
-            //   onPressed: () => _showDeleteDialog(
-            //     context,
-            //     dealer.employeeId!,
-            //   ),
-            //   icon: Container(
-            //     padding: EdgeInsets.all(sw * 0.02),
-            //     decoration: BoxDecoration(
-            //       color: Colors.red[50],
-            //       borderRadius: BorderRadius.circular(sw * 0.02),
-            //     ),
-            //     child: SvgPicture.asset(
-            //       AppIcons.delete,
-            //       width: Screen.w(context) * 0.05,
-            //       colorFilter: ColorFilter.mode(
-            //         Colors.red[600]!,
-            //         BlendMode.srcIn,
-            //       ),
-            //     ),
-            //   ),
-            // ),
-          ] else
-
-            /// balance right side if no actions
-            SizedBox(width: Screen.w(context) * 0.18),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-// Add this method to pick and update photo
-  Future<void> _updateProfilePhoto(
-      BuildContext context, WidgetRef ref, UserModel dealer) async {
-    try {
-      final ImagePicker picker = ImagePicker();
-
-      // Show options dialog
-      final source = await showDialog<ImageSource>(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Select Photo Source'),
-            content: Column(
+  // ── Generic bottom sheet helper ────────────
+  void _showBottomSheet({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required Widget child,
+    bool isScrollable = false,
+  })
+  {
+    final sw = Screen.w(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.fromLTRB(
+              sw * 0.05, sw * 0.04, sw * 0.05, sw * 0.06),
+          child: SingleChildScrollView(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ListTile(
-                  leading: const Icon(Icons.camera_alt),
-                  title: const Text('Camera'),
-                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 18),
+                    decoration: BoxDecoration(
+                      color: _kBorder,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('Gallery'),
-                  onTap: () => Navigator.pop(context, ImageSource.gallery),
-                ),
+                Text(title,
+                    style: TextStyle(
+                        fontSize: sw * 0.045,
+                        fontWeight: FontWeight.w800,
+                        color: _kDark)),
+                SizedBox(height: 2),
+                Text(subtitle,
+                    style: TextStyle(
+                        fontSize: sw * 0.032,
+                        color: _kMuted,
+                        fontWeight: FontWeight.w500)),
+                SizedBox(height: sw * 0.05),
+                child,
               ],
             ),
-          );
-        },
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Update helpers ──────────────────────────
+  Future<void> _updateDealerBusiness(
+      UserModel dealer, {
+        required String shopName,
+        required List<String> addBrands,
+        required List<String> removeBrands,
+      }) async
+  {
+    try {
+      final result =
+      await ref.read(signupControllerProvider.notifier).updateUser(
+        oldUser: dealer,
+        shopName: shopName.isEmpty ? null : shopName,
+        addBrands: addBrands.isEmpty ? null : addBrands,
+        removeBrands:
+        removeBrands.isEmpty ? null : removeBrands,
       );
-
-      if (source == null) return;
-
-      // Pick image
-      final XFile? pickedFile = await picker.pickImage(
-        source: source,
-        imageQuality: 70,
-        maxWidth: 1024,
-        maxHeight: 1024,
-      );
-
-      if (pickedFile == null) return;
-
-      // Show loading dialog
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => Center(
-              child: CircularProgressIndicator(
-            color: Theme.of(context).primaryColor,
-          )),
-        );
-      }
-
-      // Update user with new photo
-      final error =
-          await ref.read(signupControllerProvider.notifier).updateUser(
-                oldUser: dealer,
-                photoFile: File(pickedFile.path),
-              );
-      await ref
-          .read(dealerDiscountControllerProvider.notifier)
-          .getDealerDiscounts(widget.dealerId);
-      // Close loading dialog
-      if (context.mounted) {
-        Navigator.pop(context);
-
-        if (error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to update photo: $error'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Profile photo updated successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+      if (!mounted) return;
+      if (result == null) {
+        ref.invalidate(dealerProvider(widget.dealerId));
+        ref.invalidate(dealerBrandsProvider(widget.dealerId));
+        _showSnack('Business info updated', Colors.green);
+      } else {
+        _showSnack('Update failed: $result', Colors.red);
       }
     } catch (e) {
-      // Close loading dialog if open
+      if (mounted) _showSnack('Error: $e', Colors.red);
+    }
+  }
+
+  void _updateDealerInfo(
+      UserModel dealer, {
+        String? name,
+        String? email,
+        String? phone,
+        String? address,
+        String? district,
+        String? town,
+        String? shopName,
+        List<String>? brand,
+      }) async
+  {
+    try {
+      final result =
+      await ref.read(signupControllerProvider.notifier).updateUser(
+        oldUser: dealer,
+        name: name,
+        email: email,
+        phone: phone,
+        address: address,
+        district: district,
+        town: town,
+        shopName: shopName,
+        brand: brand,
+      );
+      if (!mounted) return;
+      if (result == null) {
+        ref.invalidate(dealerProvider(widget.dealerId));
+        _showSnack('Updated successfully', Colors.green);
+      } else {
+        _showSnack('Failed: $result', Colors.red);
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Error: $e', Colors.red);
+    }
+  }
+
+  Future<void> _updateProfilePhoto(
+      BuildContext context, WidgetRef ref, UserModel dealer) async
+  {
+    try {
+      final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (_) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                      color: _kBorder,
+                      borderRadius: BorderRadius.circular(2))),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined,
+                    color: _kBlue),
+                title: const Text('Camera',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () =>
+                    Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined,
+                    color: _kBlue),
+                title: const Text('Gallery',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () =>
+                    Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (source == null) return;
+
+      final picker = ImagePicker();
+      final file = await picker.pickImage(
+          source: source, imageQuality: 70, maxWidth: 1024);
+      if (file == null) return;
+
+      if (context.mounted) {
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => const Center(
+                child: CircularProgressIndicator(color: _kBlue)));
+      }
+
+      final error =
+      await ref.read(signupControllerProvider.notifier).updateUser(
+        oldUser: dealer,
+        photoFile: File(file.path),
+      );
+
       if (context.mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+        _showSnack(
+          error != null ? 'Failed: $error' : 'Photo updated',
+          error != null ? Colors.red : Colors.green,
         );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        _showSnack('Error: $e', Colors.red);
       }
     }
   }
 
-  Widget _buildProfileHeader(BuildContext context, WidgetRef ref,
-      UserModel dealer, double sw, double sh) {
-    return Container(
-      width: sw * 1,
-      margin: EdgeInsets.all(sw * 0.04),
-      padding: EdgeInsets.all(sw * 0.05),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withValues(alpha: 0.85),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(sw * 0.05),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              Container(
-                width: sw * 0.38,
-                height: sw * 0.38,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+  void _showSnack(String msg, Color bg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg,
+          style: const TextStyle(fontWeight: FontWeight.w600)),
+      backgroundColor: bg,
+      behavior: SnackBarBehavior.floating,
+      shape:
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
+  }
+
+  Widget _buildErrorState(BuildContext context, Object error,
+      AsyncValue<List<BrandModel>> brandAsync, double sw, double sh) {
+    return Scaffold(
+      backgroundColor: _kBg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _TopNav(
+                dealer: null,
+                brandAsync: brandAsync,
+                dealerId: widget.dealerId,
+                onBack: () => Navigator.pop(context),
+                onHistory: () {},
+                onDiscount: () {}),
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off_rounded,
+                        size: 48, color: _kMuted),
+                    SizedBox(height: sh * 0.015),
+                    Text('No Internet Connection',
+                        style: TextStyle(
+                            fontSize: sw * 0.04,
+                            fontWeight: FontWeight.w600,
+                            color: _kDark)),
+                    SizedBox(height: sh * 0.025),
+                    ElevatedButton(
+                      onPressed: () =>
+                          ref.invalidate(dealerProvider(widget.dealerId)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _kBlue,
+                        foregroundColor: Colors.white,
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(16),
+                        elevation: 0,
+                      ),
+                      child: const Icon(Icons.refresh_rounded),
                     ),
                   ],
                 ),
-                child: ClipOval(
-                  child: dealer.photo != null && dealer.photo!.isNotEmpty
-                      ? Image.network(
-                          dealer.photo!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: Colors.white,
-                            child: Icon(Icons.person,
-                                size: sw * 0.15, color: Colors.grey[400]),
-                          ),
-                        )
-                      : Container(
-                          color: Colors.white,
-                          child: Icon(Icons.person,
-                              size: sw * 0.15, color: Colors.grey[400]),
-                        ),
-                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  Sub-widgets
+// ═══════════════════════════════════════════════
+
+class _TopNav extends ConsumerWidget {
+  final UserModel? dealer;
+  final AsyncValue<List<BrandModel>> brandAsync;
+  final String dealerId;
+  final VoidCallback onBack;
+  final VoidCallback onHistory;
+  final VoidCallback onDiscount;
+
+  const _TopNav({
+    required this.dealer,
+    required this.brandAsync,
+    required this.dealerId,
+    required this.onBack,
+    required this.onHistory,
+    required this.onDiscount,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sw = Screen.w(context);
+    return Padding(
+      padding: EdgeInsets.symmetric(
+          horizontal: sw * 0.04, vertical: sw * 0.03),
+      child: Row(
+        children: [
+          CircularIconButton(
+              icon: Icons.arrow_back_ios_rounded, onTap: onBack),
+          const Spacer(),
+          Text('Dealer Details',
+              style: TextStyle(
+                  fontSize: sw * 0.042,
+                  fontWeight: FontWeight.w700,
+                  color: _kDark,
+                  letterSpacing: -0.2)),
+          const Spacer(),
+          CircularIconButton(
+              icon: Icons.history_rounded, onTap: onHistory),
+          SizedBox(width: sw * 0.02),
+          RoleGuard(
+            feature: AppFeature.discountCreate,
+              child: CircularIconButton(icon: Icons.percent, onTap: onDiscount)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Profile Card ────────────────────────────────
+class _ProfileCard extends StatelessWidget {
+  final UserModel dealer;
+  final VoidCallback onEditPhoto;
+
+  const _ProfileCard(
+      {required this.dealer, required this.onEditPhoto});
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    final initials = (dealer.employeeName ?? 'U')
+        .trim()
+        .split(' ')
+        .take(2)
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+        .join();
+
+    return Container(
+      margin: EdgeInsets.symmetric(
+          horizontal: sw * 0.038, vertical: sw * 0.02),
+      padding: EdgeInsets.all(sw * 0.04),
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(sw * 0.04),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Row(
+        children: [
+          // avatar
+          Stack(
+            children: [
+              CircleAvatar(
+                radius: sw * 0.075,
+                backgroundColor: _kBlueBg,
+                backgroundImage: (dealer.photo != null &&
+                    dealer.photo!.isNotEmpty)
+                    ? NetworkImage(dealer.photo!)
+                    : null,
+                child: (dealer.photo == null || dealer.photo!.isEmpty)
+                    ? Text(initials,
+                    style: TextStyle(
+                        fontSize: sw * 0.055,
+                        fontWeight: FontWeight.w800,
+                        color: _kBlue))
+                    : null,
               ),
               Positioned(
                 bottom: 0,
                 right: 0,
-                child: GestureDetector(
-                  onTap: () => _updateProfilePhoto(context, ref, dealer),
-                  child: Container(
-                    padding: EdgeInsets.all(sw * 0.02),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: SvgPicture.asset(
-                      AppIcons.edit,
-                      colorFilter: ColorFilter.mode(
-                        Theme.of(context).primaryColor,
-                        BlendMode.srcIn,
+                child: RoleGuard(
+                    feature: AppFeature.editDealer,
+                  child: GestureDetector(
+                    onTap: onEditPhoto,
+                    child: Container(
+                      width: sw * 0.055,
+                      height: sw * 0.055,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _kBorder),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4)
+                        ],
                       ),
+                      child: Icon(Icons.camera_alt_outlined,
+                          size: sw * 0.03, color: _kBlue),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: sh * 0.025),
-          Text(
-            dealer.employeeName ?? 'N/A',
-            style: TextStyle(
-              fontSize: sw * 0.065,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: -0.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: sh * 0.008),
-          Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: sw * 0.04, vertical: sh * 0.008),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.25),
-              borderRadius: BorderRadius.circular(sw * 0.05),
-            ),
-            child: Text(
-              formatRole(dealer.role ?? 'N/A'),
-              style: TextStyle(
-                fontSize: sw * 0.038,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
+          SizedBox(width: sw * 0.04),
+          // info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dealer.employeeName?.replaceAll('_', ' ') ?? 'N/A',
+                  style: TextStyle(
+                      fontSize: sw * 0.045,
+                      fontWeight: FontWeight.w800,
+                      color: _kDark,
+                      letterSpacing: -0.3),
+                ),
+                SizedBox(height: sw * 0.015),
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: sw * 0.025,
+                          vertical: sw * 0.008),
+                      decoration: BoxDecoration(
+                        color: _kBlueBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: _kBlueBorder),
+                      ),
+                      child: Text(
+                        formatRole(dealer.role ?? 'N/A'),
+                        style: TextStyle(
+                            fontSize: sw * 0.028,
+                            fontWeight: FontWeight.w700,
+                            color: _kBlue),
+                      ),
+                    ),
+                    SizedBox(width: sw * 0.02),
+                    Text(
+                      dealer.employeeId ?? '',
+                      style: TextStyle(
+                          fontSize: sw * 0.028,
+                          color: _kMuted,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  void _showDeleteDialog(BuildContext context, String dealerId) {
-    final reasonController = TextEditingController();
-    bool isButtonEnabled = false;
-    int secondsRemaining = 10;
-    Timer? countdownTimer;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            // Start countdown timer
-            if (countdownTimer == null && !isButtonEnabled) {
-              countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-                if (secondsRemaining == 1) {
-                  timer.cancel();
-                  setDialogState(() {
-                    isButtonEnabled = true;
-                    secondsRemaining = 0;
-                  });
-                } else {
-                  setDialogState(() => secondsRemaining--);
-                }
-              });
-            }
-            return Dialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Screen.w(context) * 0.05),
-              ),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.all(Screen.w(context) * 0.05),
+// ── Info Section Card ────────────────────────────
+class _InfoSection extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onEdit;
+  final List<(String, String)> rows;
+
+  const _InfoSection({
+    required this.icon,
+    required this.title,
+    required this.onEdit,
+    required this.rows,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(sw * 0.04),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        children: [
+          // header
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: sw * 0.04, vertical: sw * 0.035),
+            child: Row(
+              children: [
+                _SectionIconBox(icon: icon),
+                SizedBox(width: sw * 0.025),
+                Expanded(
+                  child: Text(title,
+                      style: TextStyle(
+                          fontSize: sw * 0.035,
+                          fontWeight: FontWeight.w700,
+                          color: _kDark)),
+                ),
+                RoleGuard(
+                    feature: AppFeature.editDealer,
+                    child: _EditPill(onTap: onEdit)),
+              ],
+            ),
+          ),
+          _divider(),
+          // rows
+          ...rows.asMap().entries.map((e) {
+            final isLast = e.key == rows.length - 1;
+            return Column(
+              children: [
+                _InfoRow(label: e.value.$1, value: e.value.$2),
+                if (!isLast) _divider(),
+              ],
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Discount Card ────────────────────────────────
+class _DiscountCard extends StatelessWidget {
+  final DealerDiscountModel discount;
+  final bool showEditBtn;
+  final VoidCallback onEdit;
+
+  const _DiscountCard({
+    required this.discount,
+    required this.showEditBtn,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: _kGreenBg,
+        borderRadius: BorderRadius.circular(sw * 0.03),
+        border: Border.all(color: _kGreenBorder),
+      ),
+      child: Column(
+        children: [
+          // top row
+          Padding(
+            padding: EdgeInsets.all(sw * 0.035),
+            child: Row(
+              children: [
+                Container(
+                  width: sw * 0.09,
+                  height: sw * 0.09,
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFC5F0E0),
+                      borderRadius: BorderRadius.circular(sw * 0.025)),
+                  child: const Icon(Icons.local_offer_outlined,
+                      color: _kGreen, size: 20),
+                ),
+                SizedBox(width: sw * 0.03),
+                Expanded(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(Screen.w(context) * 0.025),
-                            decoration: BoxDecoration(
-                              color: Colors.orange[50],
-                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
-                            ),
-                            child: Icon(
-                              Icons.warning_amber_rounded,
-                              color: Colors.orange[700],
-                              size: Screen.w(context) * 0.07,
-                            ),
-                          ),
-                          SizedBox(width: Screen.w(context) * 0.03),
-                          Expanded(
-                            child: Text(
-                              "Delete User",
-                              style: TextStyle(
-                                fontSize: Screen.w(context) * 0.05,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: Screen.h(context) * 0.025),
-                      // Reason input
-                      TextField(
-                        controller: reasonController,
-                        decoration: InputDecoration(
-                          hintText: "Enter the reason here...",
-                          prefixIcon: const Icon(Icons.edit_note),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
-                            borderSide: BorderSide(color: Theme.of(context).primaryColor),
-                          ),
-                        ),
-                        maxLines: 3,
-                        onChanged: (_) => setDialogState(() {}),
-                      ),
-                      // Countdown timer
-                      if (!isButtonEnabled)
-                        Padding(
-                          padding: EdgeInsets.only(top: Screen.h(context) * 0.02),
-                          child: Container(
-                            padding: EdgeInsets.all(Screen.w(context) * 0.03),
-                            decoration: BoxDecoration(
-                              color: Colors.amber[50],
-                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
-                              border: Border.all(color: Colors.amber[200]!),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.timer_outlined,
-                                  size: Screen.w(context) * 0.045,
-                                  color: Colors.amber[900],
-                                ),
-                                SizedBox(width: Screen.w(context) * 0.02),
-                                Text(
-                                  "Please wait $secondsRemaining seconds",
-                                  style: TextStyle(
-                                    color: Colors.amber[900],
-                                    fontSize: Screen.w(context) * 0.035,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      SizedBox(height: Screen.h(context) * 0.03),
-                      // Action buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              countdownTimer?.cancel();
-                              FocusScope.of(ctx).unfocus();
-                              Navigator.pop(ctx);
-                            },
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.grey[700],
-                              padding: EdgeInsets.symmetric(
-                                horizontal: Screen.w(context) * 0.05,
-                                vertical: Screen.h(context) * 0.015,
-                              ),
-                            ),
-                            child: Text(
-                              "Cancel",
-                              style: TextStyle(
-                                fontSize: Screen.w(context) * 0.038,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: Screen.w(context) * 0.02),
-                          ElevatedButton.icon(
-                            onPressed: isButtonEnabled && reasonController.text.trim().isNotEmpty
-                                ? () async {
-                              countdownTimer?.cancel();
-
-                              final reason = reasonController.text.trim();
-
-                              Navigator.pop(ctx); // 1️⃣ close dialog ONLY
-
-                              final result = await ref
-                                  .read(signupControllerProvider.notifier)
-                                  .deleteUser(dealerId, reason);
-
-                              if (!mounted) return;
-
-                              if (result == null) {
-                                // 2️⃣ refresh list
-                                ref.invalidate(dealerListProvider);
-
-                                // 3️⃣ go back ONE screen (no pushReplacement)
-                                Navigator.pop(context);
-
-                                // 4️⃣ snackbar AFTER navigation settles
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("User deleted successfully"),
-                                      backgroundColor: Colors.green,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                });
-                              }
-                            }
-                                : null,
-
-                            icon: Icon(Icons.delete_outline, size: Screen.w(context) * 0.045),
-                            label: Text(
-                              "Delete Dealer",
-                              style: TextStyle(
-                                fontSize: Screen.w(context) * 0.038,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red[600],
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor: Colors.grey[300],
-                              disabledForegroundColor: Colors.grey[500],
-                              padding: EdgeInsets.symmetric(
-                                horizontal: Screen.w(context) * 0.05,
-                                vertical: Screen.h(context) * 0.015,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
-                              ),
-                              elevation: 0,
-                            ),
-                          ),
-                        ],
-                      ),
+                      Text(discount.brandName,
+                          style: TextStyle(
+                              fontSize: sw * 0.035,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0A3A28))),
+                      Text(discount.modelName,
+                          style: TextStyle(
+                              fontSize: sw * 0.029,
+                              color: const Color(0xFF2D7A54),
+                              fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: sw * 0.03, vertical: sw * 0.012),
+                  decoration: BoxDecoration(
+                      color: _kGreen,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Text(
+                    discount.isPercentage
+                        ? '${discount.discountValue}%'
+                        : '₹${discount.discountValue}',
+                    style: TextStyle(
+                        fontSize: sw * 0.033,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white),
+                  ),
+                ),
+                if (showEditBtn) ...[
+                  SizedBox(width: sw * 0.02),
+                  GestureDetector(
+                    onTap: onEdit,
+                    child: Container(
+                      padding: EdgeInsets.all(sw * 0.018),
+                      decoration: BoxDecoration(
+                          color: _kBlueBg,
+                          borderRadius:
+                          BorderRadius.circular(sw * 0.02),
+                          border: Border.all(color: _kBlueBorder)),
+                      child: Icon(Icons.edit_outlined,
+                          size: sw * 0.04, color: _kBlue),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // product rows
+          if (discount.products.isNotEmpty) ...[
+            Divider(
+                height: 1,
+                color: _kGreenBorder,
+                indent: sw * 0.035,
+                endIndent: sw * 0.035),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: sw * 0.035, vertical: sw * 0.025),
+              child: Column(
+                children: discount.products.map((p) {
+                  final orig = (p.price ?? 0).toDouble();
+                  final disc = discount.isPercentage
+                      ? orig * (1 - discount.discountValue / 100)
+                      : orig - discount.discountValue;
+                  return Padding(
+                    padding:
+                    EdgeInsets.only(bottom: sw * 0.015),
+                    child: Row(
+                      children: [
+                        Container(
+                            width: sw * 0.015,
+                            height: sw * 0.015,
+                            decoration: BoxDecoration(
+                                color: _kGreen,
+                                shape: BoxShape.circle)),
+                        SizedBox(width: sw * 0.025),
+                        Expanded(
+                          child: Text(
+                            p.productName ?? 'Unknown',
+                            style: TextStyle(
+                                fontSize: sw * 0.03,
+                                color: const Color(0xFF1A4A30),
+                                fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text('₹${orig.toStringAsFixed(0)}',
+                            style: TextStyle(
+                                fontSize: sw * 0.028,
+                                color: _kMuted,
+                                decoration:
+                                TextDecoration.lineThrough)),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: sw * 0.015),
+                          child: Icon(Icons.arrow_forward,
+                              size: sw * 0.03,
+                              color: _kGreen),
+                        ),
+                        Text('₹${disc.toStringAsFixed(0)}',
+                            style: TextStyle(
+                                fontSize: sw * 0.032,
+                                color: _kGreen,
+                                fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
-            );
-          },
-        );
-      },
-    ).whenComplete(() {
-      countdownTimer?.cancel();
-      reasonController.dispose();
-    });
+            ),
+          ],
+        ],
+      ),
+    );
   }
+}
+
+// ── Small reusable widgets ───────────────────────
+
+class _SectionIconBox extends StatelessWidget {
+  final IconData icon;
+  const _SectionIconBox({required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    return Container(
+      width: sw * 0.075,
+      height: sw * 0.075,
+      decoration: BoxDecoration(
+          color: _kBg,
+          borderRadius: BorderRadius.circular(sw * 0.022),
+          border: Border.all(color: _kBorder)),
+      child: Icon(icon, size: sw * 0.04, color: _kDark),
+    );
+  }
+}
+
+class _EditPill extends StatelessWidget {
+  final VoidCallback onTap;
+  final String label;
+  const _EditPill({required this.onTap, this.label = 'Edit'});
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+            horizontal: sw * 0.03, vertical: sw * 0.01),
+        decoration: BoxDecoration(
+          color: _kBlueBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _kBlueBorder),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: sw * 0.03,
+                fontWeight: FontWeight.w700,
+                color: _kBlue)),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _InfoRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    return Padding(
+      padding:
+      EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sw * 0.028),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: sw * 0.2,
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: sw * 0.03,
+                    color: _kMuted,
+                    fontWeight: FontWeight.w500)),
+          ),
+          Expanded(
+            child: Text(value,
+                style: TextStyle(
+                    fontSize: sw * 0.034,
+                    color: _kDark,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BrandChip extends StatelessWidget {
+  final String label;
+  final Color fg, bg, border;
+  const _BrandChip(
+      {required this.label,
+        required this.fg,
+        required this.bg,
+        required this.border});
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    return Container(
+      padding:
+      EdgeInsets.symmetric(horizontal: sw * 0.03, vertical: sw * 0.012),
+      decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: border)),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: sw * 0.03, fontWeight: FontWeight.w600, color: fg)),
+    );
+  }
+}
+
+class _SheetField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final IconData icon;
+  final TextInputType? keyboardType;
+  final int? maxLines;
+  final String? Function(String?)? validator;
+
+  const _SheetField({
+    required this.controller,
+    required this.label,
+    required this.icon,
+    this.keyboardType,
+    this.maxLines,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines ?? 1,
+      validator: validator,
+      decoration: _sheetInputDecoration(label, icon, context),
+    );
+  }
+}
+
+class _SheetFieldLabel extends StatelessWidget {
+  final String text;
+  const _SheetFieldLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text.toUpperCase(),
+        style: TextStyle(
+            fontSize: Screen.w(context) * 0.028,
+            fontWeight: FontWeight.w700,
+            color: _kMuted,
+            letterSpacing: 0.5));
+  }
+}
+
+class _SheetActions extends StatelessWidget {
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+  const _SheetActions(
+      {required this.onCancel, required this.onSave});
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    final sh = Screen.h(context);
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: onCancel,
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: sh * 0.016),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              side: const BorderSide(color: _kBorder),
+            ),
+            child: Text('Cancel',
+                style: TextStyle(
+                    fontSize: sw * 0.036,
+                    fontWeight: FontWeight.w700,
+                    color: _kMuted)),
+          ),
+        ),
+        SizedBox(width: sw * 0.03),
+        Expanded(
+          flex: 2,
+          child: ElevatedButton(
+            onPressed: onSave,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kBlue,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: sh * 0.016),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: Text('Save Changes',
+                style: TextStyle(
+                    fontSize: sw * 0.036,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryBanner extends StatelessWidget {
+  final String message;
+  final Color color, bg, borderColor;
+  const _SummaryBanner(
+      {required this.message,
+        required this.color,
+        required this.bg,
+        required this.borderColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    return Container(
+      padding:
+      EdgeInsets.symmetric(horizontal: sw * 0.03, vertical: sw * 0.025),
+      decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor)),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: sw * 0.04, color: color),
+          SizedBox(width: sw * 0.02),
+          Expanded(
+            child: Text(message,
+                style: TextStyle(
+                    fontSize: sw * 0.031,
+                    color: color,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+  const _ErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    return Container(
+      padding: EdgeInsets.all(sw * 0.04),
+      decoration: BoxDecoration(
+          color: _kRedBg,
+          borderRadius: BorderRadius.circular(sw * 0.03),
+          border: Border.all(color: _kRedBorder)),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: sw * 0.05, color: _kRed),
+          SizedBox(width: sw * 0.03),
+          Expanded(
+            child: Text(message,
+                style: TextStyle(
+                    fontSize: sw * 0.034, color: _kRed)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Shared helpers ───────────────────────────────
+
+Widget _divider() =>
+    const Divider(height: 1, thickness: 1, color: _kBorder);
+
+InputDecoration _sheetInputDecoration(
+    String label, IconData icon, BuildContext context) {
+  final sw = Screen.w(context);
+  return InputDecoration(
+    hintText: label,
+    prefixIcon: Icon(icon, color: _kMuted, size: sw * 0.05),
+    filled: true,
+    fillColor: _kBg,
+    contentPadding:
+    EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sw * 0.035),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(sw * 0.03),
+      borderSide: const BorderSide(color: _kBorder),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(sw * 0.03),
+      borderSide: const BorderSide(color: _kBorder),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(sw * 0.03),
+      borderSide: const BorderSide(color: _kBlue, width: 1.5),
+    ),
+  );
 }

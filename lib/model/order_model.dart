@@ -1,6 +1,80 @@
 import 'package:inverter_management_app/model/product_model.dart';
-
 import 'dealer_discount_model.dart';
+
+// ─────────────────────────────────────────────
+// CancellationHistoryModel
+// ─────────────────────────────────────────────
+
+class CancellationHistoryModel {
+  final int cancelledQty;
+  final String cancelledBy;
+  final String cancelledByRole;
+  final DateTime? cancelledAt;
+  final String reason;
+  final String id;
+
+  CancellationHistoryModel({
+    required this.cancelledQty,
+    required this.cancelledBy,
+    required this.cancelledByRole,
+    this.cancelledAt,
+    required this.reason,
+    required this.id,
+  });
+
+  factory CancellationHistoryModel.fromJson(Map<String, dynamic> json) {
+    return CancellationHistoryModel(
+      cancelledQty: json["cancelled_qty"] != null
+          ? int.tryParse(json["cancelled_qty"].toString()) ?? 0
+          : 0,
+      cancelledBy: json["cancelled_by"]?.toString() ?? "",
+      cancelledByRole: json["cancelled_by_role"]?.toString() ?? "",
+      cancelledAt: json["cancelled_at"] != null
+          ? DateTime.tryParse(json["cancelled_at"].toString())
+          : null,
+      reason: json["reason"]?.toString() ?? "",
+      id: json["_id"]?.toString() ?? "",
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "cancelled_qty": cancelledQty,
+      "cancelled_by": cancelledBy,
+      "cancelled_by_role": cancelledByRole,
+      "cancelled_at": cancelledAt?.toIso8601String(),
+      "reason": reason,
+      "_id": id,
+    };
+  }
+
+  CancellationHistoryModel copyWith({
+    int? cancelledQty,
+    String? cancelledBy,
+    String? cancelledByRole,
+    DateTime? cancelledAt,
+    String? reason,
+    String? id,
+  }) {
+    return CancellationHistoryModel(
+      cancelledQty: cancelledQty ?? this.cancelledQty,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
+      cancelledByRole: cancelledByRole ?? this.cancelledByRole,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      reason: reason ?? this.reason,
+      id: id ?? this.id,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'CancellationHistoryModel(id: $id, cancelledQty: $cancelledQty, reason: $reason)';
+  }
+}
+
+// ─────────────────────────────────────────────
+// OrderModel
+// ─────────────────────────────────────────────
 
 class OrderModel {
   final String? orderNumber;
@@ -19,15 +93,16 @@ class OrderModel {
   final DateTime? updatedAt;
   final DealerModel? dealer;
   final List<OrderDetailsModel> orderDetails;
+  final String? reasonForCancellation;
 
-  // New fields
+  // Summary fields
   final num? orderTotalPrice;
   final num? orderTotalDiscount;
   final num? amountDue;
   final num? totalDealerDiscount;
   final num? totalPrice;
   final int? totalCancelledQty;
-  final List<dynamic>? cancellationHistory;
+  final List<CancellationHistoryModel>? cancellationHistory;
 
   OrderModel({
     this.orderNumber,
@@ -53,6 +128,7 @@ class OrderModel {
     this.totalPrice,
     this.totalCancelledQty,
     this.cancellationHistory,
+    this.reasonForCancellation,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -69,9 +145,14 @@ class OrderModel {
       paymentType: json["payment_type"] ?? "",
       amountPaid: json["amount_paid"] ?? 0,
       salesTargetUpdated: json["sales_target_updated"] ?? false,
-      createdAt: json["created_at"] != null ? DateTime.tryParse(json["created_at"]) : null,
-      updatedAt: json["updated_at"] != null ? DateTime.tryParse(json["updated_at"]) : null,
-      dealer: json["dealer"] != null ? DealerModel.fromJson(json["dealer"]) : null,
+      createdAt: json["created_at"] != null
+          ? DateTime.tryParse(json["created_at"])
+          : null,
+      updatedAt: json["updated_at"] != null
+          ? DateTime.tryParse(json["updated_at"])
+          : null,
+      dealer:
+      json["dealer"] != null ? DealerModel.fromJson(json["dealer"]) : null,
       orderDetails: json["order_details"] != null
           ? List<OrderDetailsModel>.from(
           json["order_details"].map((x) => OrderDetailsModel.fromJson(x)))
@@ -82,20 +163,28 @@ class OrderModel {
       totalDealerDiscount: json["total_dealer_discount"],
       totalPrice: json["total_price"],
       totalCancelledQty: json["total_cancelled_qty"],
-      cancellationHistory: json["cancellation_history"] ?? [],
+      cancellationHistory: json["cancellation_history"] != null
+          ? List<CancellationHistoryModel>.from(json["cancellation_history"]
+          .map((x) => CancellationHistoryModel.fromJson(x)))
+          : [],
+      reasonForCancellation: json["reason_for_cancellation"],
     );
   }
-  /// 🔹 Use for updating only status flags + order details
+
+  /// Use for updating only status flags + order details
   Map<String, dynamic> toUpdateItemJson() {
     return {
       "order_number": orderNumber,
-      // Only send items that have actual updates
       "order_details": orderDetails
           .where((item) =>
-      item.hasPackedCompleted != null ||
-          item.hasProductionCompleted != null ||
-          item.nextStatus != null
-      )
+      item.status != 'CANCELLED' &&
+          item.status != 'COMPLETED' &&
+          item.status != 'DELIVERED' &&
+          (item.hasPackedCompleted != null ||
+              item.hasProductionCompleted != null ||
+              item.nextStatus != null ||
+              item.isDeliveryDateUpdated ||
+              (item.cancelQty != null && item.cancelQty! > 0)))
           .map((x) => x.toUpdateJson())
           .toList(),
     };
@@ -104,16 +193,19 @@ class OrderModel {
   Map<String, dynamic> toUpdateJson({bool isPaymentUpdate = false}) {
     return {
       "order_number": orderNumber,
-       "status": status,
-    };
-  }
-  Map<String, dynamic> toUpdatePaymentJson({bool isPaymentUpdate = false}) {
-    return {
-      "order_number": orderNumber,
-      "amount_paid": amountPaid,
+      "status": status,
+      if (reasonForCancellation != null)
+        "reason_for_cancellation": reasonForCancellation,
     };
   }
 
+  Map<String, dynamic> toUpdatePaymentJson() {
+    return {
+      "order_number": orderNumber,
+      "amount_paid": amountPaid,
+      "payment_method": paymentType,
+    };
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -133,6 +225,8 @@ class OrderModel {
       "updated_at": updatedAt?.toIso8601String(),
       "dealer": dealer?.toJson(),
       "order_details": orderDetails.map((x) => x.toJson()).toList(),
+      "cancellation_history":
+      cancellationHistory?.map((x) => x.toJson()).toList(),
     };
   }
 
@@ -159,7 +253,8 @@ class OrderModel {
     num? totalDealerDiscount,
     num? totalPrice,
     int? totalCancelledQty,
-    List<dynamic>? cancellationHistory,
+    List<CancellationHistoryModel>? cancellationHistory,
+    String? reasonForCancellation,
   }) {
     return OrderModel(
       orderNumber: orderNumber ?? this.orderNumber,
@@ -185,9 +280,15 @@ class OrderModel {
       totalPrice: totalPrice ?? this.totalPrice,
       totalCancelledQty: totalCancelledQty ?? this.totalCancelledQty,
       cancellationHistory: cancellationHistory ?? this.cancellationHistory,
+      reasonForCancellation:
+      reasonForCancellation ?? this.reasonForCancellation,
     );
   }
 }
+
+// ─────────────────────────────────────────────
+// DealerModel
+// ─────────────────────────────────────────────
 
 class DealerModel {
   final String employeeId;
@@ -239,8 +340,12 @@ class DealerModel {
       town: json["town"] ?? "",
       brand: json["brand"] != null ? List<String>.from(json["brand"]) : [],
       address: json["address"] ?? "",
-      createdAt: json["created_at"] != null ? DateTime.tryParse(json["created_at"]) : null,
-      updatedAt: json["updated_at"] != null ? DateTime.tryParse(json["updated_at"]) : null,
+      createdAt: json["created_at"] != null
+          ? DateTime.tryParse(json["created_at"])
+          : null,
+      updatedAt: json["updated_at"] != null
+          ? DateTime.tryParse(json["updated_at"])
+          : null,
     );
   }
 
@@ -265,6 +370,10 @@ class DealerModel {
   }
 }
 
+// ─────────────────────────────────────────────
+// OrderDetailsModel
+// ─────────────────────────────────────────────
+
 class OrderDetailsModel {
   final String productId;
   final String productBrand;
@@ -280,14 +389,22 @@ class OrderDetailsModel {
   final bool isProductScheme;
   final int? deliveredQty;
   final String? status;
+  final int? cancelQty;
+  final int? totalCancelledQty;
+  final String? reasonForCancellation;
+  final List<CancellationHistoryModel>? cancellationHistory;
 
-  // Additional fields for UI state (not sent to backend)
+  // ✅ UI-only flag fields
+  final bool isDeliveryDateUpdated;
+  final bool isReasonUpdated;
+
+  // UI-only fields (not sent to backend)
   final ProductModel? product;
   final bool useDealerDiscount;
   final num? discountAmount;
   final DealerDiscountModel? dealerDiscount;
 
-  // New fields
+  // Pricing / stock fields
   final num? unitProductPrice;
   final num? totalProductPrice;
   final bool? isFree;
@@ -296,13 +413,14 @@ class OrderDetailsModel {
   final Map<String, dynamic>? stockFlags;
   final int? qtyDelivered;
 
-  /// 🔹 New Fields Required for Order Update
+  // Order update fields
   final String? orderDetailsNumber;
   final bool? hasUnpacked;
   final bool? hasProduction;
   final bool? hasPackedCompleted;
   final bool? hasProductionCompleted;
   final String? nextStatus;
+
   OrderDetailsModel({
     required this.productId,
     required this.productBrand,
@@ -334,18 +452,21 @@ class OrderDetailsModel {
     this.hasProduction,
     this.hasPackedCompleted,
     this.hasProductionCompleted,
-    this.nextStatus
+    this.nextStatus,
+    this.cancelQty,
+    this.totalCancelledQty,
+    this.reasonForCancellation,
+    this.cancellationHistory,
+    this.isDeliveryDateUpdated = false, // ✅ default false
+    this.isReasonUpdated = false,       // ✅ default false
   });
 
-  // Convenience getter for quantity (since UI uses it)
   int get quantity => qtyOrdered ?? 1;
-
-  // Convenience getter for isScheme (since UI uses it)
   bool get isScheme => isProductScheme;
 
   factory OrderDetailsModel.fromJson(Map<String, dynamic> json) {
-    final stockUsageData = json["stock_usage"];
     final stockFlagsData = json["stock_flags"];
+
     return OrderDetailsModel(
       productId: json["product_id"]?.toString() ?? "",
       productBrand: json["product_brand"]?.toString() ?? "",
@@ -363,6 +484,9 @@ class OrderDetailsModel {
           : null,
       deliveryDate: json["delivery_date"] != null
           ? DateTime.tryParse(json["delivery_date"].toString())
+          : null,
+      deliveredDate: json["delivered_date"] != null
+          ? DateTime.tryParse(json["delivered_date"].toString())
           : null,
       dealerDiscountId: json["dealer_discount_id"]?.toString(),
       isProductScheme: json["is_product_scheme"] == true ||
@@ -383,28 +507,46 @@ class OrderDetailsModel {
       stockFlags: stockFlagsData != null
           ? Map<String, dynamic>.from(stockFlagsData)
           : null,
-
       hasUnpacked: stockFlagsData?["hasUnpacked"] as bool?,
       hasProduction: stockFlagsData?["hasProduction"] as bool?,
+      totalCancelledQty: json["total_cancelled_qty"] != null
+          ? int.tryParse(json["total_cancelled_qty"].toString())
+          : null,
+      cancellationHistory: json["cancellation_history"] != null
+          ? List<CancellationHistoryModel>.from(json["cancellation_history"]
+          .map((x) => CancellationHistoryModel.fromJson(x)))
+          : [],
+      reasonForCancellation: json["reason_for_cancellation"]?.toString(),
+
+      // ✅ UI-only fields — always reset when loading from API
+      hasPackedCompleted: null,
+      hasProductionCompleted: null,
+      nextStatus: null,
+      cancelQty: null,
+      isDeliveryDateUpdated: false,
+      isReasonUpdated: false,
     );
   }
-  /// 🔹 Used only when updating order
+
+  /// Used only when updating an order item
   Map<String, dynamic> toUpdateJson() {
     return {
       "order_details_number": orderDetailsNumber,
-
       if (hasPackedCompleted != null)
         "has_unPacked_completed": hasPackedCompleted,
-
       if (hasProductionCompleted != null)
         "has_production_completed": hasProductionCompleted,
-         if(nextStatus != null)
-        "status": nextStatus,
+      if (nextStatus != null) "status": nextStatus,
+      if (isDeliveryDateUpdated && deliveryDate != null)
+        "delivered_date": deliveryDate!.toIso8601String().split('T').first,
+      if (cancelQty != null && cancelQty! > 0) "cancel_qty": cancelQty,
+      if (isReasonUpdated &&
+          reasonForCancellation != null &&
+          reasonForCancellation!.isNotEmpty)
+        "reason_for_cancellation": reasonForCancellation,
     };
   }
 
-
-  // Factory to create from ProductModel (for UI)
   factory OrderDetailsModel.fromProduct(
       ProductModel product, {
         DealerDiscountModel? dealerDiscount,
@@ -431,14 +573,16 @@ class OrderDetailsModel {
       "product_model": productModel,
       "product_type": productType,
       "product_price": productPrice,
-      "discount_price": discountAmount??0,
+      "discount_price": discountAmount ?? 0,
       "qty_ordered": qtyOrdered,
       "delivery_date": deliveryDate?.toIso8601String().split('T').first,
       "dealer_discount_id": dealerDiscountId,
       "is_product_scheme": isProductScheme,
       "delivered_qty": deliveredQty,
-      'delivered_date': deliveredDate?.toIso8601String().split('T').first,
+      "delivered_date": deliveredDate?.toIso8601String().split('T').first,
       "status": status,
+      "cancellation_history":
+      cancellationHistory?.map((x) => x.toJson()).toList(),
     };
   }
 
@@ -452,6 +596,7 @@ class OrderDetailsModel {
     int? discountPrice,
     int? qtyOrdered,
     DateTime? deliveryDate,
+    DateTime? deliveredDate,
     String? dealerDiscountId,
     bool? isProductScheme,
     int? deliveredQty,
@@ -467,9 +612,25 @@ class OrderDetailsModel {
     String? stockUsage,
     Map<String, dynamic>? stockFlags,
     int? qtyDelivered,
+    String? orderDetailsNumber,
+    bool? hasUnpacked,
+    bool? hasProduction,
+    bool? hasPackedCompleted,
     bool? hasProductionCompleted,
-    bool? hasPackedCompleted, String? orderDetailsNumber,
     String? newStatus,
+    int? cancelQty,
+    int? totalCancelledQty,
+    String? reasonForCancellation,
+    List<CancellationHistoryModel>? cancellationHistory,
+    bool? isDeliveryDateUpdated,
+    bool? isReasonUpdated,
+
+    // ✅ Sentinel flags to force-clear nullable fields
+    bool clearHasPackedCompleted = false,
+    bool clearHasProductionCompleted = false,
+    bool clearNextStatus = false,
+    bool clearCancelQty = false,
+    bool clearReasonForCancellation = false,
   }) {
     return OrderDetailsModel(
       productId: productId ?? this.productId,
@@ -481,6 +642,7 @@ class OrderDetailsModel {
       discountPrice: discountPrice ?? this.discountPrice,
       qtyOrdered: qtyOrdered ?? this.qtyOrdered,
       deliveryDate: deliveryDate ?? this.deliveryDate,
+      deliveredDate: deliveredDate ?? this.deliveredDate,
       dealerDiscountId: dealerDiscountId ?? this.dealerDiscountId,
       isProductScheme: isProductScheme ?? this.isProductScheme,
       deliveredQty: deliveredQty ?? this.deliveredQty,
@@ -496,10 +658,25 @@ class OrderDetailsModel {
       stockUsage: stockUsage ?? this.stockUsage,
       stockFlags: stockFlags ?? this.stockFlags,
       qtyDelivered: qtyDelivered ?? this.qtyDelivered,
-      orderDetailsNumber:orderDetailsNumber??this.orderDetailsNumber,
-      hasPackedCompleted: hasPackedCompleted ?? this.hasPackedCompleted,
-      hasProductionCompleted: hasProductionCompleted ?? this.hasProductionCompleted,
-      nextStatus: newStatus ?? nextStatus,
+      orderDetailsNumber: orderDetailsNumber ?? this.orderDetailsNumber,
+      hasUnpacked: hasUnpacked ?? this.hasUnpacked,
+      hasProduction: hasProduction ?? this.hasProduction,
+      totalCancelledQty: totalCancelledQty ?? this.totalCancelledQty,
+      cancellationHistory: cancellationHistory ?? this.cancellationHistory,
+      isDeliveryDateUpdated: isDeliveryDateUpdated ?? this.isDeliveryDateUpdated,
+      isReasonUpdated: isReasonUpdated ?? this.isReasonUpdated, // ✅ fixed
+      // ✅ Sentinel-controlled fields
+      hasPackedCompleted: clearHasPackedCompleted
+          ? null
+          : (hasPackedCompleted ?? this.hasPackedCompleted),
+      hasProductionCompleted: clearHasProductionCompleted
+          ? null
+          : (hasProductionCompleted ?? this.hasProductionCompleted),
+      nextStatus: clearNextStatus ? null : (newStatus ?? this.nextStatus),
+      cancelQty: clearCancelQty ? null : (cancelQty ?? this.cancelQty),
+      reasonForCancellation: clearReasonForCancellation
+          ? null
+          : (reasonForCancellation ?? this.reasonForCancellation),
     );
   }
 

@@ -14,8 +14,7 @@ StateNotifierProvider<BrandController, AsyncValue<List<BrandModel>>>((ref) {
   final repository = ref.read(brandRepositoryProvider);
   return BrandController(repository)..loadActiveBrands();
 });
-//------
-// Provider to get brands by dealer
+//------------------------ Main BrandController Provider (for create/update/delete) ------------------//
 final brandControllerProvider =
 StateNotifierProvider<BrandController, AsyncValue<List<BrandModel>>>((ref) {
   final repository = ref.read(brandRepositoryProvider);
@@ -27,7 +26,9 @@ final dealerBrandsProvider = FutureProvider.family<List<BrandModel>, String>((re
   return ref.read(brandControllerProvider.notifier).getBrandsByDealer(dealerId);
 });
 
-
+final brandByIdProvider = FutureProvider.family<BrandModel, String>((ref, brandId) async {
+  return ref.read(brandControllerProvider.notifier).getBrandById(brandId);
+});
 class BrandController extends StateNotifier<AsyncValue<List<BrandModel>>> {
   final BrandRepository _repository;
 
@@ -90,11 +91,13 @@ class BrandController extends StateNotifier<AsyncValue<List<BrandModel>>> {
   }
 
   ///  Get brand by ID
-  Future<BrandModel?> getBrandById(String brandId) async {
+  Future<BrandModel> getBrandById(String brandId) async {
     try {
-      return await _repository.getBrandById(brandId);
+      final brand = await _repository.getBrandById(brandId);
+      if (brand == null) throw Exception('Brand not found');
+      return brand;
     } on DioException {
-      rethrow; // pass error to UI layer
+      rethrow;
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -122,7 +125,7 @@ class BrandController extends StateNotifier<AsyncValue<List<BrandModel>>> {
       );
 
       // await loadBrands();
-    } on DioException catch (e) {
+    } on DioException {
       // handle Dio-specific errors
     rethrow;
     } catch (e, st) {

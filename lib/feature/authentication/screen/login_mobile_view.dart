@@ -94,6 +94,10 @@ print(result.message);
             case 'ROLE_ACCOUNT':
               // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AccountHomeScreen()));
               break;
+            case 'ROLE_PRODUCTION':
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const SuperAdminHomePage()));
+              break;
             default:
               Navigator.pushReplacement(
                 context,

@@ -16,6 +16,29 @@ import '../../product/controller/product_controller.dart';
 import '../../signup/controller/signUp_controller.dart';
 import '../controller/order_controller.dart';
 
+// ─── THEME CONSTANTS ──────────────────────────────────────────────────────────
+const _kBlue = Color(0xFF1B4FD8);
+const _kBlueBg = Color(0xFFEEF2FF);
+const _kBlueBorder = Color(0xFFC7D4FF);
+const _kBg = Color(0xFFF2F4F8);
+const _kCard = Colors.white;
+const _kBorder = Color(0xFFE5E7EB);
+const _kDark = Color(0xFF111827);
+const _kMid = Color(0xFF374151);
+const _kMuted = Color(0xFF9CA3AF);
+const _kGreen = Color(0xFF0A8A5C);
+const _kGreenBg = Color(0xFFEDFAF4);
+const _kGreenBorder = Color(0xFF9FE0C5);
+const _kRed = Color(0xFFDC2626);
+const _kRedBg = Color(0xFFFEF2F2);
+const _kRedBorder = Color(0xFFFECACA);
+const _kAmber = Color(0xFFB45309);
+const _kAmberBg = Color(0xFFFFFBEB);
+const _kAmberBorder = Color(0xFFFCD28A);
+const _kPurple = Color(0xFF7C3AED);
+const _kPurpleBg = Color(0xFFF5F3FF);
+const _kPurpleBorder = Color(0xFFDDD6FE);
+
 class OrderCreatePage extends ConsumerStatefulWidget {
   const OrderCreatePage({super.key});
 
@@ -34,393 +57,238 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
   num amountPaid = 0;
   bool isCreatingOrder = false;
 
-  // New list to hold selected products
   List<OrderDetailsModel> selectedProducts = [];
   final TextEditingController orderNoteController = TextEditingController();
+  final TextEditingController amountPaidController = TextEditingController();
+
+  @override
+  void dispose() {
+    orderNoteController.dispose();
+    amountPaidController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    final sh = Screen.h(context);
+
     return Scaffold(
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.all(Screen.w(context) * 0.05),
-        child: ElevatedButton(
-          onPressed: _canCreateOrder() ? _createOrder : null,
-          style: ElevatedButton.styleFrom(
-            minimumSize: Size.fromHeight(Screen.h(context) * 0.06),
-          ),
-          child: isCreatingOrder
-              ? const SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2.5,
-                  ),
-                )
-              : const Text('Create'),
-        ),
-      ),
+      backgroundColor: _kBg,
       body: SafeArea(
-        child: Padding(
-          padding:  EdgeInsets.all(
-            Screen.w(context) * 0.04,
-          ),
-          child: Column(
-            children: [
-              Row(
+        child: Column(
+          children: [
+            // ── Top Nav ──────────────────────────────
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: sw * 0.04, vertical: sw * 0.03),
+              child: Row(
                 children: [
                   CircularIconButton(
                     icon: Icons.arrow_back_ios_rounded,
                     onTap: () => Navigator.pop(context),
                   ),
-                  SizedBox(width: Screen.w(context) * 0.2),
-                  Text(
-                    'Create Product',
-                    style: TextStyle(
-                      fontSize: Screen.w(context) * 0.05,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
+                  const Spacer(),
+                  Text('Create Order',
+                      style: TextStyle(
+                          fontSize: sw * 0.042,
+                          fontWeight: FontWeight.w700,
+                          color: _kDark,
+                          letterSpacing: -0.2)),
+                  const Spacer(),
+                  SizedBox(width: sw * 0.095),
                 ],
               ),
-              SizedBox(height: Screen.h(context) * 0.03),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      Container(
-                        width: Screen.w(context) * 0.9,
-                        height: Screen.h(context) * 0.3,
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
-                            color: Colors.white),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: Screen.w(context) * 0.8,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                  elevation: 0,
-                                  side: BorderSide(color: Colors.grey, width: 1),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                    BorderRadius.circular(Screen.w(context) * 0.03),
-                                  ),
-                                ),
-                                onPressed: () => _showSalesmanDialog(context),
-                                child: Text(selectedSalesman == null
-                                    ? 'Select Salesman'
-                                    : selectedSalesman!.employeeName),
-                              ),
-                            ),
-                            SizedBox(height: Screen.h(context) * 0.02),
-                            SizedBox(
-                              width: Screen.w(context) * 0.8,
-                              child: ElevatedButton(
-                                onPressed: () => _showDealerDialog(context),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                  elevation: 0,
-                                  side: BorderSide(color: Colors.grey, width: 1),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                    BorderRadius.circular(Screen.w(context) * 0.03),
-                                  ),
-                                ),
-                                child: Text(
-                                  selectedDealer == null
-                                      ? 'Select Dealer'
-                                      : '${selectedDealer!.employeeName} (${selectedDealer!.shopName ?? 'No Shop'})',
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: Screen.h(context) * 0.02),
-                            SizedBox(
-                              width: Screen.w(context) * 0.8,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                  elevation: 0,
-                                  side: BorderSide(color: Colors.grey, width: 1),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                    BorderRadius.circular(Screen.w(context) * 0.03),
-                                  ),
-                                ),
-                                onPressed: selectedDealer == null
-                                    ? null
-                                    : () => _showBrandDialog(
-                                    context, selectedDealer!.employeeId!),
-                                child: Text(selectedBrand == null
-                                    ? 'Select Brand'
-                                    : selectedBrand!.brandName),
-                              ),
-                            ),
-                            SizedBox(height: Screen.h(context) * 0.02),
-                            SizedBox(
-                              width: Screen.w(context) * 0.8,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                  elevation: 0,
-                                  side: BorderSide(color: Colors.grey, width: 1),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                    BorderRadius.circular(Screen.w(context) * 0.03),
-                                  ),
-                                ),
-                                onPressed: selectedBrand == null
-                                    ? null
-                                    : () => _showProductDialog(
-                                    context, [selectedBrand!.brandName]),
-                                child: Text(selectedProduct == null
-                                    ? 'Select Product'
-                                    : selectedProduct!.productName.toString()),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: Screen.h(context) * 0.03),
-                      // Selected Products List
-                      if (selectedProducts.isNotEmpty) ...[
-                        Container(
-                          width: Screen.w(context) * 0.9,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
-                              color: Colors.white),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              SizedBox(height: Screen.h(context) * 0.03),
-                              Center(
-                                child: Text(
-                                  'Selected Products (${selectedProducts.length})',
-                                  style:
-                                  Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: Screen.h(context) * 0.01),
-                              // if (selectedProducts.isNotEmpty)
-                              ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                // prevent nested scroll
-                                itemCount: selectedProducts.length,
-                                itemBuilder: (context, index) {
-                                  return _buildProductItem(
-                                      selectedProducts[index], index);
-                                },
-                              ),
-                              // divider
-                              SizedBox(height: Screen.h(context) * 0.01),
-                              Center(
-                                child:
-                                SizedBox(width: Screen.w(context) * 0.8, child: Divider()),
-                              ),
-                              SizedBox(height: Screen.h(context) * 0.01),
-                              // ▼▼▼ ORDER TOTAL ▼▼▼
-                              Padding(
-                                padding: EdgeInsets.only(right: Screen.w(context) * 0.05),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    const Text(
-                                      "Order Total",
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold, fontSize: 16),
-                                    ),
-                                    Text(
-                                      '₹ ${_calculateOrderTotal().toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(height: Screen.h(context) * 0.02),
-                            ],
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: Screen.h(context) * 0.015),
-                      Center(
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              vertical: Screen.h(context) * 0.02,
-                              horizontal: Screen.w(context) * 0.05),
-                          width: Screen.w(context) * 0.9,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(Screen.w(context) * 0.04),
-                              color: Colors.white),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Order Details',
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16)),
-                              SizedBox(
-                                height: Screen.h(context) * 0.02,
-                              ),
-                              TextFormField(
-                                controller: orderNoteController,
-                                minLines: 2,
-                                maxLines: 5,
-                                keyboardType: TextInputType.multiline,
-                                decoration: const InputDecoration(
-                                  // labelText: 'Order Note',
-                                  border: OutlineInputBorder(borderSide: BorderSide.none),
-                                  prefixIcon: Icon(Icons.note_alt_outlined),
-                                  hintText:
-                                  'Add any special instruction or notes  (optional)',
-                                ),
-                              ),
-                              // Priority selection
-                              SizedBox(height: Screen.h(context) * 0.02),
-                              Text(
-                                'Order Priority',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              SizedBox(height: Screen.h(context) * 0.02),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: priorities.map((p) {
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        selectedPriority = p;
-                                      });
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            selectedPriority == p
-                                                ? Icons.radio_button_checked
-                                                : Icons.radio_button_unchecked,
-                                            color: p == 'HIGH'
-                                                ? Colors.red
-                                                : p == 'MEDIUM'
-                                                ? Colors.orange
-                                                : Colors.green,
-                                            size: 26,
-                                          ),
-                                          const SizedBox(width: 5),
-                                          Text(
-                                            p, // ← Show the name
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: p == 'HIGH'
-                                                  ? Colors.red
-                                                  : p == 'MEDIUM'
-                                                  ? Colors.orange
-                                                  : Colors.green,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
+            ),
 
-                              // Amount field
-                              SizedBox(height: Screen.h(context) * 0.02),
-                              TextFormField(
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  hintText: 'Amount paid',
-                                  border: OutlineInputBorder(borderSide: BorderSide.none),
-                                  prefixIcon: Icon(Icons.currency_rupee),
-                                ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    amountPaid = num.tryParse(value) ?? 0;
-                                  });
-                                },
-                              ),
-                              // Payment method
-                              SizedBox(height: Screen.h(context) * 0.02),
-                              Text(
-                                'Order Priority',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  Row(
-                                    children: [
-                                      Radio<String>(
-                                        value: 'CASH',
-                                        groupValue: paymentMethod,
-                                        activeColor: Colors.green,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            paymentMethod = value!;
-                                          });
-                                        },
-                                      ),
-                                      Text(
-                                        'Cash',
-                                        style: TextStyle(fontSize: 16,color:Colors.black,fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(width: Screen.w(context)*0.05), // spacing
-                                  Row(
-                                    children: [
-                                      Radio<String>(
-                                        value: 'BANK',
-                                        groupValue: paymentMethod,
-                                        activeColor: Colors.blue,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            paymentMethod = value!;
-                                          });
-                                        },
-                                      ),
-                                      Text(
-                                        'Bank',
-                                        style: TextStyle(fontSize: 16,color: Colors.black,fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              )
-
-                            ],
-                          ),
-                        ),
-                      ),
+            // ── Scrollable Content ───────────────────
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: sw * 0.038),
+                child: Column(
+                  children: [
+                    _buildSelectionCard(sw, sh),
+                    SizedBox(height: sh * 0.012),
+                    if (selectedProducts.isNotEmpty) ...[
+                      _buildProductsCard(sw, sh),
+                      SizedBox(height: sh * 0.012),
                     ],
-                  ),
+                    _buildOrderDetailsCard(sw, sh),
+                    SizedBox(height: sh * 0.02),
+                  ],
                 ),
-              )
-              // Existing dealer, brand, salesman selection buttons...
+              ),
+            ),
 
-              // Create Order Button
+            // ── Bottom Create Button ─────────────────
+            _buildBottomButton(sw, sh),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Selection Card ────────────────────────────────────────────────────────────
+  Widget _buildSelectionCard(double sw, double sh) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(sw * 0.04),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: sw * 0.04, vertical: sw * 0.035),
+            child: Row(
+              children: [
+                Container(
+                  width: sw * 0.075,
+                  height: sw * 0.075,
+                  decoration: BoxDecoration(
+                    color: _kBlueBg,
+                    borderRadius: BorderRadius.circular(sw * 0.022),
+                    border: Border.all(color: _kBlueBorder),
+                  ),
+                  child: Icon(Icons.shopping_cart_outlined,
+                      size: sw * 0.04, color: _kBlue),
+                ),
+                SizedBox(width: sw * 0.025),
+                Text('Order Selection',
+                    style: TextStyle(
+                        fontSize: sw * 0.035,
+                        fontWeight: FontWeight.w700,
+                        color: _kDark)),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: _kBorder),
+          Padding(
+            padding: EdgeInsets.all(sw * 0.04),
+            child: Column(
+              children: [
+                _buildSelectorButton(
+                  sw: sw,
+                  label: 'Salesman',
+                  value: selectedSalesman?.employeeName,
+                  icon: Icons.person_outline_rounded,
+                  color: _kPurple,
+                  onTap: () => _showSalesmanDialog(context),
+                ),
+                SizedBox(height: sh * 0.012),
+                _buildSelectorButton(
+                  sw: sw,
+                  label: 'Dealer',
+                  value: selectedDealer != null
+                      ? '${selectedDealer!.employeeName}${selectedDealer!.shopName != null ? ' (${selectedDealer!.shopName})' : ''}'
+                      : null,
+                  icon: Icons.store_outlined,
+                  color: _kBlue,
+                  onTap: () => _showDealerDialog(context),
+                ),
+                SizedBox(height: sh * 0.012),
+                _buildSelectorButton(
+                  sw: sw,
+                  label: 'Brand',
+                  value: selectedBrand?.brandName,
+                  icon: Icons.local_offer_outlined,
+                  color: _kAmber,
+                  enabled: selectedDealer != null,
+                  onTap: selectedDealer == null
+                      ? null
+                      : () => _showBrandDialog(
+                      context, selectedDealer!.employeeId!),
+                ),
+                SizedBox(height: sh * 0.012),
+                _buildSelectorButton(
+                  sw: sw,
+                  label: 'Product',
+                  value: selectedProduct?.productName,
+                  icon: Icons.inventory_2_outlined,
+                  color: _kGreen,
+                  enabled: selectedBrand != null,
+                  onTap: selectedBrand == null
+                      ? null
+                      : () => _showProductDialog(
+                      context, [selectedBrand!.brandName]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectorButton({
+    required double sw,
+    required String label,
+    String? value,
+    required IconData icon,
+    required Color color,
+    VoidCallback? onTap,
+    bool enabled = true,
+  }) {
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.5,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+              horizontal: sw * 0.04, vertical: sw * 0.035),
+          decoration: BoxDecoration(
+            color: _kBg,
+            borderRadius: BorderRadius.circular(sw * 0.028),
+            border: Border.all(color: _kBorder),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: sw * 0.1,
+                height: sw * 0.1,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border:
+                  Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Icon(icon, color: color, size: sw * 0.045),
+              ),
+              SizedBox(width: sw * 0.03),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: TextStyle(
+                            fontSize: sw * 0.028,
+                            color: _kMuted,
+                            fontWeight: FontWeight.w600)),
+                    SizedBox(height: sw * 0.005),
+                    Text(
+                      value ?? 'Select $label',
+                      style: TextStyle(
+                          fontSize: sw * 0.034,
+                          fontWeight: value != null
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: value != null ? _kDark : _kMuted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.keyboard_arrow_down_rounded,
+                  color: _kMuted, size: sw * 0.05),
             ],
           ),
         ),
@@ -428,42 +296,1037 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     );
   }
 
+  // ── Products Card ─────────────────────────────────────────────────────────────
+  Widget _buildProductsCard(double sw, double sh) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(sw * 0.04),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: sw * 0.04, vertical: sw * 0.035),
+            child: Row(
+              children: [
+                Container(
+                  width: sw * 0.075,
+                  height: sw * 0.075,
+                  decoration: BoxDecoration(
+                    color: _kGreenBg,
+                    borderRadius: BorderRadius.circular(sw * 0.022),
+                    border: Border.all(color: _kGreenBorder),
+                  ),
+                  child: Icon(Icons.inventory_outlined,
+                      size: sw * 0.04, color: _kGreen),
+                ),
+                SizedBox(width: sw * 0.025),
+                Expanded(
+                  child: Text('Selected Products',
+                      style: TextStyle(
+                          fontSize: sw * 0.035,
+                          fontWeight: FontWeight.w700,
+                          color: _kDark)),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: sw * 0.025, vertical: sw * 0.008),
+                  decoration: BoxDecoration(
+                    color: _kGreenBg,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _kGreenBorder),
+                  ),
+                  child: Text('${selectedProducts.length}',
+                      style: TextStyle(
+                          fontSize: sw * 0.026,
+                          fontWeight: FontWeight.w700,
+                          color: _kGreen)),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: _kBorder),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: selectedProducts.length,
+            separatorBuilder: (_, __) =>
+            const Divider(height: 1, color: _kBorder),
+            itemBuilder: (context, index) =>
+                _buildProductItem(selectedProducts[index], index, sw, sh),
+          ),
+          // Order Total
+          Container(
+            padding: EdgeInsets.all(sw * 0.04),
+            decoration: BoxDecoration(
+              color: _kGreenBg,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(sw * 0.04),
+                bottomRight: Radius.circular(sw * 0.04),
+              ),
+              border: const Border(
+                  top: BorderSide(color: _kGreenBorder, width: 1.5)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Order Total',
+                    style: TextStyle(
+                        fontSize: sw * 0.038,
+                        fontWeight: FontWeight.w800,
+                        color: _kGreen)),
+                Text(
+                    '₹${_calculateOrderTotal().toStringAsFixed(2)}',
+                    style: TextStyle(
+                        fontSize: sw * 0.045,
+                        fontWeight: FontWeight.w900,
+                        color: _kGreen)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  // Dealer Dialog with Search
+  Widget _buildProductItem(
+      OrderDetailsModel product, int index, double sw, double sh) {
+    double price =
+        double.tryParse(product.product?.price?.toString() ?? '0') ?? 0;
+    int qty = product.quantity;
+    double unitDiscount = 0;
+    final discount = product.dealerDiscount;
+
+    if (product.useDealerDiscount && discount != null) {
+      if (discount.isPercentage == true) {
+        unitDiscount = price * (discount.discountValue / 100);
+      } else {
+        unitDiscount = discount.discountValue.toDouble();
+      }
+    } else if (!product.useDealerDiscount &&
+        product.discountAmount != null) {
+      unitDiscount = product.discountAmount!.toDouble();
+    }
+
+    double subtotal = price * qty;
+    double discountTotal = unitDiscount * qty;
+    double total = subtotal - discountTotal;
+
+    return Container(
+      padding: EdgeInsets.all(sw * 0.04),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Product header ─────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.product?.productName ?? product.productName,
+                      style: TextStyle(
+                          fontSize: sw * 0.036,
+                          fontWeight: FontWeight.w700,
+                          color: _kDark),
+                    ),
+                    SizedBox(height: sw * 0.008),
+                    Row(
+                      children: [
+                        _buildInfoChip(
+                            sw,
+                            product.product?.brand ?? product.productBrand,
+                            Icons.local_offer_outlined,
+                            _kAmber),
+                        SizedBox(width: sw * 0.015),
+                        _buildInfoChip(
+                            sw,
+                            product.product?.model ?? product.productModel,
+                            Icons.tag_rounded,
+                            _kBlue),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete_outline_rounded,
+                    color: _kRed, size: sw * 0.055),
+                onPressed: () =>
+                    setState(() => selectedProducts.removeAt(index)),
+              ),
+            ],
+          ),
+
+          SizedBox(height: sh * 0.015),
+
+          // ── Quantity controls ──────────────────
+          Row(
+            children: [
+              Text('Quantity',
+                  style: TextStyle(
+                      fontSize: sw * 0.03,
+                      fontWeight: FontWeight.w600,
+                      color: _kMuted)),
+              SizedBox(width: sw * 0.025),
+              GestureDetector(
+                onTap: product.quantity > 1
+                    ? () => setState(() {
+                  selectedProducts[index] = product.copyWith(
+                      qtyOrdered: product.quantity - 1);
+                })
+                    : null,
+                child: Container(
+                  padding: EdgeInsets.all(sw * 0.015),
+                  decoration: BoxDecoration(
+                    color: _kBg,
+                    borderRadius: BorderRadius.circular(sw * 0.02),
+                    border: Border.all(color: _kBorder),
+                  ),
+                  child: Icon(Icons.remove,
+                      size: sw * 0.04, color: _kMid),
+                ),
+              ),
+              SizedBox(width: sw * 0.02),
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: sw * 0.035, vertical: sw * 0.015),
+                decoration: BoxDecoration(
+                  color: _kBlueBg,
+                  borderRadius: BorderRadius.circular(sw * 0.02),
+                  border: Border.all(color: _kBlueBorder),
+                ),
+                child: Text('${product.quantity}',
+                    style: TextStyle(
+                        fontSize: sw * 0.036,
+                        fontWeight: FontWeight.w700,
+                        color: _kBlue)),
+              ),
+              SizedBox(width: sw * 0.02),
+              GestureDetector(
+                onTap: () => setState(() {
+                  selectedProducts[index] = product.copyWith(
+                      qtyOrdered: product.quantity + 1);
+                }),
+                child: Container(
+                  padding: EdgeInsets.all(sw * 0.015),
+                  decoration: BoxDecoration(
+                    color: _kBg,
+                    borderRadius: BorderRadius.circular(sw * 0.02),
+                    border: Border.all(color: _kBorder),
+                  ),
+                  child: Icon(Icons.add,
+                      size: sw * 0.04, color: _kMid),
+                ),
+              ),
+              const Spacer(),
+              Text('₹$price',
+                  style: TextStyle(
+                      fontSize: sw * 0.034,
+                      fontWeight: FontWeight.w600,
+                      color: _kMid)),
+            ],
+          ),
+
+          SizedBox(height: sh * 0.015),
+
+          // ── Scheme toggle ──────────────────────
+          Row(
+            children: [
+              Icon(Icons.card_giftcard_outlined,
+                  size: sw * 0.045, color: _kPurple),
+              SizedBox(width: sw * 0.02),
+              Text('Scheme Product',
+                  style: TextStyle(
+                      fontSize: sw * 0.032,
+                      fontWeight: FontWeight.w600,
+                      color: _kDark)),
+              const Spacer(),
+              Switch(
+                value: product.isScheme,
+                activeColor: _kPurple,
+                activeTrackColor: _kPurpleBg,
+                onChanged: (value) => setState(() {
+                  selectedProducts[index] =
+                      product.copyWith(isProductScheme: value);
+                }),
+              ),
+            ],
+          ),
+
+          // ── Discount options ───────────────────
+          if (selectedDealer != null)
+            _buildDiscountOptions(product, index, sw, sh),
+
+          SizedBox(height: sh * 0.015),
+
+          // ── Delivery date ──────────────────────
+          // ✅ FIX: delivery date required for ALL products (including scheme)
+          GestureDetector(
+            onTap: () =>
+                _selectDeliveryDate(context, product, index),
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                  horizontal: sw * 0.04, vertical: sw * 0.03),
+              decoration: BoxDecoration(
+                color: _kBg,
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                border: Border.all(
+                  // ✅ FIX: red border for ALL products missing date
+                  color: product.deliveryDate == null
+                      ? _kRed
+                      : _kBorder,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    size: sw * 0.04,
+                    color: product.deliveryDate != null
+                        ? _kBlue
+                        : _kMuted,
+                  ),
+                  SizedBox(width: sw * 0.025),
+                  Text(
+                    product.deliveryDate != null
+                        ? '${product.deliveryDate!.day}/${product.deliveryDate!.month}/${product.deliveryDate!.year}'
+                        : 'Select Delivery Date',
+                    style: TextStyle(
+                        fontSize: sw * 0.032,
+                        fontWeight: FontWeight.w500,
+                        color: product.deliveryDate != null
+                            ? _kDark
+                            : _kMuted),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ✅ FIX: warning shown for ALL products missing date
+          if (product.deliveryDate == null)
+            Padding(
+              padding: EdgeInsets.only(
+                  top: sw * 0.015, left: sw * 0.01),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      size: sw * 0.035, color: _kRed),
+                  SizedBox(width: sw * 0.01),
+                  Text('Delivery date required',
+                      style: TextStyle(
+                          fontSize: sw * 0.028, color: _kRed)),
+                ],
+              ),
+            ),
+
+          // ── Price breakdown (non-scheme only) ──
+          if (!product.isProductScheme) ...[
+            SizedBox(height: sh * 0.015),
+            Container(
+              padding: EdgeInsets.all(sw * 0.03),
+              decoration: BoxDecoration(
+                color: _kBg,
+                borderRadius: BorderRadius.circular(sw * 0.025),
+              ),
+              child: Column(
+                children: [
+                  _buildPriceRow('Subtotal', subtotal, sw, false),
+                  SizedBox(height: sw * 0.01),
+                  _buildPriceRow(
+                      'Discount', -discountTotal, sw, false),
+                  SizedBox(height: sw * 0.01),
+                  const Divider(height: 1, color: _kBorder),
+                  SizedBox(height: sw * 0.01),
+                  _buildPriceRow('Total', total, sw, true),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(
+      double sw, String text, IconData icon, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: sw * 0.02, vertical: sw * 0.008),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: sw * 0.03, color: color),
+          SizedBox(width: sw * 0.01),
+          Text(text,
+              style: TextStyle(
+                  fontSize: sw * 0.026,
+                  fontWeight: FontWeight.w600,
+                  color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceRow(
+      String label, double amount, double sw, bool isBold) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label,
+            style: TextStyle(
+                fontSize: sw * 0.032,
+                fontWeight:
+                isBold ? FontWeight.w700 : FontWeight.w500,
+                color: isBold ? _kDark : _kMid)),
+        Text('₹${amount.toStringAsFixed(2)}',
+            style: TextStyle(
+                fontSize: sw * 0.032,
+                fontWeight:
+                isBold ? FontWeight.w700 : FontWeight.w500,
+                color: isBold ? _kGreen : _kMid)),
+      ],
+    );
+  }
+
+  // ── Order Details Card ────────────────────────────────────────────────────────
+  Widget _buildOrderDetailsCard(double sw, double sh) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(sw * 0.04),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: sw * 0.04, vertical: sw * 0.035),
+            child: Row(
+              children: [
+                Container(
+                  width: sw * 0.075,
+                  height: sw * 0.075,
+                  decoration: BoxDecoration(
+                    color: _kPurpleBg,
+                    borderRadius: BorderRadius.circular(sw * 0.022),
+                    border: Border.all(color: _kPurpleBorder),
+                  ),
+                  child: Icon(Icons.description_outlined,
+                      size: sw * 0.04, color: _kPurple),
+                ),
+                SizedBox(width: sw * 0.025),
+                Text('Order Details',
+                    style: TextStyle(
+                        fontSize: sw * 0.035,
+                        fontWeight: FontWeight.w700,
+                        color: _kDark)),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: _kBorder),
+          Padding(
+            padding: EdgeInsets.all(sw * 0.04),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Order Notes
+                Text('Order Notes',
+                    style: TextStyle(
+                        fontSize: sw * 0.032,
+                        fontWeight: FontWeight.w600,
+                        color: _kDark)),
+                SizedBox(height: sh * 0.008),
+                TextFormField(
+                  controller: orderNoteController,
+                  minLines: 3,
+                  maxLines: 5,
+                  style:
+                  TextStyle(fontSize: sw * 0.034, color: _kDark),
+                  decoration: InputDecoration(
+                    hintText:
+                    'Add special instructions or notes (optional)',
+                    hintStyle: TextStyle(
+                        fontSize: sw * 0.032, color: _kMuted),
+                    filled: true,
+                    fillColor: _kBg,
+                    contentPadding: EdgeInsets.all(sw * 0.035),
+                    border: OutlineInputBorder(
+                      borderRadius:
+                      BorderRadius.circular(sw * 0.028),
+                      borderSide:
+                      const BorderSide(color: _kBorder),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius:
+                      BorderRadius.circular(sw * 0.028),
+                      borderSide:
+                      const BorderSide(color: _kBorder),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius:
+                      BorderRadius.circular(sw * 0.028),
+                      borderSide: const BorderSide(
+                          color: _kBlue, width: 1.5),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: sh * 0.02),
+
+                // Priority
+                Text('Priority',
+                    style: TextStyle(
+                        fontSize: sw * 0.032,
+                        fontWeight: FontWeight.w600,
+                        color: _kDark)),
+                SizedBox(height: sh * 0.012),
+                Row(
+                  children: priorities.map((p) {
+                    final isSelected = selectedPriority == p;
+                    final color = p == 'HIGH'
+                        ? _kRed
+                        : p == 'MEDIUM'
+                        ? _kAmber
+                        : _kGreen;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () =>
+                            setState(() => selectedPriority = p),
+                        child: Container(
+                          margin:
+                          EdgeInsets.only(right: sw * 0.015),
+                          padding: EdgeInsets.symmetric(
+                              vertical: sw * 0.025),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? color.withValues(alpha: 0.1)
+                                : _kBg,
+                            borderRadius: BorderRadius.circular(
+                                sw * 0.025),
+                            border: Border.all(
+                                color:
+                                isSelected ? color : _kBorder,
+                                width: isSelected ? 1.5 : 1),
+                          ),
+                          child: Row(
+                            mainAxisAlignment:
+                            MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isSelected
+                                    ? Icons.radio_button_checked
+                                    : Icons
+                                    .radio_button_unchecked,
+                                color: color,
+                                size: sw * 0.045,
+                              ),
+                              SizedBox(width: sw * 0.015),
+                              Text(p,
+                                  style: TextStyle(
+                                      fontSize: sw * 0.03,
+                                      fontWeight: FontWeight.w700,
+                                      color: color)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+
+                SizedBox(height: sh * 0.02),
+
+                // Amount Paid
+                Text('Amount Paid',
+                    style: TextStyle(
+                        fontSize: sw * 0.032,
+                        fontWeight: FontWeight.w600,
+                        color: _kDark)),
+                SizedBox(height: sh * 0.008),
+                TextFormField(
+                  controller: amountPaidController,
+                  keyboardType: TextInputType.number,
+                  style:
+                  TextStyle(fontSize: sw * 0.036, color: _kDark),
+                  decoration: InputDecoration(
+                    hintText: 'Enter amount',
+                    hintStyle: TextStyle(
+                        fontSize: sw * 0.034, color: _kMuted),
+                    prefixIcon: Icon(Icons.currency_rupee,
+                        color: _kGreen, size: sw * 0.05),
+                    filled: true,
+                    fillColor: _kBg,
+                    contentPadding: EdgeInsets.symmetric(
+                        horizontal: sw * 0.04),
+                    border: OutlineInputBorder(
+                      borderRadius:
+                      BorderRadius.circular(sw * 0.028),
+                      borderSide:
+                      const BorderSide(color: _kBorder),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius:
+                      BorderRadius.circular(sw * 0.028),
+                      borderSide:
+                      const BorderSide(color: _kBorder),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius:
+                      BorderRadius.circular(sw * 0.028),
+                      borderSide: const BorderSide(
+                          color: _kBlue, width: 1.5),
+                    ),
+                  ),
+                  onChanged: (v) => setState(
+                          () => amountPaid = num.tryParse(v) ?? 0),
+                ),
+
+                SizedBox(height: sh * 0.02),
+
+                // Payment Method
+                Text('Payment Method',
+                    style: TextStyle(
+                        fontSize: sw * 0.032,
+                        fontWeight: FontWeight.w600,
+                        color: _kDark)),
+                SizedBox(height: sh * 0.012),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(
+                                () => paymentMethod = 'CASH'),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                              vertical: sw * 0.03),
+                          decoration: BoxDecoration(
+                            color: paymentMethod == 'CASH'
+                                ? _kGreenBg
+                                : _kBg,
+                            borderRadius: BorderRadius.circular(
+                                sw * 0.025),
+                            border: Border.all(
+                                color: paymentMethod == 'CASH'
+                                    ? _kGreenBorder
+                                    : _kBorder,
+                                width:
+                                paymentMethod == 'CASH' ? 1.5 : 1),
+                          ),
+                          child: Row(
+                            mainAxisAlignment:
+                            MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                paymentMethod == 'CASH'
+                                    ? Icons.radio_button_checked
+                                    : Icons
+                                    .radio_button_unchecked,
+                                color: _kGreen,
+                                size: sw * 0.05,
+                              ),
+                              SizedBox(width: sw * 0.02),
+                              Text('Cash',
+                                  style: TextStyle(
+                                      fontSize: sw * 0.034,
+                                      fontWeight: FontWeight.w700,
+                                      color: _kGreen)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: sw * 0.02),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(
+                                () => paymentMethod = 'BANK'),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                              vertical: sw * 0.03),
+                          decoration: BoxDecoration(
+                            color: paymentMethod == 'BANK'
+                                ? _kBlueBg
+                                : _kBg,
+                            borderRadius: BorderRadius.circular(
+                                sw * 0.025),
+                            border: Border.all(
+                                color: paymentMethod == 'BANK'
+                                    ? _kBlueBorder
+                                    : _kBorder,
+                                width:
+                                paymentMethod == 'BANK' ? 1.5 : 1),
+                          ),
+                          child: Row(
+                            mainAxisAlignment:
+                            MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                paymentMethod == 'BANK'
+                                    ? Icons.radio_button_checked
+                                    : Icons
+                                    .radio_button_unchecked,
+                                color: _kBlue,
+                                size: sw * 0.05,
+                              ),
+                              SizedBox(width: sw * 0.02),
+                              Text('Bank',
+                                  style: TextStyle(
+                                      fontSize: sw * 0.034,
+                                      fontWeight: FontWeight.w700,
+                                      color: _kBlue)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Bottom Button ─────────────────────────────────────────────────────────────
+  Widget _buildBottomButton(double sw, double sh) {
+    final canCreate = _canCreateOrder();
+    return Container(
+      padding: EdgeInsets.all(sw * 0.04),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: const Border(top: BorderSide(color: _kBorder)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2))
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed:
+            canCreate && !isCreatingOrder ? _createOrder : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kBlue,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: _kBorder,
+              disabledForegroundColor: _kMuted,
+              padding:
+              EdgeInsets.symmetric(vertical: sh * 0.018),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(sw * 0.035),
+              ),
+              elevation: 0,
+            ),
+            child: isCreatingOrder
+                ? SizedBox(
+              height: sw * 0.05,
+              width: sw * 0.05,
+              child: const CircularProgressIndicator(
+                  color: Colors.white, strokeWidth: 2.5),
+            )
+                : Text('Create Order',
+                style: TextStyle(
+                    fontSize: sw * 0.04,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Discount Options ──────────────────────────────────────────────────────────
+  Widget _buildDiscountOptions(
+      OrderDetailsModel product, int index, double sw, double sh) {
+    final discount = product.dealerDiscount;
+
+    if (discount == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: sh * 0.015),
+          Text('Manual Discount',
+              style: TextStyle(
+                  fontSize: sw * 0.03,
+                  fontWeight: FontWeight.w600,
+                  color: _kDark)),
+          SizedBox(height: sh * 0.008),
+          TextFormField(
+            initialValue: product.discountAmount?.toString() ?? '',
+            keyboardType: TextInputType.number,
+            style:
+            TextStyle(fontSize: sw * 0.034, color: _kDark),
+            decoration: InputDecoration(
+              hintText: 'Enter discount amount',
+              hintStyle: TextStyle(
+                  fontSize: sw * 0.032, color: _kMuted),
+              prefixIcon: Icon(Icons.local_offer_outlined,
+                  color: _kAmber, size: sw * 0.045),
+              filled: true,
+              fillColor: _kBg,
+              contentPadding:
+              EdgeInsets.symmetric(horizontal: sw * 0.04),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide: const BorderSide(color: _kBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide: const BorderSide(color: _kBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide: const BorderSide(
+                    color: _kBlue, width: 1.5),
+              ),
+            ),
+            onChanged: (value) => setState(() {
+              selectedProducts[index] = product.copyWith(
+                discountAmount: num.tryParse(value),
+                useDealerDiscount: false,
+              );
+            }),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: sh * 0.015),
+        Text('Discount',
+            style: TextStyle(
+                fontSize: sw * 0.03,
+                fontWeight: FontWeight.w600,
+                color: _kDark)),
+        SizedBox(height: sh * 0.01),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() {
+                  selectedProducts[index] = product.copyWith(
+                      useDealerDiscount: false,
+                      dealerDiscountId: null,
+                      discountAmount: 0);
+                }),
+                child: Container(
+                  padding:
+                  EdgeInsets.symmetric(vertical: sw * 0.025),
+                  decoration: BoxDecoration(
+                    color: !product.useDealerDiscount
+                        ? _kAmberBg
+                        : _kBg,
+                    borderRadius:
+                    BorderRadius.circular(sw * 0.025),
+                    border: Border.all(
+                        color: !product.useDealerDiscount
+                            ? _kAmberBorder
+                            : _kBorder,
+                        width: !product.useDealerDiscount ? 1.5 : 1),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        !product.useDealerDiscount
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                        color: _kAmber,
+                        size: sw * 0.045,
+                      ),
+                      SizedBox(width: sw * 0.015),
+                      Text('Manual',
+                          style: TextStyle(
+                              fontSize: sw * 0.03,
+                              fontWeight: FontWeight.w700,
+                              color: _kAmber)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: sw * 0.02),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() {
+                  selectedProducts[index] = product.copyWith(
+                    useDealerDiscount: true,
+                    discountAmount: null,
+                    dealerDiscountId: discount.dealerDiscountId,
+                  );
+                }),
+                child: Container(
+                  padding:
+                  EdgeInsets.symmetric(vertical: sw * 0.025),
+                  decoration: BoxDecoration(
+                    color: product.useDealerDiscount
+                        ? _kGreenBg
+                        : _kBg,
+                    borderRadius:
+                    BorderRadius.circular(sw * 0.025),
+                    border: Border.all(
+                        color: product.useDealerDiscount
+                            ? _kGreenBorder
+                            : _kBorder,
+                        width:
+                        product.useDealerDiscount ? 1.5 : 1),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        product.useDealerDiscount
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                        color: _kGreen,
+                        size: sw * 0.045,
+                      ),
+                      SizedBox(width: sw * 0.015),
+                      Text('Dealer',
+                          style: TextStyle(
+                              fontSize: sw * 0.03,
+                              fontWeight: FontWeight.w700,
+                              color: _kGreen)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (!product.useDealerDiscount) ...[
+          SizedBox(height: sh * 0.01),
+          TextFormField(
+            initialValue: product.discountAmount?.toString() ?? '',
+            keyboardType: TextInputType.number,
+            style:
+            TextStyle(fontSize: sw * 0.034, color: _kDark),
+            decoration: InputDecoration(
+              hintText: 'Enter amount',
+              hintStyle: TextStyle(
+                  fontSize: sw * 0.032, color: _kMuted),
+              filled: true,
+              fillColor: _kBg,
+              contentPadding: EdgeInsets.symmetric(
+                  horizontal: sw * 0.04, vertical: sw * 0.03),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide: const BorderSide(color: _kBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide: const BorderSide(color: _kBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide: const BorderSide(
+                    color: _kBlue, width: 1.5),
+              ),
+            ),
+            onChanged: (value) => setState(() {
+              selectedProducts[index] = product.copyWith(
+                  discountAmount: num.tryParse(value) ?? 0);
+            }),
+          ),
+        ],
+        if (product.useDealerDiscount) ...[
+          SizedBox(height: sh * 0.01),
+          Container(
+            padding: EdgeInsets.all(sw * 0.035),
+            decoration: BoxDecoration(
+              color: _kGreenBg,
+              borderRadius: BorderRadius.circular(sw * 0.028),
+              border: Border.all(color: _kGreenBorder),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.discount_outlined,
+                    color: _kGreen, size: sw * 0.045),
+                SizedBox(width: sw * 0.025),
+                Text(
+                  '${discount.isPercentage == false ? '₹' : ''}${discount.discountValue}${discount.isPercentage ? '%' : ''}',
+                  style: TextStyle(
+                      fontSize: sw * 0.036,
+                      fontWeight: FontWeight.w700,
+                      color: _kGreen),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ── Dialogs ───────────────────────────────────────────────────────────────────
   Future<void> _showDealerDialog(BuildContext context) async {
-    final dealerAsync = ref.watch(dealerListProvider);
-    TextEditingController searchController = TextEditingController();
+    final searchController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          title: Center(child: const Text('Select Dealer')),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: dealerAsync.when(
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.circular(Screen.w(context) * 0.04)),
+        title: Text('Select Dealer',
+            style: TextStyle(
+                fontSize: Screen.w(context) * 0.042,
+                fontWeight: FontWeight.w700)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Consumer(builder: (context, ref, _) {
+            final dealerAsync = ref.watch(dealerListProvider);
+            return dealerAsync.when(
               data: (dealers) {
-                ValueNotifier<String> query = ValueNotifier('');
+                final query = ValueNotifier('');
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextField(
-                      controller: searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search by name or shop',
-                        prefixIcon: Icon(Icons.person_search_outlined),
-                      ),
-                      onChanged: (val) => query.value = val.toLowerCase(),
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.03),
+                    _dialogSearchField(context, searchController,
+                        'Search by name or shop', query),
+                    SizedBox(height: Screen.h(context) * 0.02),
                     Expanded(
                       child: ValueListenableBuilder<String>(
                         valueListenable: query,
                         builder: (_, q, __) {
                           final filtered = dealers.where((d) {
-                            final name = d.employeeName.toLowerCase();
-                            final shop = (d.shopName ?? '').toLowerCase();
-                            return name.contains(q) || shop.contains(q);
+                            final name =
+                            d.employeeName.toLowerCase();
+                            final shop =
+                            (d.shopName ?? '').toLowerCase();
+                            return name.contains(q) ||
+                                shop.contains(q);
                           }).toList();
                           if (filtered.isEmpty) {
                             return const Center(
@@ -472,30 +1335,21 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                           return ListView.builder(
                             itemCount: filtered.length,
                             itemBuilder: (_, i) {
-                              final dealer = filtered[i];
-                              return Container(
-                                margin:
-                                    EdgeInsets.only(bottom: Screen.w(context) * 0.01),
-                                decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.circular(Screen.w(context) * 0.03),
-                                  border: Border.all(
-                                      color: Colors.grey, width: 0.8),
-                                ),
-                                child: ListTile(
-                                  title: Text(dealer.employeeName),
-                                  subtitle:
-                                      Text(dealer.shopName ?? 'No shop name'),
-                                  onTap: () {
-                                    setState(() {
-                                      selectedDealer = dealer;
-                                      selectedBrand = null;
-                                      selectedProduct = null;
-                                      selectedProducts.clear();
-                                    });
-                                    Navigator.pop(context);
-                                  },
-                                ),
+                              final d = filtered[i];
+                              return _dialogListItem(
+                                context,
+                                title: d.employeeName,
+                                subtitle:
+                                d.shopName ?? 'No shop name',
+                                onTap: () {
+                                  setState(() {
+                                    selectedDealer = d;
+                                    selectedBrand = null;
+                                    selectedProduct = null;
+                                    selectedProducts.clear();
+                                  });
+                                  Navigator.pop(context);
+                                },
                               );
                             },
                           );
@@ -505,901 +1359,488 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                   ],
                 );
               },
-              loading: () => const Center(
-                heightFactor: 2,
-                child: GlobalLoader(),
-              ),
-              error: (e, _) => Center(child: Text(e.toString())),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Brand Dialog with Search
-  Future<void> _showBrandDialog(BuildContext context, String dealerId) async {
-    final brandAsync =
-        ref.watch(brandControllerProvider.notifier).getBrandsByDealer(dealerId);
-    TextEditingController searchController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) {
-        return FutureBuilder<List<BrandModel>>(
-          future: brandAsync,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const AlertDialog(
-                  backgroundColor: Colors.white, content: GlobalLoader());
-            }
-            if (snapshot.hasError) {
-              return AlertDialog(
-                title: const Text('Products'),
-                content: Text(snapshot.error.toString()),
-              );
-            }
-            final brands = snapshot.data ?? [];
-            ValueNotifier<String> query = ValueNotifier('');
-
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              title: Center(child: const Text('Select Brand')),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search brand name',
-                        prefixIcon: Icon(Icons.search),
-                      ),
-                      onChanged: (val) => query.value = val.toLowerCase(),
-                    ),
-                    SizedBox(height: Screen.h(context) * 0.03),
-                    Expanded(
-                      child: ValueListenableBuilder<String>(
-                        valueListenable: query,
-                        builder: (_, q, __) {
-                          final filtered = brands
-                              .where(
-                                  (b) => b.brandName.toLowerCase().contains(q))
-                              .toList();
-
-                          if (filtered.isEmpty) {
-                            return const Center(child: Text('No brands found'));
-                          }
-                          return ListView.builder(
-                            itemCount: filtered.length,
-                            itemBuilder: (_, i) {
-                              final brand = filtered[i];
-                              return Container(
-                                margin:
-                                    EdgeInsets.only(bottom: Screen.w(context) * 0.01),
-                                decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(
-                                        Screen.w(context) * 0.03),
-                                    border: Border.all(
-                                        color: Colors.grey, width: 0.8)),
-                                child: ListTile(
-                                  title: Text(brand.brandName),
-                                  leading: SvgPicture.asset(AppIcons.brand),
-                                  onTap: () {
-                                    setState(() {
-                                      selectedBrand = brand;
-                                      // Clear products when brand changes
-                                      // orderItems.clear();
-                                    });
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              loading: () =>
+              const Center(child: GlobalLoader()),
+              error: (e, _) =>
+                  Center(child: Text(e.toString())),
             );
-          },
-        );
-      },
-    );
-  }
-
-// Salesman Dialog with Search
-  Future<void> _showSalesmanDialog(BuildContext context) async {
-    const roleSalesman = 'ROLE_SALESMAN';
-    final salesmanFuture = ref.read(usersByRoleProvider(roleSalesman).future);
-    TextEditingController searchController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) {
-        return FutureBuilder<List<UserModel>>(
-          future: salesmanFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const AlertDialog(
-                  backgroundColor: Colors.white, content: GlobalLoader());
-            }
-            if (snapshot.hasError) {
-              return AlertDialog(
-                title: const Text('Products'),
-                content: Text(snapshot.error.toString()),
-              );
-            }
-
-            final salesmen = snapshot.data ?? [];
-            ValueNotifier<String> query = ValueNotifier('');
-
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              title: Center(child: const Text('Select Salesman')),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search by name or phone',
-                        prefixIcon: Icon(Icons.person_search_outlined),
-                      ),
-                      onChanged: (val) => query.value = val.toLowerCase(),
-                    ),
-                    SizedBox(height: Screen.w(context) * 0.05),
-                    Expanded(
-                      child: ValueListenableBuilder<String>(
-                        valueListenable: query,
-                        builder: (_, q, __) {
-                          final filtered = salesmen.where((s) {
-                            final name = s.employeeName.toLowerCase();
-                            final phone = s.employeePhone.toLowerCase();
-                            return name.contains(q) || phone.contains(q);
-                          }).toList();
-
-                          if (filtered.isEmpty) {
-                            return const Center(
-                                child: Text('No salesmen found'));
-                          }
-
-                          return ListView.builder(
-                            itemCount: filtered.length,
-                            itemBuilder: (_, i) {
-                              final salesman = filtered[i];
-                              return Container(
-                                margin:
-                                    EdgeInsets.only(bottom: Screen.w(context) * 0.01),
-                                decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.circular(Screen.w(context) * 0.03),
-                                  border: Border.all(
-                                      color: Colors.grey, width: 0.8),
-                                ),
-                                child: ListTile(
-                                  title: Text(salesman.employeeName),
-                                  subtitle: Text(salesman.employeePhone),
-                                  onTap: () {
-                                    setState(() => selectedSalesman = salesman);
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildProductItem(OrderDetailsModel selectedProduct, int index) {
-    // ==========================
-// PRICE CALCULATION SECTION
-// ==========================
-    double price =
-        double.tryParse(selectedProduct.product?.price?.toString() ?? "0") ?? 0;
-
-    int qty = selectedProduct.quantity;
-
-// Base unit price
-    double unitPrice = price;
-
-// Step 1: calculate discount per unit
-    double unitDiscount = 0;
-    final discount = selectedProduct.dealerDiscount;
-
-    if (selectedProduct.useDealerDiscount && discount != null) {
-      if (discount.isPercentage == true) {
-        unitDiscount = unitPrice * (discount.discountValue / 100);
-      } else {
-        unitDiscount = discount.discountValue.toDouble();
-      }
-    } else if (!selectedProduct.useDealerDiscount &&
-        selectedProduct.discountAmount != null) {
-      unitDiscount = selectedProduct.discountAmount!.toDouble();
-    }
-
-// Step 2: calculate totals
-    double subtotal = unitPrice * qty;
-    double discountAmount = unitDiscount * qty;
-    double total = subtotal - discountAmount;
-
-    return Card(
-      color: Colors.white,
-      margin: EdgeInsets.symmetric(
-          horizontal: Screen.w(context) * 0.05, vertical: Screen.w(context) * 0.01),
-      child: Padding(
-        padding: EdgeInsets.all(Screen.w(context) * 0.04),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Product Info
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        selectedProduct.product?.brand?.toString() ??
-                            selectedProduct.productBrand,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        selectedProduct.product?.productName?.toString() ??
-                            selectedProduct.productName,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                            selectedProduct.product?.model?.toString() ??
-                                selectedProduct.productModel,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          SizedBox(width: Screen.w(context) * 0.02),
-                          Text(
-                            selectedProduct.product?.productType?.toString() ??
-                                selectedProduct.productType,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        "PRICE: ${selectedProduct.product?.price?.toString() ?? selectedProduct.productPrice?.toString() ?? 'N/A'}",
-                        style: TextStyle(
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: SvgPicture.asset(
-                    AppIcons.delete,
-                    colorFilter: ColorFilter.mode(Colors.red, BlendMode.srcIn),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      selectedProducts.removeAt(index);
-                    });
-                  },
-                ),
-              ],
-            ),
-
-            SizedBox(height: Screen.h(context) * 0.015),
-            // Quantity
-            const Text(
-              'Quantity:',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            SizedBox(height: Screen.h(context) * 0.015),
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    if (selectedProduct.quantity > 1) {
-                      setState(() {
-                        selectedProducts[index] = selectedProduct.copyWith(
-                          qtyOrdered: selectedProduct.quantity - 1,
-                        );
-                      });
-                    }
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: Screen.w(context) * 0.015,
-                        vertical: Screen.w(context) * 0.01),
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
-                        border: Border.all(width: 1, color: Colors.grey)),
-                    child: Icon(Icons.remove),
-                  ),
-                ),
-                SizedBox(width: Screen.w(context) * 0.02),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: Screen.w(context) * 0.05,
-                      vertical: Screen.w(context) * 0.01),
-                  decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(Screen.w(context) * 0.02)),
-                  child: Text(
-                    selectedProduct.quantity.toString(),
-                    style: const TextStyle(fontSize: 16, color: Colors.black),
-                  ),
-                ),
-                SizedBox(width: Screen.w(context) * 0.02),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedProducts[index] = selectedProduct.copyWith(
-                        qtyOrdered: selectedProduct.quantity + 1,
-                      );
-                    });
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: Screen.w(context) * 0.015,
-                        vertical: Screen.w(context) * 0.01),
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(Screen.w(context) * 0.02),
-                        border: Border.all(width: 1, color: Colors.grey)),
-                    child: Icon(Icons.add),
-                  ),
-                ),
-              ],
-            ),
-            // Scheme Toggle
-            Row(
-              children: [
-                const Text('Scheme:',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    )),
-                Spacer(),
-                Switch(
-                  value: selectedProduct.isScheme,
-                  activeColor: Colors.white,
-                  activeTrackColor: Colors.black,
-                  inactiveThumbColor: Colors.white,
-                  inactiveTrackColor: Colors.grey.shade300,
-                  trackOutlineColor: WidgetStateProperty.resolveWith<Color?>(
-                    (Set<WidgetState> states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return Colors.black; // Border when ON
-                      }
-                      return Colors.grey.shade300; // Border when OFF
-                    },
-                  ),
-                  trackOutlineWidth: WidgetStateProperty.all(2.0),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedProducts[index] = selectedProduct.copyWith(
-                        isProductScheme: value,
-                      );
-                    });
-                  },
-                )
-              ],
-            ),
-            // Discount Options
-            if (selectedDealer != null)
-              _buildDiscountOptions(selectedProduct, index),
-            SizedBox(
-              height: Screen.h(context) * 0.01,
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                elevation: 0,
-                side: BorderSide(color: Colors.grey, width: 1),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
-                ),
-              ),
-              onPressed: () async {
-                DateTime? pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: selectedProduct.deliveryDate ?? DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                  builder: (context, child) {
-                    return Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: ColorScheme.light(
-                          primary: Theme.of(context).primaryColor, // Header background color
-                          onPrimary: Colors.white, // Header text color
-                          surface: Colors.white, // Calendar background
-                          onSurface: Colors.black, // Calendar text color
-                        ),
-                        dialogBackgroundColor: Colors.white, // Dialog background
-                      ),
-                      child: child!,
-                    );
-                  },
-                );
-                if (pickedDate != null) {
-                  setState(() {
-                    selectedProducts[index] = selectedProduct.copyWith(
-                      deliveryDate: pickedDate,
-                    );
-                  });
-                }
-              },
-              child: Row(
-                children: [
-                  SizedBox(width: Screen.w(context) * 0.02),
-                  Icon(Icons.calendar_month),
-                  SizedBox(width: Screen.w(context) * 0.02),
-                  Text(
-                    selectedProduct.deliveryDate != null
-                        ? "${selectedProduct.deliveryDate!.day}/${selectedProduct.deliveryDate!.month}/${selectedProduct.deliveryDate!.year}"
-                        : "Select Date",
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-            if (!selectedProduct.isProductScheme && selectedProduct.deliveryDate == null)
-              Text(
-                "⚠ Delivery date required",
-                style: TextStyle(color: Colors.red, fontSize: 12),
-              ),
-            Divider(),
-            if (selectedProduct.isProductScheme == false)
-              Column(
-                children: [
-                  SizedBox(height: Screen.h(context) * 0.01),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Subtotal", style: TextStyle(fontSize: 14)),
-                      Text(subtotal.toStringAsFixed(2),
-                          style: const TextStyle(fontSize: 14)),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        (selectedProduct.useDealerDiscount &&
-                                discount?.isPercentage == true)
-                            ? "Discount (${discount?.discountValue}%)"
-                            : "Discount",
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      Text("- ${discountAmount.toStringAsFixed(2)}",
-                          style: const TextStyle(fontSize: 14)),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Total",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text(
-                        total.toStringAsFixed(2),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: Screen.h(context) * 0.01),
-                ],
-              ),
-          ],
+          }),
         ),
       ),
     );
   }
 
-  Widget _buildDiscountOptions(OrderDetailsModel selectedProduct, int index) {
-    print('🟡 selectedDealer: ${selectedDealer?.employeeId}');
-    print(
-        '🟡 selectedProductId: ${selectedProduct.productId}'); // Use productId directly, not product.productId
-
-    final discount = selectedProduct.dealerDiscount;
-
-    // 🔹 If product is scheme → hide everything, use dealer discount by default
-    if (selectedProduct.isScheme) {
-      if (discount != null && selectedProduct.useDealerDiscount != true) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          setState(() {
-            selectedProducts[index] = selectedProduct.copyWith(
-              useDealerDiscount: true,
-              discountAmount: null,
-              dealerDiscountId: discount.dealerDiscountId,
-            );
-          });
-        });
-      }
-      return const SizedBox.shrink(); // nothing shows
-    }
-
-    // 🔹 No dealer discount found → manual input
-    if (discount == null) {
-      print('⚠️ No dealer discount found — showing manual discount input');
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Discount Amount:'),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: Screen.w(context) * 0.4,
-            child: TextFormField(
-              initialValue: selectedProduct.discountAmount?.toString() ?? '',
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'discount amount',
-                border: OutlineInputBorder(
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onChanged: (value) {
-                print('📝 Manual discount entered: $value');
-                setState(() {
-                  selectedProducts[index] = selectedProduct.copyWith(
-                    discountAmount: num.tryParse(value),
-                    useDealerDiscount: false,
-                  );
-                });
-              },
-            ),
-          ),
-        ],
-      );
-    }
-
-    // 🔹 Dealer discount exists
-    print(
-        '🎯 Dealer discount available -> ID: ${discount.dealerDiscountId}, Value: ${discount.discountValue}');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Discount Option:',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            )),
-        SizedBox(height: Screen.w(context) * 0.02),
-        Row(
-          children: [
-            Expanded(
-                child: RadioListTile<bool>(
-              title: Text(
-                'Manual Discount',
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold),
-              ),
-              value: false,
-              dense: true,
-              activeColor: Theme.of(context).primaryColor,
-              visualDensity: VisualDensity.compact,
-              // makes it even smaller
-              groupValue: selectedProduct.useDealerDiscount,
-              onChanged: (value) {
-                print('🔘 Manual discount selected');
-                setState(() {
-                  selectedProducts[index] = selectedProduct.copyWith(
-                    useDealerDiscount: false,
-                    dealerDiscountId: null,
-                    discountAmount: 0
-                  );
-                });
-              },
-            )),
-            Expanded(
-              child: RadioListTile<bool>(
-                title: const Text(
-                  'Dealer Discount',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold),
-                ),
-                value: true,
-                activeColor: Theme.of(context).primaryColor,
-                groupValue: selectedProduct.useDealerDiscount,
-                onChanged: (value) {
-                  print('🔘 Dealer discount selected');
-                  setState(() {
-                    selectedProducts[index] = selectedProduct.copyWith(
-                      useDealerDiscount: true,
-                      discountAmount: null,
-                      dealerDiscountId: discount.dealerDiscountId,
-                    );
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
-        if (!selectedProduct.useDealerDiscount) ...[
-          SizedBox(height: Screen.h(context) * 0.01),
-          SizedBox(
-            width: Screen.w(context) * 0.4,
-            child: TextFormField(
-              initialValue: selectedProduct.discountAmount?.toString() ?? '',
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'Enter discount amount',
-                border: OutlineInputBorder(
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onChanged: (value) {
-                print('✏️ Manual discount field updated: $value');
-                final parsedValue = num.tryParse(value);
-                setState(() {
-                  selectedProducts[index] = selectedProduct.copyWith(
-                    discountAmount: parsedValue??0,
-                  );
-                });
-              },
-            ),
-          ),
-        ],
-        if (selectedProduct.useDealerDiscount) ...[
-          SizedBox(height: Screen.h(context) * 0.01),
-          Card(
-            color: Colors.white,
-            child: ListTile(
-              title: Text(
-                '${discount.isPercentage == false ? '₹' : ''}${discount.discountValue}${discount.isPercentage ? '%' : ''}',
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  // Update the product dialog to add to list
-  Future<void> _showProductDialog(
-      BuildContext context, List<String> brands) async {
-    final productAsync = ref
-        .watch(productControllerProvider.notifier)
-        .fetchProductsByBrand(brands);
-    TextEditingController searchController = TextEditingController();
-
+  Future<void> _showBrandDialog(
+      BuildContext context, String dealerId) async {
+    final searchController = TextEditingController();
+    final brandFuture = ref
+        .watch(brandControllerProvider.notifier)
+        .getBrandsByDealer(dealerId);
     showDialog(
       context: context,
-      builder: (context) {
-        return FutureBuilder<List<ProductModel>>(
-          future: productAsync,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const AlertDialog(
-                  backgroundColor: Colors.white, content: GlobalLoader());
-            }
-            if (snapshot.hasError) {
-              return AlertDialog(
+      builder: (context) => FutureBuilder<List<BrandModel>>(
+        future: brandFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AlertDialog(
                 backgroundColor: Colors.white,
-                title: const Text('Products'),
-                content: Text(snapshot.error.toString()),
-              );
-            }
-            final products = snapshot.data ?? [];
-            ValueNotifier<String> query = ValueNotifier('');
+                content: GlobalLoader());
+          }
+          if (snapshot.hasError) {
             return AlertDialog(
-              backgroundColor: Colors.white,
-              title: Center(child: const Text('Select Product')),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search product name or model',
-                        prefixIcon: Icon(Icons.search),
-                      ),
-                      onChanged: (val) => query.value = val.toLowerCase(),
+                title: const Text('Brands'),
+                content: Text(snapshot.error.toString()));
+          }
+          final brands = snapshot.data ?? [];
+          final query = ValueNotifier('');
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                    Screen.w(context) * 0.04)),
+            title: Text('Select Brand',
+                style: TextStyle(
+                    fontSize: Screen.w(context) * 0.042,
+                    fontWeight: FontWeight.w700)),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _dialogSearchField(context, searchController,
+                      'Search brand name', query),
+                  SizedBox(height: Screen.h(context) * 0.02),
+                  Expanded(
+                    child: ValueListenableBuilder<String>(
+                      valueListenable: query,
+                      builder: (_, q, __) {
+                        final filtered = brands
+                            .where((b) => b.brandName
+                            .toLowerCase()
+                            .contains(q))
+                            .toList();
+                        if (filtered.isEmpty) {
+                          return const Center(
+                              child: Text('No brands found'));
+                        }
+                        return ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) {
+                            final b = filtered[i];
+                            return _dialogListItem(
+                              context,
+                              title: b.brandName,
+                              leading: SvgPicture.asset(
+                                  AppIcons.brand,
+                                  width:
+                                  Screen.w(context) * 0.06),
+                              onTap: () {
+                                setState(
+                                        () => selectedBrand = b);
+                                Navigator.pop(context);
+                              },
+                            );
+                          },
+                        );
+                      },
                     ),
-                    SizedBox(height: Screen.h(context) * 0.03),
-                    Expanded(
-                      child: ValueListenableBuilder<String>(
-                        valueListenable: query,
-                        builder: (_, q, __) {
-                          final filtered = products.where((p) {
-                            final name = p.productName?.toLowerCase() ?? '';
-                            final model = p.model?.toLowerCase() ?? '';
-                            return name.contains(q) || model.contains(q);
-                          }).toList();
-
-                          if (filtered.isEmpty) {
-                            return const Center(
-                                child: Text('No products found'));
-                          }
-                          return ListView.builder(
-                            itemCount: filtered.length,
-                            itemBuilder: (_, i) {
-                              final product = filtered[i];
-                              return Container(
-                                margin:
-                                    EdgeInsets.only(bottom: Screen.w(context) * 0.01),
-                                decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.circular(Screen.w(context) * 0.03),
-                                  border: Border.all(
-                                      color: Colors.grey, width: 0.8),
-                                ),
-                                child: ListTile(
-                                  leading: SvgPicture.asset(
-                                    AppIcons.product,
-                                    colorFilter: ColorFilter.mode(
-                                        Theme.of(context).primaryColor,
-                                        BlendMode.srcIn),
-                                  ),
-                                  title: Text(product.productName.toString()),
-                                  subtitle: Text(product.model.toString()),
-                                  trailing: _isProductAlreadyAdded(product)
-                                      ? Icon(Icons.check,
-                                          color: Theme.of(context).primaryColor)
-                                      : null,
-                                  onTap: () async {
-                                      DealerDiscountModel? discount;
-                                      try {
-                                        discount = await ref.read(
-                                            dealerProductDiscountProvider({
-                                          'dealerId':
-                                              selectedDealer!.employeeId!,
-                                          'productId': product.productId!,
-                                        }).future);
-                                      } catch (e) {
-                                        print('Error fetching discount: $e');
-                                      }
-
-                                      setState(() {
-                                        // ✅ USE fromProduct factory method
-                                        selectedProducts
-                                            .add(OrderDetailsModel.fromProduct(
-                                          product,
-                                          dealerDiscount: discount,
-                                        ));
-                                      });
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            );
-          },
-        );
-      },
+            ),
+          );
+        },
+      ),
     );
   }
 
+  Future<void> _showSalesmanDialog(BuildContext context) async {
+    final searchController = TextEditingController();
+    final future = ref
+        .read(usersByRoleProvider('ROLE_SALESMAN').future);
+    showDialog(
+      context: context,
+      builder: (context) => FutureBuilder<List<UserModel>>(
+        future: future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AlertDialog(
+                backgroundColor: Colors.white,
+                content: GlobalLoader());
+          }
+          if (snapshot.hasError) {
+            return AlertDialog(
+                title: const Text('Salesmen'),
+                content: Text(snapshot.error.toString()));
+          }
+          final salesmen = snapshot.data ?? [];
+          final query = ValueNotifier('');
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                    Screen.w(context) * 0.04)),
+            title: Text('Select Salesman',
+                style: TextStyle(
+                    fontSize: Screen.w(context) * 0.042,
+                    fontWeight: FontWeight.w700)),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _dialogSearchField(context, searchController,
+                      'Search by name or phone', query),
+                  SizedBox(height: Screen.h(context) * 0.02),
+                  Expanded(
+                    child: ValueListenableBuilder<String>(
+                      valueListenable: query,
+                      builder: (_, q, __) {
+                        final filtered = salesmen.where((s) {
+                          final name =
+                          s.employeeName.toLowerCase();
+                          final phone =
+                          s.employeePhone.toLowerCase();
+                          return name.contains(q) ||
+                              phone.contains(q);
+                        }).toList();
+                        if (filtered.isEmpty) {
+                          return const Center(
+                              child:
+                              Text('No salesmen found'));
+                        }
+                        return ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) {
+                            final s = filtered[i];
+                            return _dialogListItem(
+                              context,
+                              title: s.employeeName,
+                              subtitle: s.employeePhone,
+                              onTap: () {
+                                setState(() =>
+                                selectedSalesman = s);
+                                Navigator.pop(context);
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _showProductDialog(
+      BuildContext context, List<String> brands) async {
+    final searchController = TextEditingController();
+    final future = ref
+        .watch(productControllerProvider.notifier)
+        .fetchProductsByBrand(brands);
+    showDialog(
+      context: context,
+      builder: (context) => FutureBuilder<List<ProductModel>>(
+        future: future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AlertDialog(
+                backgroundColor: Colors.white,
+                content: GlobalLoader());
+          }
+          if (snapshot.hasError) {
+            return AlertDialog(
+                backgroundColor: Colors.white,
+                title: const Text('Products'),
+                content: Text(snapshot.error.toString()));
+          }
+          final products = snapshot.data ?? [];
+          final query = ValueNotifier('');
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                    Screen.w(context) * 0.04)),
+            title: Text('Select Product',
+                style: TextStyle(
+                    fontSize: Screen.w(context) * 0.042,
+                    fontWeight: FontWeight.w700)),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _dialogSearchField(
+                      context,
+                      searchController,
+                      'Search product name or model',
+                      query),
+                  SizedBox(height: Screen.h(context) * 0.02),
+                  Expanded(
+                    child: ValueListenableBuilder<String>(
+                      valueListenable: query,
+                      builder: (_, q, __) {
+                        final filtered = products.where((p) {
+                          final name =
+                              p.productName?.toLowerCase() ??
+                                  '';
+                          final model =
+                              p.model?.toLowerCase() ?? '';
+                          return name.contains(q) ||
+                              model.contains(q);
+                        }).toList();
+                        if (filtered.isEmpty) {
+                          return const Center(
+                              child:
+                              Text('No products found'));
+                        }
+                        return ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (_, i) {
+                            final p = filtered[i];
+                            final added =
+                            _isProductAlreadyAdded(p);
+                            return Container(
+                              margin: EdgeInsets.only(
+                                  bottom:
+                                  Screen.w(context) * 0.02),
+                              decoration: BoxDecoration(
+                                color: added
+                                    ? _kGreenBg
+                                    : _kBg,
+                                borderRadius:
+                                BorderRadius.circular(
+                                    Screen.w(context) *
+                                        0.028),
+                                border: Border.all(
+                                    color: added
+                                        ? _kGreenBorder
+                                        : _kBorder),
+                              ),
+                              child: ListTile(
+                                leading: SvgPicture.asset(
+                                  AppIcons.product,
+                                  width: Screen.w(context) * 0.06,
+                                  colorFilter: ColorFilter.mode(
+                                      added ? _kGreen : _kBlue,
+                                      BlendMode.srcIn),
+                                ),
+                                title: Text(
+                                    p.productName.toString(),
+                                    style: const TextStyle(
+                                        fontWeight:
+                                        FontWeight.w600)),
+                                subtitle:
+                                Text(p.model.toString()),
+                                trailing: added
+                                    ? const Icon(
+                                    Icons.check_circle,
+                                    color: _kGreen)
+                                    : null,
+                                onTap: () async {
+                                  DealerDiscountModel? discount;
+                                  try {
+                                    discount = await ref.read(
+                                      dealerProductDiscountProvider({
+                                        'dealerId': selectedDealer!
+                                            .employeeId!,
+                                        'productId':
+                                        p.productId!,
+                                      }).future,
+                                    );
+                                  } catch (e) {
+                                    debugPrint(
+                                        'Discount fetch: $e');
+                                  }
+                                  setState(() {
+                                    selectedProducts.add(
+                                      OrderDetailsModel.fromProduct(
+                                        p,
+                                        dealerDiscount: discount,
+                                      ),
+                                    );
+                                  });
+                                  if (!context.mounted) return;
+                                  Navigator.pop(context);
+                                },
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ── Dialog helpers ─────────────────────────────────────────────────────────
+  Widget _dialogSearchField(
+      BuildContext context,
+      TextEditingController ctrl,
+      String hint,
+      ValueNotifier<String> query) {
+    return TextField(
+      controller: ctrl,
+      style: TextStyle(
+          fontSize: Screen.w(context) * 0.034),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(
+            fontSize: Screen.w(context) * 0.032),
+        prefixIcon: Icon(Icons.search_rounded,
+            size: Screen.w(context) * 0.05),
+        filled: true,
+        fillColor: _kBg,
+        border: OutlineInputBorder(
+          borderRadius:
+          BorderRadius.circular(Screen.w(context) * 0.028),
+          borderSide: const BorderSide(color: _kBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius:
+          BorderRadius.circular(Screen.w(context) * 0.028),
+          borderSide: const BorderSide(color: _kBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius:
+          BorderRadius.circular(Screen.w(context) * 0.028),
+          borderSide:
+          const BorderSide(color: _kBlue, width: 1.5),
+        ),
+      ),
+      onChanged: (v) => query.value = v.toLowerCase(),
+    );
+  }
+
+  Widget _dialogListItem(
+      BuildContext context, {
+        required String title,
+        String? subtitle,
+        Widget? leading,
+        required VoidCallback onTap,
+      }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: Screen.w(context) * 0.02),
+      decoration: BoxDecoration(
+        color: _kBg,
+        borderRadius:
+        BorderRadius.circular(Screen.w(context) * 0.028),
+        border: Border.all(color: _kBorder),
+      ),
+      child: ListTile(
+        leading: leading,
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: subtitle != null ? Text(subtitle) : null,
+        onTap: onTap,
+      ),
+    );
+  }
+
+  // ── Date picker ──────────────────────────────────────────────────────────────
+  Future<void> _selectDeliveryDate(BuildContext context,
+      OrderDetailsModel product, int index) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: product.deliveryDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: _kBlue,
+            onPrimary: Colors.white,
+            surface: Colors.white,
+            onSurface: _kDark,
+          ),
+          dialogTheme:
+          const DialogThemeData(backgroundColor: Colors.white),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        selectedProducts[index] =
+            product.copyWith(deliveryDate: picked);
+      });
+    }
+  }
+
+  // ── Validation & Create ───────────────────────────────────────────────────────
   bool _isProductAlreadyAdded(ProductModel product) {
     return selectedProducts
         .any((sp) => sp.product?.productId == product.productId);
   }
 
   bool _canCreateOrder() {
-    // Basic validation
     if (selectedDealer == null ||
         selectedSalesman == null ||
         selectedProducts.isEmpty ||
-        amountPaid < 0) {
-      return false;
-    }
+        amountPaid < 0) return false;
 
-    // Delivery date validation (skip scheme items because they are free)
-    final missingDate = selectedProducts.any((p) =>
-    p.isProductScheme != true && p.deliveryDate == null);
-
-    if (missingDate) return false;
-
-    return true;
+    // ✅ FIX: ALL products require delivery date, including scheme
+    return !selectedProducts.any((p) => p.deliveryDate == null);
   }
 
-
   void _createOrder() async {
-    // 🔍 VALIDATION FIRST
-    final missingDeliveryDate = selectedProducts.any(
-          (p) => !p.isProductScheme && p.deliveryDate == null,
-    );
+    // ✅ FIX: ALL products require delivery date, including scheme
+    final missingDate =
+    selectedProducts.any((p) => p.deliveryDate == null);
 
-    if (missingDeliveryDate) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please select delivery date for all products"),
+    if (missingDate) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded,
+                color: Colors.white),
+            const SizedBox(width: 12),
+            const Expanded(
+                child: Text(
+                    'Please select delivery date for all products')),
+          ],
         ),
-      );
+        backgroundColor: _kRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8)),
+      ));
       return;
     }
 
     setState(() => isCreatingOrder = true);
 
     try {
-      // ✅ Calculate discount for each product before sending
       final processedProducts = selectedProducts.map((p) {
-        double calculatedDiscountPerUnit = 0;
-
-        // Skip discount calculation for scheme items
         if (p.isProductScheme == true) {
-          return p.copyWith(discountAmount: 0); // Scheme items have no discount
+          return p.copyWith(discountAmount: 0);
         }
-
-        double unitPrice = double.tryParse(p.product?.price?.toString() ?? "0") ?? 0;
-
-        // Calculate discount based on type
+        double unitPrice =
+            double.tryParse(p.product?.price?.toString() ?? '0') ??
+                0;
+        double calculatedDiscount = 0;
         if (p.useDealerDiscount && p.dealerDiscount != null) {
-          final discount = p.dealerDiscount!;
-          if (discount.isPercentage == true) {
-            calculatedDiscountPerUnit = unitPrice * (discount.discountValue / 100);
-          } else {
-            calculatedDiscountPerUnit = discount.discountValue.toDouble();
-          }
-        } else if (!p.useDealerDiscount && p.discountAmount != null) {
-          // Manual discount - already set
-          calculatedDiscountPerUnit = p.discountAmount!.toDouble();
+          final d = p.dealerDiscount!;
+          calculatedDiscount = d.isPercentage == true
+              ? unitPrice * (d.discountValue / 100)
+              : d.discountValue.toDouble();
+        } else if (!p.useDealerDiscount &&
+            p.discountAmount != null) {
+          calculatedDiscount = p.discountAmount!.toDouble();
         }
-
-        // ✅ Ensure discountAmount is set
-        return p.copyWith(discountAmount: calculatedDiscountPerUnit);
+        return p.copyWith(discountAmount: calculatedDiscount);
       }).toList();
-
-      // 🔍 DEBUG: Check what's being sent
-      print('📦 ORDER DETAILS DEBUG:');
-      for (var i = 0; i < processedProducts.length; i++) {
-        final p = processedProducts[i];
-        print('  Product $i: ${p.product?.productName}');
-        print('    - useDealerDiscount: ${p.useDealerDiscount}');
-        print('    - discountAmount: ${p.discountAmount}');
-        print('    - dealerDiscountId: ${p.dealerDiscountId}');
-        print('    - isScheme: ${p.isProductScheme}');
-      }
 
       final order = OrderModel(
         dealerId: selectedDealer!.employeeId!,
@@ -1408,84 +1849,76 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
         salesmanId: selectedSalesman!.employeeId!,
         paymentType: paymentMethod,
         amountPaid: amountPaid,
-        orderDetails: processedProducts, // ← Use processed products
+        orderDetails: processedProducts,
       );
 
-      print('📤 Sending order: ${order.toJson()}');
-
-      await ref.read(orderControllerProvider.notifier).createOrder(order);
+      await ref
+          .read(orderControllerProvider.notifier)
+          .createOrder(order);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 20),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Order created successfully!',
-                  style: TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.green[700],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          margin: EdgeInsets.all(16),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle,
+                color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            const Expanded(
+                child: Text('Order created successfully!',
+                    style: TextStyle(fontWeight: FontWeight.w500))),
+          ],
         ),
-      );
+        backgroundColor: _kGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+      ));
 
-      await ref.read(orderControllerProvider.notifier).getAllOrders();
+      await ref
+          .read(orderControllerProvider.notifier)
+          .getAllOrders();
       if (mounted) Navigator.pop(context);
     } catch (e, s) {
       debugPrint('❌ Error creating order: $e\n$s');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create order: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Failed to create order: $e')),
+            ],
+          ),
+          backgroundColor: _kRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8)),
+        ));
       }
     } finally {
       if (mounted) setState(() => isCreatingOrder = false);
     }
   }
 
-
   double _calculateOrderTotal() {
-    double grandTotal = 0;
-
-    for (var p in selectedProducts) {
-      if (p.isProductScheme == true) {
-        continue; // skip free products
-      }
-
+    double total = 0;
+    for (final p in selectedProducts) {
+      if (p.isProductScheme == true) continue;
       double unitPrice =
-          double.tryParse(p.product?.price?.toString() ?? "0") ?? 0;
+          double.tryParse(p.product?.price?.toString() ?? '0') ?? 0;
       int qty = p.quantity;
-
       double unitDiscount = 0;
       final discount = p.dealerDiscount;
-
-      // Dealer discount per unit
       if (p.useDealerDiscount && discount != null) {
-        if (discount.isPercentage == true) {
-          unitDiscount = unitPrice * (discount.discountValue / 100);
-        } else {
-          unitDiscount = discount.discountValue.toDouble();
-        }
-      }
-      // Manual per-unit discount
-      else if (!p.useDealerDiscount && p.discountAmount != null) {
+        unitDiscount = discount.isPercentage == true
+            ? unitPrice * (discount.discountValue / 100)
+            : discount.discountValue.toDouble();
+      } else if (!p.useDealerDiscount && p.discountAmount != null) {
         unitDiscount = p.discountAmount!.toDouble();
       }
-
-      double itemTotal = (unitPrice - unitDiscount) * qty;
-
-      grandTotal += itemTotal;
+      total += (unitPrice - unitDiscount) * qty;
     }
-
-    return grandTotal;
+    return total;
   }
-
 }

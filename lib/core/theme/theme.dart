@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:inverter_management_app/core/media_query/media_query.dart';
 
 /// | NAME           | SIZE |  HEIGHT |  WEIGHT |  SPACING |             |
 /// |----------------|------|---------|---------|----------|-------------|

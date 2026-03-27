@@ -28,4 +28,5 @@ class AppIcons{
   static const String model = 'assets/icons/model.svg';
   static const String quantity = 'assets/icons/quantity.svg';
   static const String time = 'assets/icons/time.svg';
+  static const String logout = 'assets/icons/logout.svg';
 }

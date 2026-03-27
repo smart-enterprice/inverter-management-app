@@ -11,7 +11,8 @@ class ProductModel {
   String? createdAt;
   String? updatedAt;
   List<Stocks>? stocks;
-
+  String? logNote;
+  List<PriceHistory>? priceHistory;
 
   ProductModel({
     this.productId,
@@ -26,6 +27,8 @@ class ProductModel {
     this.createdAt,
     this.updatedAt,
     this.stocks,
+    this.logNote,
+    // ❌ no priceHistory in constructor — never sent to backend
   });
 
   ProductModel.fromJson(Map<String, dynamic> json) {
@@ -40,10 +43,17 @@ class ProductModel {
     brand = json['brand'];
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];
+    logNote = json['log_note'];
     if (json['stocks'] != null) {
       stocks = <Stocks>[];
       json['stocks'].forEach((v) {
         stocks!.add(Stocks.fromJson(v));
+      });
+    }
+    if (json['price_history'] != null) {
+      priceHistory = <PriceHistory>[];
+      json['price_history'].forEach((v) {
+        priceHistory!.add(PriceHistory.fromJson(v));
       });
     }
   }
@@ -61,6 +71,7 @@ class ProductModel {
     String? createdAt,
     String? updatedAt,
     List<Stocks>? stocks,
+    String? logNote,
   }) {
     return ProductModel(
       productId: productId ?? this.productId,
@@ -75,9 +86,9 @@ class ProductModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       stocks: stocks ?? this.stocks,
+      logNote: logNote ?? this.logNote,
     );
   }
-
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {};
@@ -85,7 +96,7 @@ class ProductModel {
     data['product_name'] = productName;
     data['model'] = model;
     data['product_type'] = productType;
-    data['product_price'] = price; // ✅ renamed for API
+    data['product_price'] = price;
     data['status'] = status;
     if (stocks != null) {
       data['stocks'] = stocks!.map((v) => v.toJson()).toList();
@@ -145,6 +156,7 @@ class Stocks {
     updatedAt = json['updated_at'];
     type = json['type'];
     stockType = json['stock_type'];
+
   }
 
   Map<String, dynamic> toJson() {
@@ -201,5 +213,39 @@ class StockItem {
       'type': type,
       if (stockNotes != null) 'stock_notes': stockNotes,
     };
+  }
+}
+class PriceHistory {
+  final String? priceHistoryId;
+  final String? productId;
+  final num? oldPrice;
+  final num? newPrice;
+  final String? changedBy;
+  final String? changeReason;
+  final String? changedAt;
+  final String? createdAt;
+
+  PriceHistory({
+    this.priceHistoryId,
+    this.productId,
+    this.oldPrice,
+    this.newPrice,
+    this.changedBy,
+    this.changeReason,
+    this.changedAt,
+    this.createdAt,
+  });
+
+  factory PriceHistory.fromJson(Map<String, dynamic> json) {
+    return PriceHistory(
+      priceHistoryId: json['price_history_id'],
+      productId: json['product_id'],
+      oldPrice: json['old_price'],
+      newPrice: json['new_price'],
+      changedBy: json['changed_by'],
+      changeReason: json['change_reason'],
+      changedAt: json['changed_at'],
+      createdAt: json['created_at'],
+    );
   }
 }

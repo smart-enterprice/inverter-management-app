@@ -66,7 +66,7 @@ class DealerDiscountController extends StateNotifier<AsyncValue<List<DealerDisco
       debugPrint('debug result ${discount!.toJson()}');
       return discount;
 
-    } catch (e, st) {
+    } catch (e) {
       rethrow;
     }
   }

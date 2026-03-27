@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../model/user_model.dart';
 import '../repository/signUp_repository.dart';
 import '../screen/dealer/dealers_screen.dart';
@@ -11,6 +12,12 @@ final signupControllerProvider =
 StateNotifierProvider<SignupController, AsyncValue<void>>((ref) {
   final repository = ref.read(signupRepositoryProvider);
   return SignupController(repository);
+});
+
+// ✅ Add near other providers at the top
+final employeeByIdProvider = FutureProvider.family<UserModel?, String>((ref, id) async {
+  if (id.isEmpty) return null;
+  return ref.read(signupControllerProvider.notifier).getEmployeeById(id);
 });
 
 /// Provider to get employee list (excluding dealers)
@@ -31,6 +38,15 @@ final usersByRoleProvider = FutureProvider.family<List<UserModel>, String>((ref,
   return await controller.getUsersByRole(role);
 });
 
+final currentUserProvider = FutureProvider<UserModel?>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final userId = prefs.getString('user_id');
+  if (userId == null) return null;
+  final repo = ref.read(signupControllerProvider.notifier);
+  print('Current user is refreshing');
+  return await repo.getEmployeeById(userId);
+
+});
 
 class SignupController extends StateNotifier<AsyncValue<void>> {
   final SignupRepository _repository;
@@ -111,19 +127,18 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
     String? phone,
     String? shopName,
     String? role,
-    String? photo, // This could be local path or existing URL
+    String? photo,
     String? address,
     String? town,
     String? district,
     List<String>? brand,
-    File? photoFile, // Add this parameter for new photo file
+    File? photoFile,
+    List<String>? addBrands,
+    List<String>? removeBrands,
   }) async {
     state = const AsyncLoading();
-
     try {
       String? finalPhotoUrl = photo;
-
-      // If a new photo file is provided, upload it first
       if (photoFile != null) {
         finalPhotoUrl = await _repository.uploadFile(photoFile);
       }
@@ -134,7 +149,7 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
         employeePhone: phone,
         shopName: shopName,
         role: role,
-        photo: finalPhotoUrl, // Use uploaded URL or existing URL
+        photo: finalPhotoUrl,
         address: address,
         town: town,
         district: district,
@@ -145,7 +160,12 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
         throw Exception('employeeId is required for update');
       }
 
-      await _repository.updateUser(updatedUser.employeeId!, updatedUser);
+      await _repository.updateUser(
+        updatedUser.employeeId!,
+        updatedUser,
+        addBrands: addBrands,
+        removeBrands: removeBrands,
+      );
       state = const AsyncData(null);
       return null;
     } catch (e, st) {

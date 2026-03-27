@@ -4,11 +4,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:inverter_management_app/feature/order/screen/orders_view_page.dart';
 import '../core/const/icons.dart';
 import '../core/media_query/media_query.dart';
-import '../feature/authentication/controller/login_controller.dart';
-import '../feature/authentication/screen/login_mobile_view.dart';
 import 'createSection.dart';
-import 'dashboard_screen.dart';
-import 'delivery_screen.dart';
+import 'Dashboard/superadmin_dashboard_screen.dart';
 
 class SuperAdminTabletView extends ConsumerStatefulWidget {
   const SuperAdminTabletView({super.key});
@@ -19,7 +16,7 @@ class SuperAdminTabletView extends ConsumerStatefulWidget {
 class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminTabletView> {
    int _currentIndex  = 0;
   List<Widget> body = const[
-    DashboardScreen(),
+    SuperadminDashboardScreen(),
     OrdersViewPage(),
     CreateSection(),
     Icon(Icons.settings)

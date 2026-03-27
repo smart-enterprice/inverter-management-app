@@ -118,4 +118,7 @@ class ProductRepository {
       throw Exception('Unexpected error occurred while fetching low stock');
     }
   }
+
+  // get products by brand
+
 }

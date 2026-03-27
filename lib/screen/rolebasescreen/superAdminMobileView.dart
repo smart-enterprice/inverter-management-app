@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:inverter_management_app/feature/order/screen/orders_view_page.dart';
 import '../../core/const/icons.dart';
 import '../createSection.dart';
-import '../dashboard_screen.dart';
+import '../Dashboard/superadmin_dashboard_screen.dart';
 
 class SuperAdminMobileView extends ConsumerStatefulWidget {
   const SuperAdminMobileView({super.key});
@@ -18,10 +18,10 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminMobileView> {
 
   // ✅ Fix 1: Make sure you have 4 screens here to match your 4 nav items!
   final List<Widget> body = const [
-    DashboardScreen(),
+    SuperadminDashboardScreen(),
     OrdersViewPage(),
-    // CreateSection(),
     CreateSection(),
+    Center(child: Text('Delivery Screen')), // Placeholder for Delivery screen
   ];
 
   @override
@@ -37,10 +37,12 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminMobileView> {
           // The Custom Floating Bottom Navigation Bar
           Positioned(
             bottom: 20,
-            left: 16, // ✅ Fix 2: Reduced outer margins slightly so 4 items can fit
+            left:
+                16, // ✅ Fix 2: Reduced outer margins slightly so 4 items can fit
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12), // ✅ Reduced inner padding
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 8, vertical: 12), // ✅ Reduced inner padding
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
@@ -68,13 +70,13 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminMobileView> {
                     primaryColor: primaryColor,
                   ),
                   _buildNavItem(
-                    index: 3,
+                    index: 2,
                     icon: AppIcons.add,
                     label: 'Create', // Capitalized label
                     primaryColor: primaryColor,
                   ),
                   _buildNavItem(
-                    index: 2, // ✅ Fix 3: Changed this from 2 to 3!
+                    index: 3, // ✅ Fix 3: Changed this from 2 to 3!
                     icon: AppIcons.delivery,
                     label: 'Delivery', // Capitalized label
                     primaryColor: primaryColor,
@@ -107,9 +109,12 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminMobileView> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         // ✅ Fix 4: Unselected items have smaller padding to save horizontal space
-        padding: EdgeInsets.symmetric(horizontal: isSelected ? 12 : 8, vertical: 10),
+        padding:
+            EdgeInsets.symmetric(horizontal: isSelected ? 12 : 8, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? primaryColor.withValues(alpha: 0.1) : Colors.transparent,
+          color: isSelected
+              ? primaryColor.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -128,16 +133,18 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminMobileView> {
               curve: Curves.easeInOut,
               child: isSelected
                   ? Padding(
-                padding: const EdgeInsets.only(left: 6.0), // Slightly tighter text padding
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: primaryColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13, // Slightly smaller font to guarantee fit on small phones
-                  ),
-                ),
-              )
+                      padding: const EdgeInsets.only(
+                          left: 6.0), // Slightly tighter text padding
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: primaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize:
+                              13, // Slightly smaller font to guarantee fit on small phones
+                        ),
+                      ),
+                    )
                   : const SizedBox.shrink(),
             ),
           ],

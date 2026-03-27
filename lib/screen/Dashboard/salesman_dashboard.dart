@@ -3,22 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/model/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../core/media_query/media_query.dart';
-import '../feature/order/controller/order_controller.dart';
-import '../feature/order/screen/orders_view_page.dart'; // Make sure to import this
-import '../feature/signup/controller/signUp_controller.dart';
-import '../widgets/data_card.dart';
-import '../widgets/info_card.dart';
-import 'ControlPanel.dart';
+import '../../core/media_query/media_query.dart';
+import '../../feature/order/controller/order_controller.dart';
+// Make sure to import this
+import '../../feature/signup/controller/signUp_controller.dart';
+import '../../widgets/data_card.dart';
+import '../../widgets/info_card.dart';
+import '../ControlPanel.dart';
 
-class DashboardScreen extends ConsumerStatefulWidget {
-  const DashboardScreen({super.key});
+class SalesManDashboardScreen extends ConsumerStatefulWidget {
+  const SalesManDashboardScreen({super.key});
 
   @override
-  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<SalesManDashboardScreen> createState() => _SalesManDashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+class _SalesManDashboardScreenState extends ConsumerState<SalesManDashboardScreen> {
   UserModel? _user;
 
   @override

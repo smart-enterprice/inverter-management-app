@@ -2,18 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:inverter_management_app/feature/order/screen/orders_view_page.dart';
-import 'package:inverter_management_app/feature/signup/screen/user/user_view_screen.dart';
 import 'package:inverter_management_app/model/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/const/icons.dart';
-import '../../core/media_query/media_query.dart';
-import '../../feature/authentication/controller/login_controller.dart';
-import '../../feature/authentication/screen/login_mobile_view.dart';
 import '../../feature/signup/controller/signUp_controller.dart';
 import '../createSection.dart';
-import '../dashboard_screen.dart';
-import '../delivery_screen.dart';
-import '../ControlPanel.dart';
+import '../Dashboard/superadmin_dashboard_screen.dart';
 
 class SalesmanMobileView extends ConsumerStatefulWidget {
   const SalesmanMobileView({super.key});
@@ -26,7 +20,7 @@ class _SalesmanMobileViewState extends ConsumerState<SalesmanMobileView> {
   UserModel? _user;
 
   final List<Widget> body = const [
-    DashboardScreen(),
+    SuperadminDashboardScreen(),
     OrdersViewPage(),
     CreateSection(),
   ];
