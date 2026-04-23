@@ -393,6 +393,7 @@ class OrderDetailsModel {
   final int? totalCancelledQty;
   final String? reasonForCancellation;
   final List<CancellationHistoryModel>? cancellationHistory;
+  final String? notes;
 
   // ✅ UI-only flag fields
   final bool isDeliveryDateUpdated;
@@ -458,7 +459,8 @@ class OrderDetailsModel {
     this.reasonForCancellation,
     this.cancellationHistory,
     this.isDeliveryDateUpdated = false, // ✅ default false
-    this.isReasonUpdated = false,       // ✅ default false
+    this.isReasonUpdated = false,
+    this.notes,// ✅ default false
   });
 
   int get quantity => qtyOrdered ?? 1;
@@ -468,6 +470,7 @@ class OrderDetailsModel {
     final stockFlagsData = json["stock_flags"];
 
     return OrderDetailsModel(
+      notes: json["notes"]?.toString(),
       productId: json["product_id"]?.toString() ?? "",
       productBrand: json["product_brand"]?.toString() ?? "",
       productName: json["product_name"]?.toString() ?? "",
@@ -587,6 +590,7 @@ class OrderDetailsModel {
   }
 
   OrderDetailsModel copyWith({
+    String? notes,
     String? productId,
     String? productBrand,
     String? productName,
@@ -633,6 +637,7 @@ class OrderDetailsModel {
     bool clearReasonForCancellation = false,
   }) {
     return OrderDetailsModel(
+      notes: notes ?? this.notes,
       productId: productId ?? this.productId,
       productBrand: productBrand ?? this.productBrand,
       productName: productName ?? this.productName,

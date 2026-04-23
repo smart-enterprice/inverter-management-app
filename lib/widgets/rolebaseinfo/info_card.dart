@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/core/media_query/media_query.dart';
 
-import '../feature/order/controller/order_controller.dart';
-import '../feature/product/controller/product_controller.dart';
+import '../../feature/order/controller/order_controller.dart';
+import '../../feature/product/controller/product_controller.dart';
 
 class InfoCard extends ConsumerWidget {
   const InfoCard({super.key});

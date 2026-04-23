@@ -5,8 +5,6 @@ import 'package:inverter_management_app/core/const/icons.dart';
 import 'package:inverter_management_app/feature/order/screen/order_view_page.dart';
 import 'package:inverter_management_app/model/user_model.dart';
 import 'package:inverter_management_app/screen/loadingScreen.dart';
-import 'package:inverter_management_app/screen/rolesbasepanel/salesmanpanel.dart';
-import 'package:inverter_management_app/widgets/rolebaseinfo/salesman_infocard.dart';
 
 import '../../core/const/role.dart';
 import '../../core/media_query/media_query.dart';
@@ -17,17 +15,18 @@ import '../../feature/signup/controller/signUp_controller.dart';
 import '../../widgets/data_card.dart';
 import '../../widgets/rolebaseinfo/info_card.dart';
 import '../rolesbasepanel/ControlPanel.dart';
+import '../rolesbasepanel/accountantPanel.dart';
 
-class SalesManDashboard extends ConsumerStatefulWidget {
-  const SalesManDashboard({super.key});
+class AccountantDashboard extends ConsumerStatefulWidget {
+  const AccountantDashboard({super.key});
 
   @override
-  ConsumerState<SalesManDashboard> createState() =>
-      _SuperadminDashboardScreenState();
+  ConsumerState<AccountantDashboard> createState() =>
+      _AccountantDashboardState();
 }
 
-class _SuperadminDashboardScreenState
-    extends ConsumerState<SalesManDashboard>
+class _AccountantDashboardState
+    extends ConsumerState<AccountantDashboard>
     with SingleTickerProviderStateMixin {
   UserModel? _user;
   late AnimationController _animController;
@@ -90,13 +89,13 @@ class _SuperadminDashboardScreenState
                       SizedBox(height: sh * 0.025),
 
                       // ── Stats cards ────────────────────────────────────
-                      const SalesmanInfoCard(),
+                      // const InfoCard(),
                       SizedBox(height: sh * 0.03),
 
                       // ── Quick access ───────────────────────────────────
                       _sectionLabel('Quick Access'),
                       SizedBox(height: sh * 0.015),
-                      const SalesmanPanel(),
+                      const AccountantPanel(),
                       SizedBox(height: sh * 0.03),
 
                       // ── Recent orders ──────────────────────────────────

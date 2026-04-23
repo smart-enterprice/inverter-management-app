@@ -5,14 +5,9 @@ import '../../../core/role/app_role.dart';
 import '../../../model/login_model.dart';
 import '../repository/login_repository.dart';
 
-/// SharedPreferences provider
-final sharedPreferencesProvider = Provider<Future<SharedPreferences>>(
-  (ref) => SharedPreferences.getInstance(),
-);
-
 /// LoginController provider
 final loginControllerProvider = Provider(
-  (ref) => LoginController(ref.read(loginRepositoryProvider), ref),
+      (ref) => LoginController(ref.read(loginRepositoryProvider), ref),
 );
 
 class LoginController {
@@ -27,7 +22,6 @@ class LoginController {
   static const _userIdKey = 'user_id';
   static const _loggedInKey = 'is_logged_in';
 
-
   /// Login
   Future<LoginResult> login(String email, String password) async {
     if (email.trim().isEmpty || password.trim().isEmpty) {
@@ -39,13 +33,12 @@ class LoginController {
       );
       if (response.statusCode == 200) {
         return await _saveUserData(response.data?['data']);
-      }  else {
+      } else {
         return LoginResult.failure('Something went wrong. Try again.');
       }
-
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) {
-        return LoginResult.failure('password and email required');
+        return LoginResult.failure('Password and email required');
       }
       return LoginResult.failure('Login error: ${e.message}');
     }
@@ -63,13 +56,14 @@ class LoginController {
       return LoginResult.failure('Missing user data');
     }
 
-    final prefs = await _ref.read(sharedPreferencesProvider);
+    // ✅ Always get fresh instance
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_roleKey, role);
     await prefs.setString(_tokenKey, token);
     await prefs.setBool(_loggedInKey, true);
     await prefs.setString(_userIdKey, id);
     _ref.read(roleNotifierProvider.notifier).setRole(role);
-    print(role);
+
     return LoginResult.success('Login successful', role, token);
   }
 
@@ -77,13 +71,11 @@ class LoginController {
   Future<LogoutResult> logout() async {
     try {
       final response = await _repository.logout();
+      await _clearUserData();
       if (response.statusCode == 200) {
-        await _clearUserData();
         return LogoutResult.success('Logout successful');
       } else {
-        await _clearUserData();
-        return LogoutResult.failure(
-            'Logout failed on server, but local cleared');
+        return LogoutResult.failure('Logout failed on server, but local cleared');
       }
     } catch (_) {
       await _clearUserData();
@@ -102,25 +94,34 @@ class LoginController {
     }
   }
 
+  /// ✅ Always get a fresh SharedPreferences instance — avoids stale Riverpod cache
   Future<void> _clearUserData() async {
-    final prefs = await _ref.read(sharedPreferencesProvider);
-    await prefs.clear();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_roleKey);
+    await prefs.remove(_tokenKey);
+    await prefs.remove(_loggedInKey);
+    await prefs.remove(_userIdKey);
     _ref.read(roleNotifierProvider.notifier).clearRole();
   }
 
   /// Force logout (without API call)
-  Future<void> forceLogout() async => _clearUserData();
+  Future<void> forceLogout() async => await _clearUserData();
 
-  /// Getters
-  Future<bool> isLoggedIn() async =>
-      (await _ref.read(sharedPreferencesProvider)).getBool(_loggedInKey) ??
-      false;
+  /// Getters — all use fresh instance
+  Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_loggedInKey) ?? false;
+  }
 
-  Future<String?> getUserRole() async =>
-      (await _ref.read(sharedPreferencesProvider)).getString(_roleKey);
+  Future<String?> getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_roleKey);
+  }
 
-  Future<String?> getToken() async =>
-      (await _ref.read(sharedPreferencesProvider)).getString(_tokenKey);
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tokenKey);
+  }
 }
 
 /// Result classes

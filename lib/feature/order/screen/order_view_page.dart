@@ -133,7 +133,9 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                           _buildSummaryCard(context, sw, sh, order),
                           SizedBox(height: sh * 0.012),
                           if (order.dealer != null) ...[
-                            _buildDealerCard(context, sw, sh, order.dealer!),
+                            RoleGuard(
+                                feature: AppFeature.viewDealers,
+                                child: _buildDealerCard(context, sw, sh, order.dealer!)),
                             SizedBox(height: sh * 0.012),
                           ],
                           _buildItemsCard(context, sw, sh, order),
@@ -291,6 +293,11 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
 
   Widget _buildItemRow(BuildContext context, double sw, double sh,
       OrderDetailsModel item, int index, OrderModel order) {
+    String _subStatusLabel(OrderDetailsModel item) {
+      if (item.hasProduction == true) return 'In Production';
+      if (item.hasUnpacked == true)   return 'Awaiting Packing';
+      return 'Ready to Ship';
+    }
     final isCancelled = item.status == 'CANCELLED';
     final isCompleted = item.status == 'COMPLETED' || item.status == 'DELIVERED';
     final maxCancellable = (item.qtyOrdered ?? 0) - (item.qtyDelivered ?? 0);
@@ -346,12 +353,48 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
         // ── Info chips ────────────────────────────────────────────────────
         Wrap(spacing: sw * 0.02, runSpacing: sw * 0.015, children: [
           _Chip(sw: sw, label: item.status ?? 'N/A', fg: st.fg, bg: st.bg, border: st.border),
+          // Inside _buildItemRow, in the Wrap(chips...) section, add this chip:
+          if (item.status == 'PRODUCTION' || (item.status == 'PACKED' && item.hasProduction == false && item.hasUnpacked == false)) ...[
+            _Chip(
+              sw: sw,
+              label: _subStatusLabel(item),
+              fg: _kAmber,
+              bg: _kAmberBg,
+              border: _kAmberBorder,
+            ),
+          ],
           _Chip(sw: sw, label: 'Ordered: ${item.qtyOrdered ?? 0}', fg: _kBlue, bg: _kBlueBg, border: _kBlueBorder),
           _Chip(sw: sw, label: 'Delivered: ${item.qtyDelivered ?? 0}', fg: _kGreen, bg: _kGreenBg, border: _kGreenBorder),
           if (item.totalCancelledQty != null && item.totalCancelledQty! > 0)
             _Chip(sw: sw, label: 'Cancelled: ${item.totalCancelledQty}', fg: _kRed, bg: _kRedBg, border: _kRedBorder),
         ]),
-
+        if (item.notes != null && item.notes!.isNotEmpty) ...[
+          SizedBox(height: sw * 0.015),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: sw * 0.03, vertical: sw * 0.018),
+            decoration: BoxDecoration(
+              color: _kAmberBg,
+              borderRadius: BorderRadius.circular(sw * 0.022),
+              border: Border.all(color: _kAmberBorder),
+            ),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(Icons.info_outline_rounded, size: sw * 0.032, color: _kAmber),
+              SizedBox(width: sw * 0.015),
+              Expanded(
+                child: Text(
+                  item.notes!,
+                  style: TextStyle(
+                    fontSize: sw * 0.029,
+                    color: _kAmber,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ],
         // ── Dealer discount ───────────────────────────────────────────────
         if (item.dealerDiscountAmount != null && item.dealerDiscountAmount! > 0) ...[
           SizedBox(height: sw * 0.015),
@@ -369,6 +412,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
           GestureDetector(
             onTap: isCancelled || isCompleted ? null : () => _showDeliveryDateDialog(context, item, index, order),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text('Delivery Date ', style: TextStyle(fontSize: sw * 0.031, color: _kMuted, fontWeight: FontWeight.w500)),
               Icon(Icons.local_shipping_outlined, size: sw * 0.035, color: _kMuted),
               SizedBox(width: sw * 0.01),
               Text(DateFormat('dd MMM yyyy').format(item.deliveryDate!),
@@ -380,8 +424,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
             ]),
           ),
         ],
-
-        // ── Cancellation History ──────────────────────────────────────────
+// ── Cancellation History ──────────────────────────────────────────
         if (hasCancellationHistory) ...[
           SizedBox(height: sw * 0.025),
           _buildCancellationHistory(sw, sh, item.cancellationHistory!),
@@ -393,10 +436,12 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
           const Divider(height: 1, color: _kBorder),
           SizedBox(height: sw * 0.02),
           Row(children: [
-            Expanded(child: RoleGuard(
-                feature: AppFeature.updateOrderStatus,
-                child: _ActionBtn(sw: sw, label: 'Update', icon: Icons.update_rounded, color: _kBlue, onTap: () => _showItemStatusDialog(context, item, index, order)))),
-            SizedBox(width: sw * 0.02),
+            if ((order.status ?? '').toUpperCase() != 'PENDING') ...[
+              Expanded(child: RoleGuard(
+                  feature: AppFeature.updateOrderStatus,
+                  child: _ActionBtn(sw: sw, label: 'Update', icon: Icons.update_rounded, color: _kBlue, onTap: () => _showItemStatusDialog(context, item, index, order)))),
+              SizedBox(width: sw * 0.02),
+            ],
             if (maxCancellable > 0) ...[
               Expanded(child: RoleGuard(
                   feature: AppFeature.cancelOrder,
@@ -411,7 +456,6 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
       ]),
     );
   }
-
   // ── Cancellation History Section ──────────────────────────────────────────
   Widget _buildCancellationHistory(
       double sw, double sh, List<CancellationHistoryModel> history) {
@@ -1273,16 +1317,16 @@ class _PaymentUpdateSheetState extends State<_PaymentUpdateSheet> {
   }
 }
 
-class _OrderStatusDialog extends StatefulWidget {
+class _OrderStatusDialog extends ConsumerStatefulWidget {
   final OrderModel order;
   final Future<void> Function(String? status, String? reason) onUpdate;
   const _OrderStatusDialog({required this.order, required this.onUpdate});
 
   @override
-  State<_OrderStatusDialog> createState() => _OrderStatusDialogState();
+  ConsumerState<_OrderStatusDialog> createState() => _OrderStatusDialogState();
 }
 
-class _OrderStatusDialogState extends State<_OrderStatusDialog> {
+class _OrderStatusDialogState extends ConsumerState<_OrderStatusDialog> {
   bool _isStatusChecked = false;
   bool _isCancelled = false;
   String? _pendingSelection;
@@ -1328,6 +1372,13 @@ class _OrderStatusDialogState extends State<_OrderStatusDialog> {
   Widget build(BuildContext context) {
     final sw = Screen.w(context);
     final sh = Screen.h(context);
+    // ── Add this ──────────────────────────────────────────────────────────────
+    final role = ref.watch(roleNotifierProvider);
+    final canCancel   = AppPermissions.canAccess(role, AppFeature.cancelOrder);
+    final canConfirm  = AppPermissions.canAccess(role, AppFeature.orderConfirmed);
+    final canReject   = AppPermissions.canAccess(role, AppFeature.orderRejected);
+    final canNextStep = AppPermissions.canAccess(role, _nextStatus ?? '');
+    // ─────────────────────────────────────────────────────────────────────────
     final btnColor = _isCancelled ? _kRed : _pendingSelection == 'REJECTED' ? _kAmber : _kBlue;
 
     return Dialog(
@@ -1371,18 +1422,29 @@ class _OrderStatusDialogState extends State<_OrderStatusDialog> {
                   ]),
                 )
               else if (_isPending) ...[
-                _SelectionTile(sw: sw, title: 'Confirm Order', value: 'CONFIRMED', groupValue: _isCancelled ? null : _pendingSelection, activeColor: _kBlue, activeBg: _kBlueBg, onTap: () => setState(() => _pendingSelection = _pendingSelection == 'CONFIRMED' ? null : 'CONFIRMED')),
-                SizedBox(height: sh * 0.01),
-                _SelectionTile(sw: sw, title: 'Reject Order', value: 'REJECTED', groupValue: _isCancelled ? null : _pendingSelection, activeColor: _kAmber, activeBg: _kAmberBg, onTap: () => setState(() => _pendingSelection = _pendingSelection == 'REJECTED' ? null : 'REJECTED')),
+                if (canConfirm)
+                  _SelectionTile(sw: sw, title: 'Confirm Order', value: 'CONFIRMED',
+                      groupValue: _isCancelled ? null : _pendingSelection,
+                      activeColor: _kBlue, activeBg: _kBlueBg,
+                      onTap: () => setState(() => _pendingSelection = _pendingSelection == 'CONFIRMED' ? null : 'CONFIRMED')),
+                if (canConfirm && canReject) SizedBox(height: sh * 0.01),
+                if (canReject)
+                  _SelectionTile(sw: sw, title: 'Reject Order', value: 'REJECTED',
+                      groupValue: _isCancelled ? null : _pendingSelection,
+                      activeColor: _kAmber, activeBg: _kAmberBg,
+                      onTap: () => setState(() => _pendingSelection = _pendingSelection == 'REJECTED' ? null : 'REJECTED')),
               ]
-              else if (_nextStatus != null)
-                  _CheckboxTile(sw: sw, title: _nextLabel!, value: _isStatusChecked, disabled: _isCancelled, onChanged: (v) => setState(() => _isStatusChecked = v ?? false)),
-              if (!_isTerminal && !_isPending) ...[
+              else if (_nextStatus != null && canNextStep)
+                  _CheckboxTile(sw: sw, title: _nextLabel!, value: _isStatusChecked,
+                      disabled: _isCancelled,
+                      onChanged: (v) => setState(() => _isStatusChecked = v ?? false)),
+              if (!_isTerminal && !_isPending && canCancel) ...[
                 SizedBox(height: sh * 0.015),
-                _CheckboxTile(sw: sw, title: 'Cancel Order', value: _isCancelled, isCancel: true, onChanged: (v) => setState(() {
-                  _isCancelled = v ?? false;
-                  if (_isCancelled) { _isStatusChecked = false; _pendingSelection = null; }
-                })),
+                _CheckboxTile(sw: sw, title: 'Cancel Order', value: _isCancelled, isCancel: true,
+                    onChanged: (v) => setState(() {
+                      _isCancelled = v ?? false;
+                      if (_isCancelled) { _isStatusChecked = false; _pendingSelection = null; }
+                    })),
               ],
               if (_isCancelled) ...[
                 SizedBox(height: sh * 0.015),
@@ -1441,16 +1503,16 @@ class _OrderStatusDialogState extends State<_OrderStatusDialog> {
   }
 }
 
-class _ItemStatusDialog extends StatefulWidget {
+class _ItemStatusDialog extends ConsumerStatefulWidget {
   final OrderDetailsModel item;
   final Future<void> Function(bool? production, bool? packing, String? status) onUpdate;
   const _ItemStatusDialog({required this.item, required this.onUpdate});
 
   @override
-  State<_ItemStatusDialog> createState() => _ItemStatusDialogState();
+  ConsumerState<_ItemStatusDialog> createState() => _ItemStatusDialogState();
 }
 
-class _ItemStatusDialogState extends State<_ItemStatusDialog> {
+class _ItemStatusDialogState extends ConsumerState<_ItemStatusDialog> {
   bool _productionCompleted = false;
   bool _packingCompleted = false;
   bool _statusChecked = false;
@@ -1464,6 +1526,10 @@ class _ItemStatusDialogState extends State<_ItemStatusDialog> {
       default: return null;
     }
   }
+  // Sub-stage detection
+  bool get _isProductionStage => widget.item.hasProduction == true;
+  bool get _isPackingStage    => widget.item.hasProduction == false && widget.item.hasUnpacked == true;
+  bool get _isBothDone        => widget.item.hasProduction == false && widget.item.hasUnpacked == false;
 
   bool get _canUpdate => _productionCompleted || _packingCompleted || _statusChecked;
 
@@ -1472,7 +1538,12 @@ class _ItemStatusDialogState extends State<_ItemStatusDialog> {
     final sw = Screen.w(context);
     final sh = Screen.h(context);
     final item = widget.item;
-
+    // ── Add this ──────────────────────────────────────────────────────────────
+    final role = ref.watch(roleNotifierProvider);
+    final canProduction = AppPermissions.canAccess(role, AppFeature.productionCompleted);
+    final canPacking    = AppPermissions.canAccess(role, AppFeature.packedCompleted);
+    final canNextStep   = AppPermissions.canAccess(role, _nextStatus ?? '');
+    // ─────────────────────────────────────────────────────────────────────────
     return Dialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(sw * 0.05)),
@@ -1498,14 +1569,40 @@ class _ItemStatusDialogState extends State<_ItemStatusDialog> {
                 ]),
               ),
               SizedBox(height: sh * 0.02),
-              if (item.hasProduction == true)
-                _CheckboxTile(sw: sw, title: 'Production Completed', subtitle: 'Mark as production completed', value: _productionCompleted, onChanged: (v) => setState(() => _productionCompleted = v ?? false))
-              else if (item.hasUnpacked != false)
-                _CheckboxTile(sw: sw, title: 'Packing Completed', subtitle: 'Mark as packing completed', value: _packingCompleted, onChanged: (v) => setState(() => _packingCompleted = v ?? false))
-              else if (item.hasUnpacked == false && item.hasProduction == false && _nextStatus != null)
-                  _CheckboxTile(sw: sw, title: 'Mark as $_nextStatus', subtitle: 'Update to ${_nextStatus!.toLowerCase()}', value: _statusChecked, onChanged: (v) => setState(() => _statusChecked = v ?? false))
+              // NEW (correct logic):
+              if (_isProductionStage && canProduction)
+                _CheckboxTile(
+                  sw: sw,
+                  title: 'Production Completed',
+                  subtitle: 'Mark production as done',
+                  value: _productionCompleted,
+                  onChanged: (v) => setState(() => _productionCompleted = v ?? false),
+                )
+              else if (_isPackingStage && canPacking)
+                _CheckboxTile(
+                  sw: sw,
+                  title: 'Packing Completed',
+                  subtitle: 'Mark packing as done',
+                  value: _packingCompleted,
+                  onChanged: (v) => setState(() => _packingCompleted = v ?? false),
+                )
+              else if (_isBothDone && _nextStatus != null && canNextStep)
+                  _CheckboxTile(
+                    sw: sw,
+                    title: 'Mark as $_nextStatus',
+                    subtitle: 'Update to ${_nextStatus!.toLowerCase()}',
+                    value: _statusChecked,
+                    onChanged: (v) => setState(() => _statusChecked = v ?? false),
+                  )
                 else
-                  Container(padding: EdgeInsets.all(sw * 0.035), decoration: BoxDecoration(color: _kBg, borderRadius: BorderRadius.circular(12)), child: Text('No updates available', style: TextStyle(color: _kMuted, fontSize: sw * 0.032))),
+                  Container(
+                    padding: EdgeInsets.all(sw * 0.035),
+                    decoration: BoxDecoration(color: _kBg, borderRadius: BorderRadius.circular(12)),
+                    child: Text(
+                      'No updates available for your role',
+                      style: TextStyle(color: _kMuted, fontSize: sw * 0.032),
+                    ),
+                  ),
             ]))),
             SizedBox(height: sh * 0.02),
             Row(children: [
@@ -1515,7 +1612,11 @@ class _ItemStatusDialogState extends State<_ItemStatusDialog> {
                 onPressed: !_canUpdate || _loading ? null : () async {
                   setState(() => _loading = true);
                   try {
-                    await widget.onUpdate(_productionCompleted ? true : null, _packingCompleted ? true : null, _statusChecked ? _nextStatus : null);
+                    await  widget.onUpdate(
+                      _productionCompleted ? true : null,
+                      _packingCompleted    ? true : null,
+                      _statusChecked       ? _nextStatus : null,
+                    );
                     if (mounted) Navigator.pop(context);
                   } catch (e) {
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: _kRed));

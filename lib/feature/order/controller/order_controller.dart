@@ -24,6 +24,31 @@ class OrderStatusParams {
   int get hashCode => status.hashCode;
 }
 
+/// Used for paginated fetching with optional status filter
+class PaginatedOrderParams {
+  final String? status; // null or 'ALL' → no status param
+  final int page;
+  final int limit;
+
+  const PaginatedOrderParams({
+    this.status,
+    required this.page,
+    required this.limit,
+  });
+
+  bool get isAll => status == null || status == 'ALL';
+
+  @override
+  bool operator ==(Object other) =>
+      other is PaginatedOrderParams &&
+          other.status == status &&
+          other.page == page &&
+          other.limit == limit;
+
+  @override
+  int get hashCode => Object.hash(status, page, limit);
+}
+
 /// Used for date-range fetching (separate endpoint, no status)
 class DateFilterParams {
   final String startDate; // 'yyyy-MM-dd'
@@ -45,8 +70,20 @@ class DateFilterParams {
 // Providers
 // ─────────────────────────────────────────────
 
-/// ALL orders or filtered by status
-/// → /order-details?includeRejected=false&page=1&limit=N[&status=CANCELLED]
+/// ALL orders or filtered by status (with pagination)
+/// → /order-details?includeRejected=false&page=N&limit=N[&status=CANCELLED]
+final paginatedOrdersProvider =
+FutureProvider.family<List<OrderModel>, PaginatedOrderParams>(
+        (ref, params) async {
+      final repository = ref.watch(orderRepositoryProvider);
+      return await repository.getAllOrders(
+        status: params.isAll ? null : params.status,
+        page: params.page,
+        limit: params.limit,
+      );
+    });
+
+/// Legacy provider - kept for backward compatibility
 final ordersProvider =
 FutureProvider.family<List<OrderModel>, OrderStatusParams>(
         (ref, params) async {

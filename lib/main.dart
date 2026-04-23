@@ -4,13 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/core/theme/theme.dart';
 import 'package:inverter_management_app/screen/splash_screen.dart';
 
-void main()async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
-  runApp(const ProviderScope(child: MyApp())); // Wrap with ProviderScope
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -19,9 +16,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        theme: AppTheme.theme,
-        themeMode: ThemeMode.light,
-        debugShowCheckedModeBanner: false,
-        home: SplashScreen());
+      theme: AppTheme.theme,
+      themeMode: ThemeMode.light,
+      debugShowCheckedModeBanner: false,
+      home: SplashScreen(),
+    );
   }
 }

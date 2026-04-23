@@ -73,6 +73,8 @@ class OrdersViewPage extends ConsumerStatefulWidget {
 class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _tabScrollController = ScrollController();
+  final ScrollController _listScrollController = ScrollController();
+
   String _searchQuery = '';
   bool _isSearching = false;
   int _selectedTabIndex = 0; // index into _kTabs
@@ -80,11 +82,76 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
   DateTimeRange? _selectedDateRange;
   bool _isDateFilterActive = false;
 
+  // Pagination state
+  List<OrderModel> _allOrders = [];
+  int _currentPage = 1;
+  bool _isLoadingMore = false;
+  bool _hasMoreData = true;
+  final int _pageSize = 20;
+
+  @override
+  void initState() {
+    super.initState();
+    _listScrollController.addListener(_scrollListener);
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     _tabScrollController.dispose();
+    _listScrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_listScrollController.position.pixels >=
+        _listScrollController.position.maxScrollExtent - 200) {
+      // Load more when user is 200px from bottom
+      if (!_isLoadingMore && _hasMoreData && !_isDateFilterActive) {
+        _loadMoreOrders();
+      }
+    }
+  }
+
+  Future<void> _loadMoreOrders() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final selectedTab = _kTabs[_selectedTabIndex];
+      final params = PaginatedOrderParams(
+        status: selectedTab.apiValue,
+        page: _currentPage + 1,
+        limit: _pageSize,
+      );
+
+      final newOrders = await ref.read(paginatedOrdersProvider(params).future);
+
+      setState(() {
+        if (newOrders.isEmpty) {
+          _hasMoreData = false;
+        } else {
+          _allOrders.addAll(newOrders);
+          _currentPage++;
+        }
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  void _resetPagination() {
+    setState(() {
+      _allOrders = [];
+      _currentPage = 1;
+      _hasMoreData = true;
+    });
   }
 
   void _toggleSearch() {
@@ -100,6 +167,7 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
   void _clearDateFilter() => setState(() {
     _selectedDateRange = null;
     _isDateFilterActive = false;
+    _resetPagination();
   });
 
   String _formatSheetDate(DateTime d) {
@@ -167,7 +235,8 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
         start: picked,
         end: picked.isAfter(end) ? picked : end,
       );
-      _isDateFilterActive = true;
+      // _isDateFilterActive = true;
+      // _resetPagination();
     });
   }
 
@@ -195,7 +264,8 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
         start: picked.isBefore(start) ? picked : start,
         end: picked,
       );
-      _isDateFilterActive = true;
+      // _isDateFilterActive = true;
+      // _resetPagination();
     });
   }
 
@@ -208,270 +278,418 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
         (o.orderNumber?.toLowerCase() ?? '').contains(q) ||
         (o.dealer?.employeePhone.toString() ?? '').contains(q)).toList();
   }
+  void _showDateFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final sw = Screen.w(context);
+            final sh = Screen.h(context);
 
+            return Padding(
+              padding: EdgeInsets.fromLTRB(sw * 0.05, sh * 0.02, sw * 0.05, sh * 0.04),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  // ── Handle ──────────────────────────────────────────
+                  Center(
+                    child: Container(
+                      width: sw * 0.1,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: sh * 0.02),
+
+                  // ── Title row ───────────────────────────────────────
+                  Row(children: [
+                    const Icon(Icons.date_range_rounded,
+                        size: 20, color: Color(0xFF1B4FD8)),
+                    SizedBox(width: sw * 0.025),
+                    Text('Filter by Date',
+                        style: TextStyle(
+                          fontSize: sw * 0.042,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F1C3F),
+                        )),
+                    const Spacer(),
+                    if (_isDateFilterActive)
+                      GestureDetector(
+                        onTap: () {
+                          _clearDateFilter();
+                          Navigator.pop(ctx);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF2F2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFFECACA)),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.close_rounded,
+                                size: 14, color: Color(0xFFDC2626)),
+                            const SizedBox(width: 4),
+                            Text('Clear',
+                                style: TextStyle(
+                                  fontSize: sw * 0.03,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFDC2626),
+                                )),
+                          ]),
+                        ),
+                      ),
+                  ]),
+                  SizedBox(height: sh * 0.025),
+
+                  // ── From / To pills ─────────────────────────────────
+                  Row(children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          await _pickFromDate();
+                          setSheetState(() {});
+                        },
+                        child: _DatePill(
+                          sw: sw,
+                          label: 'From',
+                          value: _selectedDateRange != null
+                              ? _formatSheetDate(_selectedDateRange!.start)
+                              : null,
+                          active: _isDateFilterActive,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: sw * 0.025),
+                      child: Icon(Icons.arrow_forward_rounded,
+                          size: sw * 0.04, color: const Color(0xFF9CA3AF)),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          await _pickToDate();
+                          setSheetState(() {});
+                        },
+                        child: _DatePill(
+                          sw: sw,
+                          label: 'To',
+                          value: _selectedDateRange != null
+                              ? _formatSheetDate(_selectedDateRange!.end)
+                              : null,
+                          active: _isDateFilterActive,
+                        ),
+                      ),
+                    ),
+                  ]),
+                  SizedBox(height: sh * 0.03),
+
+                  // ── Apply button ────────────────────────────────────
+                  SizedBox(
+                    width: double.infinity,
+                    child: GestureDetector(
+                      onTap: _selectedDateRange != null
+                          ? () {
+                        setState(() {
+                          _isDateFilterActive = true;
+                          _resetPagination();
+                        });
+                        Navigator.pop(ctx);
+                      } : null,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: _selectedDateRange != null
+                              ? const Color(0xFF1B4FD8)
+                              : const Color(0xFFE5E7EB),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Center(
+                          child: Text('Apply Filter',
+                              style: TextStyle(
+                                fontSize: sw * 0.038,
+                                fontWeight: FontWeight.w700,
+                                color: _selectedDateRange != null
+                                    ? Colors.white
+                                    : const Color(0xFF9CA3AF),
+                              )),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
   @override
+
   Widget build(BuildContext context) {
     final sw = Screen.w(context);
     final sh = Screen.h(context);
     final selectedTab = _kTabs[_selectedTabIndex];
 
     final AsyncValue<List<OrderModel>> ordersAsync;
+
     if (_isDateFilterActive && _selectedDateRange != null) {
       ordersAsync = ref.watch(filteredOrdersProvider(DateFilterParams(
         startDate: _toApiDate(_selectedDateRange!.start),
         endDate: _toApiDate(_selectedDateRange!.end),
       )));
     } else {
-      ordersAsync = ref.watch(ordersProvider(OrderStatusParams(
+      ordersAsync = ref.watch(paginatedOrdersProvider(PaginatedOrderParams(
         status: selectedTab.apiValue,
+        page: _currentPage,
+        limit: _pageSize,
       )));
     }
 
-    return ordersAsync.when(
-      loading: () => const GlobalLoader(),
-      error: (err, _) => _buildError(context, sw, sh),
-      data: (orders) {
-        final filtered = _applySearchFilter(orders);
-        return Column(children: [
+    return Column(children: [
 
-          // ── Header ───────────────────────────────────────────────────────
-          Container(
-            color: Colors.white,
-            child: Column(children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(sw * 0.045, sh * 0.018, sw * 0.04, sh * 0.012),
-                child: Row(children: [
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Orders',
-                          style: TextStyle(fontSize: sw * 0.055, fontWeight: FontWeight.w800,
-                              color: const Color(0xFF0F1C3F), letterSpacing: -0.5)),
-                      if (orders.isNotEmpty)
-                        Text('${filtered.length} order${filtered.length != 1 ? 's' : ''}',
-                            style: TextStyle(fontSize: sw * 0.03, color: const Color(0xFF9CA3AF),
-                                fontWeight: FontWeight.w500)),
-                    ]),
-                  ),
-                  // Search button
-                  _HeaderBtn(
-                    active: _isSearching,
-                    icon: _isSearching ? Icons.close_rounded : Icons.search_rounded,
-                    activeColor: const Color(0xFFDC2626),
-                    onTap: _toggleSearch,
-                  ),
+      // ── Header (always visible) ──────────────────────────────────────────
+      Container(
+        color: Colors.white,
+        child: Column(children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(sw * 0.045, sh * 0.018, sw * 0.04, sh * 0.012),
+            child: Row(children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Orders',
+                      style: TextStyle(fontSize: sw * 0.055, fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0F1C3F), letterSpacing: -0.5)),
+                  // Show count only when data is available
+                  // if (ordersAsync.hasValue && ordersAsync.value!.isNotEmpty)
+                  //   Text('${_applySearchFilter(ordersAsync.value!).length} order${_applySearchFilter(ordersAsync.value!).length != 1 ? 's' : ''}',
+                  //       style: TextStyle(fontSize: sw * 0.03, color: const Color(0xFF9CA3AF),
+                  //           fontWeight: FontWeight.w500)),
                 ]),
               ),
-
-              // ── Option Y: From / To date pill pair ───────────────────────
-              Padding(
-                padding: EdgeInsets.fromLTRB(sw * 0.045, 0, sw * 0.045, sh * 0.012),
-                child: Row(children: [
-                  // From pill
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _pickFromDate,
-                      child: _DatePill(
-                        sw: sw,
-                        label: 'From',
-                        value: _selectedDateRange != null
-                            ? _formatSheetDate(_selectedDateRange!.start)
-                            : null,
-                        active: _isDateFilterActive,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: sw * 0.025),
-                    child: Icon(Icons.arrow_forward_rounded,
-                        size: sw * 0.04, color: const Color(0xFF9CA3AF)),
-                  ),
-                  // To pill
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _pickToDate,
-                      child: _DatePill(
-                        sw: sw,
-                        label: 'To',
-                        value: _selectedDateRange != null
-                            ? _formatSheetDate(_selectedDateRange!.end)
-                            : null,
-                        active: _isDateFilterActive,
-                      ),
-                    ),
-                  ),
-                  // Clear button — only when active
-                  if (_isDateFilterActive) ...[
-                    SizedBox(width: sw * 0.025),
-                    GestureDetector(
-                      onTap: _clearDateFilter,
-                      child: Container(
-                        width: sw * 0.085,
-                        height: sw * 0.085,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF2F2),
-                          borderRadius: BorderRadius.circular(sw * 0.022),
-                          border: Border.all(color: const Color(0xFFFECACA)),
-                        ),
-                        child: const Icon(Icons.close_rounded,
-                            size: 16, color: Color(0xFFDC2626)),
-                      ),
-                    ),
-                  ],
-                ]),
+              _HeaderBtn(
+                active: _isSearching,
+                icon: _isSearching ? Icons.close_rounded : Icons.search_rounded,
+                activeColor: const Color(0xFFDC2626),
+                onTap: _toggleSearch,
               ),
-
-              // ── Search bar ───────────────────────────────────────────────
-              AnimatedSize(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOut,
-                child: _isSearching
-                    ? Padding(
-                  padding: EdgeInsets.fromLTRB(sw * 0.045, 0, sw * 0.045, sh * 0.012),
-                  child: TextField(
-                    controller: _searchController,
-                    autofocus: true,
-                    onChanged: (v) => setState(() => _searchQuery = v),
-                    style: TextStyle(fontSize: sw * 0.035, color: const Color(0xFF111827)),
-                    decoration: InputDecoration(
-                      hintText: 'Search orders, dealers, phone...',
-                      hintStyle: TextStyle(color: const Color(0xFF9CA3AF), fontSize: sw * 0.033),
-                      prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF1B4FD8), size: 20),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF6B7280)),
-                        onPressed: () => setState(() { _searchController.clear(); _searchQuery = ''; }),
-                      )
-                          : null,
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF1B4FD8), width: 1.5)),
-                    ),
-                  ),
-                )
-                    : const SizedBox.shrink(),
+              SizedBox(width: sw * 0.02),
+              _HeaderBtn(
+                active: _isDateFilterActive,
+                icon: Icons.date_range_rounded,
+                activeColor: const Color(0xFF1B4FD8),
+                onTap: _showDateFilterSheet,
               ),
-
-              // ── Option C: colour dot chips ───────────────────────────────
-              SizedBox(
-                height: sh * 0.055,
-                child: ListView.builder(
-                  controller: _tabScrollController,
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(sw * 0.045, 0, sw * 0.045, sh * 0.008),
-                  itemCount: _kTabs.length,
-                  itemBuilder: (_, i) {
-                    final tab = _kTabs[i];
-                    final isSelected = _selectedTabIndex == i;
-                    final isDisabled = _isDateFilterActive;
-                    final dotColor = _tabDotColor(tab.apiValue);
-
-                    return GestureDetector(
-                      onTap: isDisabled ? null : () {
-                        setState(() => _selectedTabIndex = i);
-                        _scrollTabIntoView(i);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOut,
-                        margin: EdgeInsets.only(right: sw * 0.022),
-                        padding: EdgeInsets.symmetric(
-                            horizontal: sw * 0.032, vertical: sw * 0.016),
-                        decoration: BoxDecoration(
-                          color: isDisabled
-                              ? const Color(0xFFF9FAFB)
-                              : isSelected
-                              ? Colors.white
-                              : const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isDisabled
-                                ? const Color(0xFFE5E7EB)
-                                : isSelected
-                                ? dotColor
-                                : const Color(0xFFE5E7EB),
-                            width: isSelected ? 1.5 : 1,
-                          ),
-                          boxShadow: isSelected && !isDisabled
-                              ? [BoxShadow(
-                              color: dotColor.withValues(alpha: 0.18),
-                              blurRadius: 8, offset: const Offset(0, 2))]
-                              : [],
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          // Colour dot
-                          Container(
-                            width: sw * 0.018,
-                            height: sw * 0.018,
-                            decoration: BoxDecoration(
-                              color: isDisabled
-                                  ? const Color(0xFFD1D5DB)
-                                  : dotColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          SizedBox(width: sw * 0.018),
-                          Text(
-                            tab.label,
-                            style: TextStyle(
-                              fontSize: sw * 0.03,
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                              color: isDisabled
-                                  ? const Color(0xFFD1D5DB)
-                                  : isSelected
-                                  ? const Color(0xFF111827)
-                                  : const Color(0xFF6B7280),
-                            ),
-                          ),
-                        ]),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              // Bottom border
-              Container(height: 1, color: const Color(0xFFF3F4F6)),
             ]),
           ),
 
-          // ── Orders list ───────────────────────────────────────────────────
-          Expanded(
-            child: filtered.isEmpty
+          // ── Search bar ───────────────────────────────────────────────────
+          AnimatedSize(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeInOut,
+            child: _isSearching
+                ? Padding(
+              padding: EdgeInsets.fromLTRB(sw * 0.045, 0, sw * 0.045, sh * 0.012),
+              child: TextField(
+                controller: _searchController,
+                autofocus: true,
+                onChanged: (v) => setState(() => _searchQuery = v),
+                style: TextStyle(fontSize: sw * 0.035, color: const Color(0xFF111827)),
+                decoration: InputDecoration(
+                  hintText: 'Search orders, dealers, phone...',
+                  hintStyle: TextStyle(color: const Color(0xFF9CA3AF), fontSize: sw * 0.033),
+                  prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF1B4FD8), size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                    icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF6B7280)),
+                    onPressed: () => setState(() { _searchController.clear(); _searchQuery = ''; }),
+                  )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFFF9FAFB),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF1B4FD8), width: 1.5)),
+                ),
+              ),
+            )
+                : const SizedBox.shrink(),
+          ),
+
+          // ── Status chips (always visible) ────────────────────────────────
+          SizedBox(
+            height: sh * 0.055,
+            child: ListView.builder(
+              controller: _tabScrollController,
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(sw * 0.045, 0, sw * 0.045, sh * 0.008),
+              itemCount: _kTabs.length,
+              itemBuilder: (_, i) {
+                final tab = _kTabs[i];
+                final isSelected = _selectedTabIndex == i;
+                final isDisabled = _isDateFilterActive;
+                final dotColor = _tabDotColor(tab.apiValue);
+
+                return GestureDetector(
+                  onTap: isDisabled ? null : () {
+                    setState(() {
+                      _selectedTabIndex = i;
+                      _resetPagination();
+                    });
+                    _scrollTabIntoView(i);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    margin: EdgeInsets.only(right: sw * 0.022),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: sw * 0.032, vertical: sw * 0.016),
+                    decoration: BoxDecoration(
+                      color: isDisabled
+                          ? const Color(0xFFF9FAFB)
+                          : isSelected
+                          ? Colors.white
+                          : const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isDisabled
+                            ? const Color(0xFFE5E7EB)
+                            : isSelected
+                            ? dotColor
+                            : const Color(0xFFE5E7EB),
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                      boxShadow: isSelected && !isDisabled
+                          ? [BoxShadow(
+                          color: dotColor.withValues(alpha: 0.18),
+                          blurRadius: 8, offset: const Offset(0, 2))]
+                          : [],
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(
+                        width: sw * 0.018,
+                        height: sw * 0.018,
+                        decoration: BoxDecoration(
+                          color: isDisabled ? const Color(0xFFD1D5DB) : dotColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      SizedBox(width: sw * 0.018),
+                      Text(
+                        tab.label,
+                        style: TextStyle(
+                          fontSize: sw * 0.03,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isDisabled
+                              ? const Color(0xFFD1D5DB)
+                              : isSelected
+                              ? const Color(0xFF111827)
+                              : const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ]),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          Container(height: 1, color: const Color(0xFFF3F4F6)),
+        ]),
+      ),
+
+      // ── Body: loading / error / data ─────────────────────────────────────
+      Expanded(
+        child: ordersAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF1B4FD8))),
+          error: (err, _) => _buildError(context, sw, sh),
+          data: (orders) {
+            // Sync _allOrders when fresh page-1 data arrives
+            if (!_isDateFilterActive) {
+              if (_currentPage == 1 && orders.isNotEmpty) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() { _allOrders = List.from(orders); });
+                });
+              } else if (_currentPage > 1 && orders.isNotEmpty) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    final existing = _allOrders.map((o) => o.orderNumber).toSet();
+                    final newOnes = orders.where((o) => !existing.contains(o.orderNumber)).toList();
+                    if (newOnes.isNotEmpty) setState(() { _allOrders.addAll(newOnes); });
+                  }
+                });
+              }
+            }
+
+            final displayOrders = _isDateFilterActive
+                ? orders
+                : (_allOrders.isEmpty ? orders : _allOrders);
+
+            final filtered = _applySearchFilter(displayOrders);
+
+            return filtered.isEmpty
                 ? _buildEmptyState(context, sw, sh)
                 : RefreshIndicator(
               color: const Color(0xFF1B4FD8),
               backgroundColor: Colors.white,
               onRefresh: () async {
+                _resetPagination();
                 if (_isDateFilterActive && _selectedDateRange != null) {
                   ref.invalidate(filteredOrdersProvider);
                 } else {
-                  ref.invalidate(ordersProvider);
+                  ref.invalidate(paginatedOrdersProvider);
                 }
+                // Give Riverpod time to start the refetch
+                await Future.delayed(const Duration(milliseconds: 400));
               },
               child: ListView.builder(
+                controller: _listScrollController,
                 padding: EdgeInsets.fromLTRB(sw * 0.045, sh * 0.018, sw * 0.045, sh * 0.04),
-                itemCount: filtered.length,
-                itemBuilder: (_, i) => _OrderCard(
-                  order: filtered[i],
-                  sw: sw,
-                  sh: sh,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => OrderViewPage(orderNumber: filtered[i].orderNumber.toString()),
-                  )),
-                ),
+                itemCount: filtered.length + (_isLoadingMore ? 1 : 0),
+                itemBuilder: (_, i) {
+                  if (i == filtered.length) {
+                    return Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: sh * 0.02),
+                        child: const CircularProgressIndicator(
+                            color: Color(0xFF1B4FD8), strokeWidth: 2),
+                      ),
+                    );
+                  }
+                  return _OrderCard(
+                    order: filtered[i],
+                    sw: sw,
+                    sh: sh,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => OrderViewPage(
+                          orderNumber: filtered[i].orderNumber.toString()),
+                    )),
+                  );
+                },
               ),
-            ),
-          ),
-        ]);
-      },
-    );
+            );
+          },
+        ),
+      ),
+    ]);
   }
 
   Widget _buildEmptyState(BuildContext context, double sw, double sh) {
@@ -513,7 +731,7 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
               onTap: _clearDateFilter)
         else if (_selectedTabIndex != 0)
           _ActionButton(label: 'View All Orders', icon: Icons.arrow_back_rounded,
-              onTap: () => setState(() { _selectedTabIndex = 0; _scrollTabIntoView(0); })),
+              onTap: () => setState(() { _selectedTabIndex = 0; _scrollTabIntoView(0); _resetPagination(); })),
       ]),
     );
   }
@@ -540,10 +758,11 @@ class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
           label: 'Retry',
           icon: Icons.refresh_rounded,
           onTap: () {
+            _resetPagination();
             if (_isDateFilterActive && _selectedDateRange != null) {
               ref.invalidate(filteredOrdersProvider);
             } else {
-              ref.invalidate(ordersProvider);
+              ref.invalidate(paginatedOrdersProvider);
             }
           },
         ),

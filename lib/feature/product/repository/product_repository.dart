@@ -1,4 +1,3 @@
-// product_repository.dart
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/product_model.dart';
@@ -17,15 +16,24 @@ class ProductRepository {
     await _dio.post('/product-details/create-product', data: product.toJson());
   }
 
-
-  /// Get All Products
-  Future<List<ProductModel>> getProducts() async {
-    final response = await _dio.get('/product-details/get/all');
+  /// Get All Products with pagination
+  Future<List<ProductModel>> getProducts({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final response = await _dio.get(
+      '/product-details/get/all',
+      queryParameters: {
+        'page': page,
+        'limit': limit,
+      },
+    );
     final products = (response.data['data'] as List)
         .map((json) => ProductModel.fromJson(json))
         .toList();
     return products;
   }
+
   /// Get Products by Brand
   Future<List<ProductModel>> getProductsByBrand(List<String> brands) async {
     try {
@@ -33,15 +41,15 @@ class ProductRepository {
         '/product-details/getAllProductsByBrand',
         data: {'brands': brands},
       );
-
       final products = (response.data['data'] as List)
           .map((json) => ProductModel.fromJson(json))
           .toList();
       return products;
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? 'Something went wrong';
+      final errorMessage =
+          e.response?.data['message'] ?? 'Something went wrong';
       print('❌ Error: $errorMessage');
-      throw errorMessage; // return only the message
+      throw errorMessage;
     } catch (e) {
       print('⚠️ Unknown error: $e');
       throw Exception('Unexpected error occurred');
@@ -55,7 +63,8 @@ class ProductRepository {
   }
 
   /// Update Product
-  Future<void> updateProduct(String productId, ProductModel updatedProduct) async {
+  Future<void> updateProduct(
+      String productId, ProductModel updatedProduct) async {
     try {
       final response = await _dio.put(
         '/product-details/$productId',
@@ -67,8 +76,6 @@ class ProductRepository {
       print("Message: ${e.message}");
       print("Status: ${e.response?.statusCode}");
       print("Data: ${e.response?.data}");
-
-      // Optionally rethrow to UI
       throw Exception(e.response?.data['message'] ?? e.message);
     } catch (e) {
       print("UNKNOWN ERROR: $e");
@@ -76,12 +83,11 @@ class ProductRepository {
     }
   }
 
-
-  /// update stock
+  /// Update Stock
   Future<void> updateStock(StockUpdate updateStockModel) async {
-    await _dio.put('/product-details/createOrUpdate/product-stocks', data: updateStockModel.toJson());
+    await _dio.put('/product-details/createOrUpdate/product-stocks',
+        data: updateStockModel.toJson());
   }
-
 
   /// Delete Product
   Future<void> deleteProduct(String productId, String reason) async {
@@ -91,7 +97,7 @@ class ProductRepository {
     });
   }
 
-  /// low stock products
+  /// Low Stock Products
   Future<List<ProductModel>> getLowStockProducts({int threshold = 5}) async {
     try {
       final response = await _dio.get(
@@ -103,14 +109,14 @@ class ProductRepository {
         },
       );
       final dynamic dataList = response.data['data'];
-      final List productsList = dataList is List ? dataList : dataList['data'] ?? [];
-
-      final products = productsList
+      final List productsList =
+      dataList is List ? dataList : dataList['data'] ?? [];
+      return productsList
           .map((json) => ProductModel.fromJson(json))
           .toList();
-      return products;
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? 'Failed to fetch low stock products';
+      final errorMessage = e.response?.data['message'] ??
+          'Failed to fetch low stock products';
       print('❌ Error: $errorMessage');
       throw errorMessage;
     } catch (e) {
@@ -118,7 +124,4 @@ class ProductRepository {
       throw Exception('Unexpected error occurred while fetching low stock');
     }
   }
-
-  // get products by brand
-
 }

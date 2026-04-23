@@ -2,51 +2,67 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:inverter_management_app/feature/order/screen/orders_view_page.dart';
-import '../../core/const/icons.dart';
-import '../createSection.dart';
-import '../Dashboard/superadmin_dashboard_screen.dart';
 import 'package:inverter_management_app/feature/order/screen/today_orders_screen.dart';
+import 'package:inverter_management_app/model/user_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/const/icons.dart';
+import '../../feature/signup/controller/signUp_controller.dart';
+import '../Dashboard/accountantDashboard.dart';
+import '../createSection.dart';
 
-class SuperAdminMobileView extends ConsumerStatefulWidget {
-  const SuperAdminMobileView({super.key});
+class AccountantMobileView extends ConsumerStatefulWidget {
+  const AccountantMobileView({super.key});
   @override
-  ConsumerState<SuperAdminMobileView> createState() =>
-      _SuperAdminHomeScreenState();
+  ConsumerState<AccountantMobileView> createState() => AccountantMobileViewState();
 }
 
-class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminMobileView> {
+class AccountantMobileViewState extends ConsumerState<AccountantMobileView> {
   int _currentIndex = 0;
+  UserModel? _user;
 
-  // ✅ Fix 1: Make sure you have 4 screens here to match your 4 nav items!
   final List<Widget> body = const [
-    SuperadminDashboard(),
+    AccountantDashboard(),
     OrdersViewPage(),
     CreateSection(),
-    TodayOrdersScreen(), // Used for today's orders and deliveries
+    TodayOrdersScreen()
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId != null) {
+      final user = await ref
+          .read(signupControllerProvider.notifier)
+          .getEmployeeById(userId);
+      setState(() {
+        _user = user;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          SafeArea(child: body[_currentIndex]),
-
-          // The Custom Floating Bottom Navigation Bar
+          body[_currentIndex],
           Positioned(
-            bottom: 20,
-            left:
-                16, // ✅ Fix 2: Reduced outer margins slightly so 4 items can fit
-            right: 16,
+            bottom: 20, // Distance from the bottom of the screen
+            left: 24, // Side margins
+            right: 24,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 12), // ✅ Reduced inner padding
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(30), // Pill shape
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.08),
@@ -73,13 +89,13 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminMobileView> {
                   _buildNavItem(
                     index: 2,
                     icon: AppIcons.add,
-                    label: 'Create', // Capitalized label
+                    label: 'Create',
                     primaryColor: primaryColor,
                   ),
                   _buildNavItem(
-                    index: 3, // ✅ Fix 3: Changed this from 2 to 3!
+                    index: 3,
                     icon: AppIcons.time,
-                    label: 'Today', // Capitalized label
+                    label: 'Today',
                     primaryColor: primaryColor,
                   ),
                 ],
@@ -88,16 +104,16 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminMobileView> {
           ),
         ],
       ),
+
     );
   }
-
-  // Custom Nav Item Widget with Animation
   Widget _buildNavItem({
     required int index,
     required String icon,
     required String label,
     required Color primaryColor,
-  }) {
+  })
+  {
     final isSelected = _currentIndex == index;
 
     return GestureDetector(
@@ -109,13 +125,9 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminMobileView> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        // ✅ Fix 4: Unselected items have smaller padding to save horizontal space
-        padding:
-            EdgeInsets.symmetric(horizontal: isSelected ? 12 : 8, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected
-              ? primaryColor.withValues(alpha: 0.1)
-              : Colors.transparent,
+          color: isSelected ? primaryColor.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -134,19 +146,17 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminMobileView> {
               curve: Curves.easeInOut,
               child: isSelected
                   ? Padding(
-                      padding: const EdgeInsets.only(
-                          left: 6.0), // Slightly tighter text padding
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          color: primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize:
-                              13, // Slightly smaller font to guarantee fit on small phones
-                        ),
-                      ),
-                    )
-                  : const SizedBox.shrink(),
+                padding: const EdgeInsets.only(left: 8.0),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              )
+                  : const SizedBox.shrink(), // Hides the text when not selected
             ),
           ],
         ),
