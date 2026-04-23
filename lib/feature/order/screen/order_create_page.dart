@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:inverter_management_app/screen/loadingScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/const/icons.dart';
 import '../../../core/media_query/media_query.dart';
 import '../../../model/brand_model.dart';
@@ -56,10 +57,69 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
   String paymentMethod = 'CASH';
   num amountPaid = 0;
   bool isCreatingOrder = false;
+  List<ProductModel> _allFetchedProducts = []; // ← add this
+  String? selectedModelFilter; // ← add with other state variables
+  List<String> _availableModels = []; // ← models extracted from products
+
+  // ✅ NEW: Track current user role and ID
+  String? currentUserRole;
+  String? currentUserId;
+  bool isLoadingUserInfo = true;
 
   List<OrderDetailsModel> selectedProducts = [];
   final TextEditingController orderNoteController = TextEditingController();
   final TextEditingController amountPaidController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUserInfo();
+  }
+
+  // ✅ NEW: Load current user info from SharedPreferences
+  Future<void> _loadCurrentUserInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final role = prefs.getString('user_role');
+      print('Loaded user role from SharedPreferences: $role');
+      final userId = prefs.getString('user_id');
+      print('Loaded user ID from SharedPreferences: $userId');
+
+      setState(() {
+        currentUserRole = role;
+        currentUserId = userId;
+        isLoadingUserInfo = false;
+      });
+
+      // ✅ If user is SALESMAN, auto-load their info
+      if (role == 'ROLE_SALESMAN' && userId != null) {
+        _loadSalesmanInfo(userId);
+      }
+    } catch (e) {
+      debugPrint('Error loading user info: $e');
+      setState(() => isLoadingUserInfo = false);
+    }
+  }
+
+  // ✅ NEW: Load salesman info by ID
+  Future<void> _loadSalesmanInfo(String salesmanId) async {
+    try {
+      final allSalesmen = await ref.read(usersByRoleProvider('ROLE_SALESMAN').future);
+      final salesman = allSalesmen.firstWhere(
+            (s) => s.employeeId == salesmanId,
+        orElse: () => throw Exception('Salesman not found'),
+      );
+
+      if (mounted) {
+        setState(() => selectedSalesman = salesman);
+      }
+    } catch (e) {
+      debugPrint('Error loading salesman info: $e');
+    }
+  }
+
+  // ✅ NEW: Check if current user is salesman
+  bool get isSalesman => currentUserRole == 'ROLE_SALESMAN';
 
   @override
   void dispose() {
@@ -72,6 +132,14 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
   Widget build(BuildContext context) {
     final sw = Screen.w(context);
     final sh = Screen.h(context);
+
+    // ✅ Show loader while loading user info
+    if (isLoadingUserInfo) {
+      return const Scaffold(
+        backgroundColor: _kBg,
+        body: Center(child: GlobalLoader()),
+      );
+    }
 
     return Scaffold(
       backgroundColor: _kBg,
@@ -175,15 +243,18 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
             padding: EdgeInsets.all(sw * 0.04),
             child: Column(
               children: [
-                _buildSelectorButton(
-                  sw: sw,
-                  label: 'Salesman',
-                  value: selectedSalesman?.employeeName,
-                  icon: Icons.person_outline_rounded,
-                  color: _kPurple,
-                  onTap: () => _showSalesmanDialog(context),
-                ),
-                SizedBox(height: sh * 0.012),
+                // ✅ MODIFIED: Only show salesman selector if NOT a salesman
+                if (!isSalesman) ...[
+                  _buildSelectorButton(
+                    sw: sw,
+                    label: 'Salesman',
+                    value: selectedSalesman?.employeeName,
+                    icon: Icons.person_outline_rounded,
+                    color: _kPurple,
+                    onTap: () => _showSalesmanDialog(context),
+                  ),
+                  SizedBox(height: sh * 0.012),
+                ],
                 _buildSelectorButton(
                   sw: sw,
                   label: 'Dealer',
@@ -210,6 +281,19 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                 SizedBox(height: sh * 0.012),
                 _buildSelectorButton(
                   sw: sw,
+                  label: 'Model',
+                  value: selectedModelFilter, // null shows "All Models"
+                  icon: Icons.tag_rounded,
+                  color: _kBlue,
+                  enabled: selectedBrand != null,
+                  optionalLabel: 'All Models', // shows when no model selected
+                  onTap: selectedBrand == null
+                      ? null
+                      : () => _showModelDialog(context),
+                ),
+                SizedBox(height: sh * 0.012),
+                _buildSelectorButton(
+                  sw: sw,
                   label: 'Product',
                   value: selectedProduct?.productName,
                   icon: Icons.inventory_2_outlined,
@@ -227,6 +311,147 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
       ),
     );
   }
+  Future<void> _showModelDialog(BuildContext context) async {
+    final searchController = TextEditingController();
+
+    // ── Fetch products if not loaded ──
+    if (_allFetchedProducts.isEmpty) {
+      _allFetchedProducts = await ref
+          .read(productControllerProvider.notifier)
+          .fetchProductsByBrand([selectedBrand!.brandName]);
+    }
+
+    // ── Extract unique models ──
+    _availableModels = [
+      ...<String>{}..addAll(
+        _allFetchedProducts
+            .map((p) => p.model ?? '')
+            .where((m) => m.isNotEmpty),
+      )
+    ]..sort();
+
+    final query = ValueNotifier('');
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.circular(Screen.w(context) * 0.04)),
+        title: Text('Select Model',
+            style: TextStyle(
+                fontSize: Screen.w(context) * 0.042,
+                fontWeight: FontWeight.w700)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _dialogSearchField(context, searchController,
+                  'Search model', query),
+              SizedBox(height: Screen.h(context) * 0.015),
+              Expanded(
+                child: ValueListenableBuilder<String>(
+                  valueListenable: query,
+                  builder: (_, q, __) {
+                    final filtered = _availableModels
+                        .where((m) => m.toLowerCase().contains(q))
+                        .toList();
+
+                    return ListView.builder(
+                      itemCount: filtered.length + 1, // +1 for "All Models"
+                      itemBuilder: (_, i) {
+                        // ── All Models option ──
+                        if (i == 0) {
+                          final isSelected = selectedModelFilter == null;
+                          return Container(
+                            margin: EdgeInsets.only(
+                                bottom: Screen.w(context) * 0.02),
+                            decoration: BoxDecoration(
+                              color: isSelected ? _kBlueBg : _kBg,
+                              borderRadius: BorderRadius.circular(
+                                  Screen.w(context) * 0.028),
+                              border: Border.all(
+                                  color: isSelected
+                                      ? _kBlueBorder
+                                      : _kBorder,
+                                  width: isSelected ? 1.5 : 1),
+                            ),
+                            child: ListTile(
+                              leading: Icon(Icons.all_inclusive_rounded,
+                                  color: isSelected ? _kBlue : _kMuted),
+                              title: Text('All Models',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected
+                                          ? _kBlue
+                                          : _kDark)),
+                              trailing: isSelected
+                                  ? const Icon(Icons.check_circle,
+                                  color: _kBlue)
+                                  : null,
+                              onTap: () {
+                                setState(() {
+                                  selectedModelFilter = null;
+                                  selectedProduct = null;
+                                });
+                                Navigator.pop(context);
+                              },
+                            ),
+                          );
+                        }
+
+                        // ── Model items ──
+                        final model = filtered[i - 1];
+                        final isSelected = selectedModelFilter == model;
+                        return Container(
+                          margin: EdgeInsets.only(
+                              bottom: Screen.w(context) * 0.02),
+                          decoration: BoxDecoration(
+                            color: isSelected ? _kBlueBg : _kBg,
+                            borderRadius: BorderRadius.circular(
+                                Screen.w(context) * 0.028),
+                            border: Border.all(
+                                color: isSelected
+                                    ? _kBlueBorder
+                                    : _kBorder,
+                                width: isSelected ? 1.5 : 1),
+                          ),
+                          child: ListTile(
+                            leading: Icon(Icons.tag_rounded,
+                                color: isSelected ? _kBlue : _kMuted),
+                            title: Text(model,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: isSelected
+                                        ? _kBlue
+                                        : _kDark)),
+                            trailing: isSelected
+                                ? const Icon(Icons.check_circle,
+                                color: _kBlue)
+                                : null,
+                            onTap: () {
+                              setState(() {
+                                selectedModelFilter = model;
+                                selectedProduct = null;
+                              });
+                              Navigator.pop(context);
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildSelectorButton({
     required double sw,
@@ -236,7 +461,11 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     required Color color,
     VoidCallback? onTap,
     bool enabled = true,
+    String? optionalLabel, // ← add this
   }) {
+    final displayText = value ?? optionalLabel ?? 'Select $label';
+    final hasValue = value != null;
+
     return Opacity(
       opacity: enabled ? 1.0 : 0.5,
       child: GestureDetector(
@@ -257,8 +486,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
-                  border:
-                  Border.all(color: color.withValues(alpha: 0.3)),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
                 ),
                 child: Icon(icon, color: color, size: sw * 0.045),
               ),
@@ -274,13 +502,13 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                             fontWeight: FontWeight.w600)),
                     SizedBox(height: sw * 0.005),
                     Text(
-                      value ?? 'Select $label',
+                      displayText,
                       style: TextStyle(
                           fontSize: sw * 0.034,
-                          fontWeight: value != null
+                          fontWeight: hasValue
                               ? FontWeight.w600
                               : FontWeight.w400,
-                          color: value != null ? _kDark : _kMuted),
+                          color: hasValue ? _kDark : _kMuted),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -571,7 +799,6 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
           SizedBox(height: sh * 0.015),
 
           // ── Delivery date ──────────────────────
-          // ✅ FIX: delivery date required for ALL products (including scheme)
           GestureDetector(
             onTap: () =>
                 _selectDeliveryDate(context, product, index),
@@ -582,7 +809,6 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                 color: _kBg,
                 borderRadius: BorderRadius.circular(sw * 0.028),
                 border: Border.all(
-                  // ✅ FIX: red border for ALL products missing date
                   color: product.deliveryDate == null
                       ? _kRed
                       : _kBorder,
@@ -614,7 +840,6 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
             ),
           ),
 
-          // ✅ FIX: warning shown for ALL products missing date
           if (product.deliveryDate == null)
             Padding(
               padding: EdgeInsets.only(
@@ -1345,8 +1570,11 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                   setState(() {
                                     selectedDealer = d;
                                     selectedBrand = null;
+                                    selectedModelFilter = null; // ← reset model
                                     selectedProduct = null;
                                     selectedProducts.clear();
+                                    _allFetchedProducts.clear();
+                                    _availableModels.clear();
                                   });
                                   Navigator.pop(context);
                                 },
@@ -1435,8 +1663,13 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                   width:
                                   Screen.w(context) * 0.06),
                               onTap: () {
-                                setState(
-                                        () => selectedBrand = b);
+                                setState(() {
+                                  selectedBrand = b;
+                                  selectedModelFilter = null; // ← reset model
+                                  selectedProduct = null;
+                                  _allFetchedProducts.clear();
+                                  _availableModels.clear();
+                                });
                                 Navigator.pop(context);
                               },
                             );
@@ -1540,83 +1773,139 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
   Future<void> _showProductDialog(
       BuildContext context, List<String> brands) async {
     final searchController = TextEditingController();
-    final future = ref
-        .watch(productControllerProvider.notifier)
-        .fetchProductsByBrand(brands);
+
+    // ── Fetch only if not already loaded ──
+    if (_allFetchedProducts.isEmpty) {
+      _allFetchedProducts = await ref
+          .read(productControllerProvider.notifier)
+          .fetchProductsByBrand(brands);
+    }
+    // ── Filter by brand and model ──
+    final localFiltered = _allFetchedProducts.where((p) {
+      final matchBrand = brands.any(
+              (b) => b.toLowerCase() == (p.brand ?? '').toLowerCase());
+      final matchModel = selectedModelFilter == null ||
+          (p.model ?? '') == selectedModelFilter;
+      return matchBrand && matchModel;
+    }).toList();
+
+    // ── Extract unique models from products ──
+    final models = ['All', ...{...localFiltered.map((p) => p.model ?? '')}
+        .where((m) => m.isNotEmpty)
+        .toList()..sort()];
+
+    final query = ValueNotifier('');
+    final selectedModel = ValueNotifier<String>('All'); // ← model filter
+
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
-      builder: (context) => FutureBuilder<List<ProductModel>>(
-        future: future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AlertDialog(
-                backgroundColor: Colors.white,
-                content: GlobalLoader());
-          }
-          if (snapshot.hasError) {
-            return AlertDialog(
-                backgroundColor: Colors.white,
-                title: const Text('Products'),
-                content: Text(snapshot.error.toString()));
-          }
-          final products = snapshot.data ?? [];
-          final query = ValueNotifier('');
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                    Screen.w(context) * 0.04)),
-            title: Text('Select Product',
-                style: TextStyle(
-                    fontSize: Screen.w(context) * 0.042,
-                    fontWeight: FontWeight.w700)),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _dialogSearchField(
-                      context,
-                      searchController,
-                      'Search product name or model',
-                      query),
-                  SizedBox(height: Screen.h(context) * 0.02),
-                  Expanded(
-                    child: ValueListenableBuilder<String>(
-                      valueListenable: query,
-                      builder: (_, q, __) {
-                        final filtered = products.where((p) {
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.circular(Screen.w(context) * 0.04)),
+        title: Text('Select Product',
+            style: TextStyle(
+                fontSize: Screen.w(context) * 0.042,
+                fontWeight: FontWeight.w700)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Search field ──
+              _dialogSearchField(context, searchController,
+                  'Search product name or model', query),
+              SizedBox(height: Screen.h(context) * 0.015),
+
+              // ── Model filter chips ──
+              SizedBox(
+                height: Screen.w(context) * 0.09,
+                child: ValueListenableBuilder<String>(
+                  valueListenable: selectedModel,
+                  builder: (_, currentModel, __) {
+                    return ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: models.length,
+                      itemBuilder: (_, i) {
+                        final model = models[i];
+                        final isSelected = currentModel == model;
+                        return GestureDetector(
+                          onTap: () => selectedModel.value = model,
+                          child: Container(
+                            margin: EdgeInsets.only(
+                                right: Screen.w(context) * 0.02),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: Screen.w(context) * 0.03,
+                                vertical: Screen.w(context) * 0.015),
+                            decoration: BoxDecoration(
+                              color: isSelected ? _kBlueBg : _kBg,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isSelected
+                                    ? _kBlueBorder
+                                    : _kBorder,
+                                width: isSelected ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Text(
+                              model,
+                              style: TextStyle(
+                                fontSize: Screen.w(context) * 0.028,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected ? _kBlue : _kMuted,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+
+              SizedBox(height: Screen.h(context) * 0.015),
+
+              // ── Product list ──
+              Expanded(
+                child: ValueListenableBuilder<String>(
+                  valueListenable: query,
+                  builder: (_, q, __) {
+                    return ValueListenableBuilder<String>(
+                      valueListenable: selectedModel,
+                      builder: (_, currentModel, __) {
+                        final filtered = localFiltered.where((p) {
                           final name =
-                              p.productName?.toLowerCase() ??
-                                  '';
+                              p.productName?.toLowerCase() ?? '';
                           final model =
                               p.model?.toLowerCase() ?? '';
-                          return name.contains(q) ||
+                          final matchSearch = name.contains(q) ||
                               model.contains(q);
+                          final matchModel = currentModel == 'All' ||
+                              (p.model ?? '') == currentModel;
+                          return matchSearch && matchModel;
                         }).toList();
+
                         if (filtered.isEmpty) {
                           return const Center(
-                              child:
-                              Text('No products found'));
+                              child: Text('No products found'));
                         }
+
                         return ListView.builder(
                           itemCount: filtered.length,
                           itemBuilder: (_, i) {
                             final p = filtered[i];
-                            final added =
-                            _isProductAlreadyAdded(p);
+                            final added = _isProductAlreadyAdded(p);
                             return Container(
                               margin: EdgeInsets.only(
                                   bottom:
                                   Screen.w(context) * 0.02),
                               decoration: BoxDecoration(
-                                color: added
-                                    ? _kGreenBg
-                                    : _kBg,
-                                borderRadius:
-                                BorderRadius.circular(
-                                    Screen.w(context) *
-                                        0.028),
+                                color: added ? _kGreenBg : _kBg,
+                                borderRadius: BorderRadius.circular(
+                                    Screen.w(context) * 0.028),
                                 border: Border.all(
                                     color: added
                                         ? _kGreenBorder
@@ -1635,8 +1924,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                     style: const TextStyle(
                                         fontWeight:
                                         FontWeight.w600)),
-                                subtitle:
-                                Text(p.model.toString()),
+                                subtitle: Text(p.model.toString()),
                                 trailing: added
                                     ? const Icon(
                                     Icons.check_circle,
@@ -1649,8 +1937,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                       dealerProductDiscountProvider({
                                         'dealerId': selectedDealer!
                                             .employeeId!,
-                                        'productId':
-                                        p.productId!,
+                                        'productId': p.productId!,
                                       }).future,
                                     );
                                   } catch (e) {
@@ -1660,9 +1947,8 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                   setState(() {
                                     selectedProducts.add(
                                       OrderDetailsModel.fromProduct(
-                                        p,
-                                        dealerDiscount: discount,
-                                      ),
+                                          p,
+                                          dealerDiscount: discount),
                                     );
                                   });
                                   if (!context.mounted) return;
@@ -1673,13 +1959,13 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                           },
                         );
                       },
-                    ),
-                  ),
-                ],
+                    );
+                  },
+                ),
               ),
-            ),
-          );
-        },
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1785,17 +2071,16 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
   }
 
   bool _canCreateOrder() {
+    // ✅ MODIFIED: Check selectedSalesman even if auto-filled for salesman role
     if (selectedDealer == null ||
         selectedSalesman == null ||
         selectedProducts.isEmpty ||
         amountPaid < 0) return false;
 
-    // ✅ FIX: ALL products require delivery date, including scheme
     return !selectedProducts.any((p) => p.deliveryDate == null);
   }
 
   void _createOrder() async {
-    // ✅ FIX: ALL products require delivery date, including scheme
     final missingDate =
     selectedProducts.any((p) => p.deliveryDate == null);
 

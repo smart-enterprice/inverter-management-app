@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:inverter_management_app/feature/order/screen/orders_view_page.dart';
+import 'package:inverter_management_app/feature/order/screen/today_orders_screen.dart';
 import 'package:inverter_management_app/model/user_model.dart';
+import 'package:inverter_management_app/screen/Dashboard/salesman_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/const/icons.dart';
 import '../../feature/signup/controller/signUp_controller.dart';
@@ -20,9 +22,10 @@ class _SalesmanMobileViewState extends ConsumerState<SalesmanMobileView> {
   UserModel? _user;
 
   final List<Widget> body = const [
-    SuperadminDashboardScreen(),
+    SalesManDashboard(),
     OrdersViewPage(),
     CreateSection(),
+    TodayOrdersScreen()
   ];
 
   @override
@@ -86,8 +89,14 @@ class _SalesmanMobileViewState extends ConsumerState<SalesmanMobileView> {
                   ),
                   _buildNavItem(
                     index: 2,
-                    icon: AppIcons.delivery,
-                    label: 'Delivery',
+                    icon: AppIcons.add,
+                    label: 'Create',
+                    primaryColor: primaryColor,
+                  ),
+                  _buildNavItem(
+                    index: 3,
+                    icon: AppIcons.time,
+                    label: 'Today',
                     primaryColor: primaryColor,
                   ),
                 ],

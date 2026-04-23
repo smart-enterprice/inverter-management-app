@@ -15,7 +15,7 @@ import '../../repository/signUp_repository.dart';
 class DealerListNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
   final SignupRepository _repo;
   int _page = 1;
-  final int _limit = 20;
+  final int _limit = 1000;
   final int _totalPages = 1;
   bool _isLoadingMore = false;
 
@@ -209,7 +209,7 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
     );
   }
 
-  // ── Search Bar ─────────────────────────────────────────────────────────────
+  // ── Search Bar ───────────────────────────────────────────────────────────── //
   Widget _buildSearchBar(
       BuildContext context, double sw, double sh) {
     return Padding(

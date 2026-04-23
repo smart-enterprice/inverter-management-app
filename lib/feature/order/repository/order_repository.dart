@@ -10,8 +10,9 @@ final orderRepositoryProvider = Provider<OrderRepository>((ref) {
 
 class OrderRepository {
   final Dio _dio = DioClient.instance;
- ///  create new order
-  Future<void>createOrder(OrderModel order) async {
+
+  /// Create new order
+  Future<void> createOrder(OrderModel order) async {
     try {
       await _dio.post('/order-details/create-order',
           data: order.toJson());
@@ -20,18 +21,24 @@ class OrderRepository {
     }
   }
 
-  /// ✅ Get all orders
+  /// ✅ Get all orders with pagination support
   Future<List<OrderModel>> getAllOrders({
+    int? page,
     int? limit,
     String? status, // null or 'ALL' = no status param; else sent UPPERCASE
   }) async {
     try {
       final queryParameters = <String, dynamic>{
         'includeRejected': false,
-        'page': 1,
+        if (page != null) 'page': page,
         if (limit != null) 'limit': limit,
         if (status != null && status != 'ALL') 'status': status,
       };
+
+      // If page is not provided, default to page 1
+      if (page == null) {
+        queryParameters['page'] = 1;
+      }
 
       final response = await _dio.get(
         '/order-details',
@@ -40,7 +47,7 @@ class OrderRepository {
 
       if (response.statusCode == 200) {
         final data = (response.data['data'] as List);
-        print('✅ getAllOrders | status=$status');
+        print('✅ getAllOrders | page=${page ?? 1} | limit=${limit ?? 'default'} | status=$status | count=${data.length}');
         return data.map((e) => OrderModel.fromJson(e['order'])).toList();
       } else {
         throw Exception('Failed to fetch orders');
@@ -109,11 +116,11 @@ class OrderRepository {
         '/order-details/status/${order.orderNumber}',
         data: order.toUpdateItemJson(),
       );
-
     } on DioException catch (e) {
       throw Exception(e.response?.data?["message"] ?? e.message ?? 'Unknown error');
     }
   }
+
   /// 🔹 Update entire order status
   Future<void> updateOrder(OrderModel order,{bool isPaymentUpdate = false}) async {
     try {
@@ -125,6 +132,7 @@ class OrderRepository {
       throw Exception(e.response?.data?["message"] ?? e.message ?? 'Unknown error');
     }
   }
+
   Future<void> updateOrderPayment(OrderModel order) async {
     try {
       await _dio.put(
@@ -159,6 +167,4 @@ class OrderRepository {
       throw Exception(errorMsg);
     }
   }
-
-
 }

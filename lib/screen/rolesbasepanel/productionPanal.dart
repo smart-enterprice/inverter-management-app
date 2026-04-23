@@ -1,29 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:inverter_management_app/feature/order/screen/order_create_page.dart';
-import '../core/const/icons.dart';
-import '../core/media_query/media_query.dart';
-import '../feature/brand/screen/brands_page.dart';
-import '../feature/product/screen/products_screen.dart';
-import '../feature/signup/screen/dealer/dealers_screen.dart';
-import '../feature/signup/screen/user/users_screen.dart';
+import '../../core/const/icons.dart';
+import '../../core/media_query/media_query.dart';
+import '../../feature/brand/screen/brands_page.dart';
+import '../../feature/product/screen/products_screen.dart';
+import '../../feature/signup/screen/dealer/dealers_screen.dart';
 
-class ControlPanel extends StatelessWidget {
-  const ControlPanel({super.key});
+class ProductionPanel extends StatelessWidget {
+  const ProductionPanel({super.key});
 
   @override
   Widget build(BuildContext context) {
     final sw = Screen.w(context);
 
     final List<Map<String, dynamic>> items = [
-      {
-        'title': 'New Order',
-        'icon': AppIcons.add,
-        'accent': const Color(0xFF1B4FD8),
-        'bg': const Color(0xFFEEF2FF),
-        'border': const Color(0xFFC7D2FE),
-        'page': const OrderCreatePage(),
-      },
       {
         'title': 'Products',
         'icon': AppIcons.product,
@@ -39,22 +30,6 @@ class ControlPanel extends StatelessWidget {
         'bg': const Color(0xFFFFF7ED),
         'border': const Color(0xFFFED7AA),
         'page': const BrandsScreen(),
-      },
-      {
-        'title': 'Dealers',
-        'icon': AppIcons.dealers,
-        'accent': const Color(0xFF0A8A5C),
-        'bg': const Color(0xFFEDFAF4),
-        'border': const Color(0xFF9FE0C5),
-        'page': const DealersScreen(),
-      },
-      {
-        'title': 'Users',
-        'icon': AppIcons.dealers,
-        'accent': const Color(0xFF4338CA),
-        'bg': const Color(0xFFEEF2FF),
-        'border': const Color(0xFFC7D2FE),
-        'page': const UsersScreen(),
       },
     ];
 

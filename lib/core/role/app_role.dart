@@ -12,62 +12,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class OrderStatus {
-  static const confirmed = 'CONFIRMED';
-  static const production = 'PRODUCTION';
-  static const packed = 'PACKED';
-  static const invoice = 'INVOICE';
-  static const shipped = 'SHIPPED';
-  static const delivered = 'DELIVERED';
-  static const completed = 'COMPLETED';
-  static const cancelled = 'CANCELLED';
-  static const rejected = 'REJECTED';
-}
-List<String> getNextStatuses(AppRole role, String currentStatus) {
-  switch (role) {
 
-    case AppRole.production:
-      if (currentStatus == OrderStatus.production) {
-        return [OrderStatus.production];
-      }
-      return [];
 
-    case AppRole.packing:
-      if (currentStatus == OrderStatus.production) {
-        return [OrderStatus.packed];
-      }
-      return [];
 
-    case AppRole.accounts:
-      if (currentStatus == OrderStatus.packed) {
-        return [OrderStatus.invoice];
-      }
-      return [];
-
-    case AppRole.delivery:
-      if (currentStatus == OrderStatus.shipped) {
-        return [OrderStatus.delivered];
-      }
-      return [];
-
-    case AppRole.manager:
-    case AppRole.admin:
-    case AppRole.superAdmin:
-      return [
-        OrderStatus.production,
-        OrderStatus.packed,
-        OrderStatus.invoice,
-        OrderStatus.shipped,
-        OrderStatus.delivered,
-        OrderStatus.completed,
-        OrderStatus.cancelled,
-        OrderStatus.rejected,
-      ];
-
-    default:
-      return [];
-  }
-}
 
 // ─── 1. Role enum ─────────────────────────────────────────────────────────────
 enum AppRole {
@@ -141,6 +88,8 @@ class AppFeature {
   static const String updateStock        = 'update_stock';
   static const String viewTimestamps          = 'view_timestamps';
   static const String updateStatus = 'update_status';
+  static const String updateUnpackedStock = 'update_unpacked_stock';
+  static const String updatePackedStock = 'update_packed_stock';
 
   // People
   static const String viewCreator     = 'view_creator';
@@ -168,15 +117,16 @@ class AppFeature {
   static const String accessCreatePanel = 'access_create_panel';
   static const String accessControlPanel= 'access_control_panel';
 
-  // ── Granular order status transitions ──────────────────────────────────────
-  static const String setStatusConfirmed  = 'set_status_confirmed';
-  static const String setStatusProduction = 'set_status_production';
-  static const String setStatusPacked     = 'set_status_packed';
-  static const String setStatusInvoice    = 'set_status_invoice';
-  static const String setStatusShipped    = 'set_status_shipped';
-  static const String setStatusDelivered  = 'set_status_delivered';
-  static const String setStatusCompleted  = 'set_status_completed';
-
+  // order status update
+  static const orderConfirmed = 'CONFIRMED';
+  static const productionCompleted = 'PRODUCTION';
+  static const packedCompleted = 'PACKED';
+  static const invoiceCompleted = 'INVOICE';
+  static const shippedCompleted = 'SHIPPED';
+  static const deliveredCompleted = 'DELIVERED';
+  static const orderCompleted = 'COMPLETED';
+  static const orderCancelled = 'CANCELLED';
+  static const orderRejected = 'REJECTED';
 }
 
 // ─── 3. Permissions map ───────────────────────────────────────────────────────
@@ -237,14 +187,18 @@ class AppPermissions {
       AppFeature.paymentView,
       AppFeature.infoView,
       AppFeature.handleUser,
-      // ── all status transitions ──────────────────────────────────────────
-      AppFeature.setStatusConfirmed,
-      AppFeature.setStatusProduction,
-      AppFeature.setStatusPacked,
-      AppFeature.setStatusInvoice,
-      AppFeature.setStatusShipped,
-      AppFeature.setStatusDelivered,
-      AppFeature.setStatusCompleted,
+      AppFeature.updateUnpackedStock,
+      AppFeature.updatePackedStock,
+      // order status updates
+      AppFeature.orderConfirmed,
+      AppFeature.productionCompleted,
+      AppFeature.packedCompleted,
+      AppFeature.invoiceCompleted,
+      AppFeature.shippedCompleted,
+      AppFeature.deliveredCompleted,
+      AppFeature.orderCompleted,
+      AppFeature.orderCancelled,
+      AppFeature.orderRejected,
     },
 
     // ── Admin — same full access as Super Admin ────────────────────────────
@@ -285,14 +239,18 @@ class AppPermissions {
       AppFeature.paymentView,
       AppFeature.infoView,
       AppFeature.handleUser,
-      // ── all status transitions ──────────────────────────────────────────
-      AppFeature.setStatusConfirmed,
-      AppFeature.setStatusProduction,
-      AppFeature.setStatusPacked,
-      AppFeature.setStatusInvoice,
-      AppFeature.setStatusShipped,
-      AppFeature.setStatusDelivered,
-      AppFeature.setStatusCompleted,
+      AppFeature.updateUnpackedStock,
+      AppFeature.updatePackedStock,
+      // order status updates
+      AppFeature.orderConfirmed,
+      AppFeature.productionCompleted,
+      AppFeature.packedCompleted,
+      AppFeature.invoiceCompleted,
+      AppFeature.shippedCompleted,
+      AppFeature.deliveredCompleted,
+      AppFeature.orderCompleted,
+      AppFeature.orderCancelled,
+      AppFeature.orderRejected,
     },
 
     // ── Manager ────────────────────────────────────────────────────────────
@@ -311,14 +269,14 @@ class AppPermissions {
       AppFeature.updateStock,
       AppFeature.updateProduct,
       AppFeature.createProduct,
-      AppFeature.updatePrice,
+      // AppFeature.updatePrice,
       AppFeature.viewTimestamps,
       AppFeature.viewBrands,
       AppFeature.updateBrand,
       AppFeature.viewDealers,
-      AppFeature.createDealer,
-      AppFeature.editDealer,
-      AppFeature.deleteDealer,
+      // AppFeature.createDealer,
+      // AppFeature.editDealer,
+      // AppFeature.deleteDealer,
       AppFeature.viewEmployees,
       AppFeature.createEmployee,
       AppFeature.deleteEmployee,
@@ -327,19 +285,23 @@ class AppPermissions {
       AppFeature.viewReports,
       AppFeature.accessCreatePanel,
       AppFeature.accessControlPanel,
-      AppFeature.discountCreate,
+      // AppFeature.discountCreate,
       AppFeature.discountView,
       AppFeature.paymentView,
       AppFeature.infoView,
       AppFeature.handleUser,
-      // ── all status transitions ──────────────────────────────────────────
-      AppFeature.setStatusConfirmed,
-      AppFeature.setStatusProduction,
-      AppFeature.setStatusPacked,
-      AppFeature.setStatusInvoice,
-      AppFeature.setStatusShipped,
-      AppFeature.setStatusDelivered,
-      AppFeature.setStatusCompleted,
+      AppFeature.updateUnpackedStock,
+      AppFeature.updatePackedStock,
+      // order status updates
+      AppFeature.orderConfirmed,
+      AppFeature.productionCompleted,
+      AppFeature.packedCompleted,
+      AppFeature.invoiceCompleted,
+      AppFeature.shippedCompleted,
+      AppFeature.deliveredCompleted,
+      AppFeature.orderCompleted,
+      AppFeature.orderCancelled,
+      AppFeature.orderRejected,
     },
 
     // ── Salesman — view only, no dealer create/edit ────────────────────────
@@ -357,6 +319,7 @@ class AppPermissions {
       AppFeature.discountView,
       AppFeature.paymentView,
       AppFeature.infoView,
+
     },
 
     // ── Production ─────────────────────────────────────────────────────────
@@ -367,7 +330,11 @@ class AppPermissions {
       AppFeature.updateStock,
       AppFeature.viewTimestamps,
       AppFeature.viewProducts,
-      AppFeature.setStatusProduction,
+      AppFeature.updateUnpackedStock,
+      // order status updates
+      AppFeature.productionCompleted,
+      // AppFeature.packedCompleted,
+
     },
 
     // ── Packing ────────────────────────────────────────────────────────────
@@ -377,7 +344,11 @@ class AppPermissions {
       AppFeature.viewStock,
       AppFeature.updateStock,
       AppFeature.updateOrderStatus,
-      AppFeature.setStatusPacked,
+      AppFeature.updatePackedStock,
+      // order status updates
+      // AppFeature.productionCompleted,
+      AppFeature.packedCompleted,
+
     },
 
     // ── Accounts — payment + order status update ───────────────────────────
@@ -394,15 +365,19 @@ class AppPermissions {
       AppFeature.viewDashboard,
       AppFeature.discountView,
       AppFeature.paymentView,
-      AppFeature.setStatusInvoice,
-      AppFeature.setStatusShipped,
+      // order status updates
+      AppFeature.invoiceCompleted,
+      AppFeature.shippedCompleted,
+
     },
 
     // ── Delivery ───────────────────────────────────────────────────────────
     AppRole.delivery: {
       AppFeature.viewAllOrders,
       AppFeature.updateOrderStatus,
-      AppFeature.setStatusDelivered,
+      // order status updates
+      AppFeature.deliveredCompleted,
+
     },
 
     // ── Dealer — no access in app currently ───────────────────────────────

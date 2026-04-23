@@ -6,25 +6,26 @@ import 'package:inverter_management_app/feature/order/screen/order_view_page.dar
 import 'package:inverter_management_app/model/user_model.dart';
 import 'package:inverter_management_app/screen/loadingScreen.dart';
 
+import '../../core/const/role.dart';
 import '../../core/media_query/media_query.dart';
 import '../../feature/authentication/controller/login_controller.dart';
 import '../../feature/authentication/screen/login_mobile_view.dart';
 import '../../feature/order/controller/order_controller.dart';
 import '../../feature/signup/controller/signUp_controller.dart';
 import '../../widgets/data_card.dart';
-import '../../widgets/info_card.dart';
-import '../ControlPanel.dart';
+import '../../widgets/rolebaseinfo/info_card.dart';
+import '../rolesbasepanel/ControlPanel.dart';
 
-class SuperadminDashboardScreen extends ConsumerStatefulWidget {
-  const SuperadminDashboardScreen({super.key});
+class SuperadminDashboard extends ConsumerStatefulWidget {
+  const SuperadminDashboard({super.key});
 
   @override
-  ConsumerState<SuperadminDashboardScreen> createState() =>
+  ConsumerState<SuperadminDashboard> createState() =>
       _SuperadminDashboardScreenState();
 }
 
 class _SuperadminDashboardScreenState
-    extends ConsumerState<SuperadminDashboardScreen>
+    extends ConsumerState<SuperadminDashboard>
     with SingleTickerProviderStateMixin {
   UserModel? _user;
   late AnimationController _animController;
@@ -151,6 +152,7 @@ class _SuperadminDashboardScreenState
         ? _user!.photo.toString()
         : _avatarFallback;
     final name = _user?.employeeName.replaceAll('_', ' ') ?? '...';
+    final role = _user?.role.replaceAll('ROLE_', '').replaceAll('_', ' ') ?? '...';
 
     return Container(
       width: double.infinity,
@@ -258,7 +260,7 @@ class _SuperadminDashboardScreenState
                               color: const Color(0xFF4C8FFF).withValues(alpha: 0.3)),
                         ),
                         child: Text(
-                          'Super Admin',
+                          role,
                           style: TextStyle(
                             fontSize: sw * 0.026,
                             color: const Color(0xFF90BAFF),

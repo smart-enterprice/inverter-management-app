@@ -17,17 +17,19 @@ import '../../feature/signup/controller/signUp_controller.dart';
 import '../../widgets/data_card.dart';
 import '../../widgets/rolebaseinfo/info_card.dart';
 import '../rolesbasepanel/ControlPanel.dart';
+import '../rolesbasepanel/packingPanel.dart';
+import '../rolesbasepanel/productionPanal.dart';
 
-class SalesManDashboard extends ConsumerStatefulWidget {
-  const SalesManDashboard({super.key});
+class ProductionDashboard extends ConsumerStatefulWidget {
+  const ProductionDashboard({super.key});
 
   @override
-  ConsumerState<SalesManDashboard> createState() =>
-      _SuperadminDashboardScreenState();
+  ConsumerState<ProductionDashboard> createState() =>
+      _PackingDashboardState();
 }
 
-class _SuperadminDashboardScreenState
-    extends ConsumerState<SalesManDashboard>
+class _PackingDashboardState
+    extends ConsumerState<ProductionDashboard>
     with SingleTickerProviderStateMixin {
   UserModel? _user;
   late AnimationController _animController;
@@ -90,13 +92,13 @@ class _SuperadminDashboardScreenState
                       SizedBox(height: sh * 0.025),
 
                       // ── Stats cards ────────────────────────────────────
-                      const SalesmanInfoCard(),
+                      // const SalesmanInfoCard(),
                       SizedBox(height: sh * 0.03),
 
                       // ── Quick access ───────────────────────────────────
                       _sectionLabel('Quick Access'),
                       SizedBox(height: sh * 0.015),
-                      const SalesmanPanel(),
+                      const ProductionPanel(),
                       SizedBox(height: sh * 0.03),
 
                       // ── Recent orders ──────────────────────────────────

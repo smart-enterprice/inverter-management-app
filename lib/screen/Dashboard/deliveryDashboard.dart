@@ -17,17 +17,18 @@ import '../../feature/signup/controller/signUp_controller.dart';
 import '../../widgets/data_card.dart';
 import '../../widgets/rolebaseinfo/info_card.dart';
 import '../rolesbasepanel/ControlPanel.dart';
+import '../rolesbasepanel/devileryPanal.dart';
 
-class SalesManDashboard extends ConsumerStatefulWidget {
-  const SalesManDashboard({super.key});
+class DeliveryDashboard extends ConsumerStatefulWidget {
+  const DeliveryDashboard({super.key});
 
   @override
-  ConsumerState<SalesManDashboard> createState() =>
-      _SuperadminDashboardScreenState();
+  ConsumerState<DeliveryDashboard> createState() =>
+      _DeliveryDashboardState();
 }
 
-class _SuperadminDashboardScreenState
-    extends ConsumerState<SalesManDashboard>
+class _DeliveryDashboardState
+    extends ConsumerState<DeliveryDashboard>
     with SingleTickerProviderStateMixin {
   UserModel? _user;
   late AnimationController _animController;
@@ -88,15 +89,12 @@ class _SuperadminDashboardScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(height: sh * 0.025),
-
                       // ── Stats cards ────────────────────────────────────
-                      const SalesmanInfoCard(),
                       SizedBox(height: sh * 0.03),
-
                       // ── Quick access ───────────────────────────────────
                       _sectionLabel('Quick Access'),
                       SizedBox(height: sh * 0.015),
-                      const SalesmanPanel(),
+                      const DeliveryPanel(),
                       SizedBox(height: sh * 0.03),
 
                       // ── Recent orders ──────────────────────────────────

@@ -6,6 +6,7 @@ import '../core/const/icons.dart';
 import '../core/media_query/media_query.dart';
 import 'createSection.dart';
 import 'Dashboard/superadmin_dashboard_screen.dart';
+import 'package:inverter_management_app/feature/order/screen/today_orders_screen.dart';
 
 class SuperAdminTabletView extends ConsumerStatefulWidget {
   const SuperAdminTabletView({super.key});
@@ -16,10 +17,10 @@ class SuperAdminTabletView extends ConsumerStatefulWidget {
 class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminTabletView> {
    int _currentIndex  = 0;
   List<Widget> body = const[
-    SuperadminDashboardScreen(),
+    SuperadminDashboard(),
     OrdersViewPage(),
     CreateSection(),
-    Icon(Icons.settings)
+    TodayOrdersScreen()
   ];
 
   @override
