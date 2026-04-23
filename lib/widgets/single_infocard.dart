@@ -29,17 +29,17 @@ class SingleInfoCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(screenWidth*0.025),
+                padding: EdgeInsets.all(Screen.w(context) * 0.025),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(screenWidth*0.03)),
-                  color: iconBackground
-                ),
+                    borderRadius: BorderRadius.all(
+                        Radius.circular(Screen.w(context) * 0.03)),
+                    color: iconBackground),
                 child: SvgPicture.asset(
                   icon,
                   colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
                 ),
               ),
-              SizedBox(width: screenHeight * 0.01),
+              SizedBox(width: Screen.h(context) * 0.01),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

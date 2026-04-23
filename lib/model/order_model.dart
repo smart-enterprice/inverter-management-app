@@ -1,38 +1,134 @@
+import 'package:inverter_management_app/model/product_model.dart';
+import 'dealer_discount_model.dart';
+
+// ─────────────────────────────────────────────
+// CancellationHistoryModel
+// ─────────────────────────────────────────────
+
+class CancellationHistoryModel {
+  final int cancelledQty;
+  final String cancelledBy;
+  final String cancelledByRole;
+  final DateTime? cancelledAt;
+  final String reason;
+  final String id;
+
+  CancellationHistoryModel({
+    required this.cancelledQty,
+    required this.cancelledBy,
+    required this.cancelledByRole,
+    this.cancelledAt,
+    required this.reason,
+    required this.id,
+  });
+
+  factory CancellationHistoryModel.fromJson(Map<String, dynamic> json) {
+    return CancellationHistoryModel(
+      cancelledQty: json["cancelled_qty"] != null
+          ? int.tryParse(json["cancelled_qty"].toString()) ?? 0
+          : 0,
+      cancelledBy: json["cancelled_by"]?.toString() ?? "",
+      cancelledByRole: json["cancelled_by_role"]?.toString() ?? "",
+      cancelledAt: json["cancelled_at"] != null
+          ? DateTime.tryParse(json["cancelled_at"].toString())
+          : null,
+      reason: json["reason"]?.toString() ?? "",
+      id: json["_id"]?.toString() ?? "",
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "cancelled_qty": cancelledQty,
+      "cancelled_by": cancelledBy,
+      "cancelled_by_role": cancelledByRole,
+      "cancelled_at": cancelledAt?.toIso8601String(),
+      "reason": reason,
+      "_id": id,
+    };
+  }
+
+  CancellationHistoryModel copyWith({
+    int? cancelledQty,
+    String? cancelledBy,
+    String? cancelledByRole,
+    DateTime? cancelledAt,
+    String? reason,
+    String? id,
+  }) {
+    return CancellationHistoryModel(
+      cancelledQty: cancelledQty ?? this.cancelledQty,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
+      cancelledByRole: cancelledByRole ?? this.cancelledByRole,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      reason: reason ?? this.reason,
+      id: id ?? this.id,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'CancellationHistoryModel(id: $id, cancelledQty: $cancelledQty, reason: $reason)';
+  }
+}
+
+// ─────────────────────────────────────────────
+// OrderModel
+// ─────────────────────────────────────────────
+
 class OrderModel {
-  final String orderNumber;
+  final String? orderNumber;
   final String dealerId;
   final String priority;
   final String orderNote;
-  final List<dynamic> paymentNotes;
-  final String status;
+  final List<dynamic>? paymentNotes;
+  final String? status;
   final String salesmanId;
-  final String createdBy;
-  final String paymentStatus;
+  final String? createdBy;
+  final String? paymentStatus;
   final String paymentType;
   final num amountPaid;
-  final bool salesTargetUpdated;
+  final bool? salesTargetUpdated;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DealerModel? dealer;
   final List<OrderDetailsModel> orderDetails;
+  final String? reasonForCancellation;
+
+  // Summary fields
+  final num? orderTotalPrice;
+  final num? orderTotalDiscount;
+  final num? amountDue;
+  final num? totalDealerDiscount;
+  final num? totalPrice;
+  final int? totalCancelledQty;
+  final List<CancellationHistoryModel>? cancellationHistory;
 
   OrderModel({
-    required this.orderNumber,
+    this.orderNumber,
     required this.dealerId,
     required this.priority,
     required this.orderNote,
-    required this.paymentNotes,
-    required this.status,
+    this.paymentNotes,
+    this.status,
     required this.salesmanId,
-    required this.createdBy,
-    required this.paymentStatus,
+    this.createdBy,
+    this.paymentStatus,
     required this.paymentType,
     required this.amountPaid,
-    required this.salesTargetUpdated,
+    this.salesTargetUpdated,
     this.createdAt,
     this.updatedAt,
     this.dealer,
     required this.orderDetails,
+    this.orderTotalPrice,
+    this.orderTotalDiscount,
+    this.amountDue,
+    this.totalDealerDiscount,
+    this.totalPrice,
+    this.totalCancelledQty,
+    this.cancellationHistory,
+    this.reasonForCancellation,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -49,14 +145,66 @@ class OrderModel {
       paymentType: json["payment_type"] ?? "",
       amountPaid: json["amount_paid"] ?? 0,
       salesTargetUpdated: json["sales_target_updated"] ?? false,
-      createdAt: json["created_at"] != null ? DateTime.tryParse(json["created_at"]) : null,
-      updatedAt: json["updated_at"] != null ? DateTime.tryParse(json["updated_at"]) : null,
-      dealer: json["dealer"] != null ? DealerModel.fromJson(json["dealer"]) : null,
+      createdAt: json["created_at"] != null
+          ? DateTime.tryParse(json["created_at"])
+          : null,
+      updatedAt: json["updated_at"] != null
+          ? DateTime.tryParse(json["updated_at"])
+          : null,
+      dealer:
+      json["dealer"] != null ? DealerModel.fromJson(json["dealer"]) : null,
       orderDetails: json["order_details"] != null
           ? List<OrderDetailsModel>.from(
           json["order_details"].map((x) => OrderDetailsModel.fromJson(x)))
           : [],
+      orderTotalPrice: json["order_total_price"],
+      orderTotalDiscount: json["order_total_discount"],
+      amountDue: json["amount_due"],
+      totalDealerDiscount: json["total_dealer_discount"],
+      totalPrice: json["total_price"],
+      totalCancelledQty: json["total_cancelled_qty"],
+      cancellationHistory: json["cancellation_history"] != null
+          ? List<CancellationHistoryModel>.from(json["cancellation_history"]
+          .map((x) => CancellationHistoryModel.fromJson(x)))
+          : [],
+      reasonForCancellation: json["reason_for_cancellation"],
     );
+  }
+
+  /// Use for updating only status flags + order details
+  Map<String, dynamic> toUpdateItemJson() {
+    return {
+      "order_number": orderNumber,
+      "order_details": orderDetails
+          .where((item) =>
+      item.status != 'CANCELLED' &&
+          item.status != 'COMPLETED' &&
+          item.status != 'DELIVERED' &&
+          (item.hasPackedCompleted != null ||
+              item.hasProductionCompleted != null ||
+              item.nextStatus != null ||
+              item.isDeliveryDateUpdated ||
+              (item.cancelQty != null && item.cancelQty! > 0)))
+          .map((x) => x.toUpdateJson())
+          .toList(),
+    };
+  }
+
+  Map<String, dynamic> toUpdateJson({bool isPaymentUpdate = false}) {
+    return {
+      "order_number": orderNumber,
+      "status": status,
+      if (reasonForCancellation != null)
+        "reason_for_cancellation": reasonForCancellation,
+    };
+  }
+
+  Map<String, dynamic> toUpdatePaymentJson() {
+    return {
+      "order_number": orderNumber,
+      "amount_paid": amountPaid,
+      "payment_method": paymentType,
+    };
   }
 
   Map<String, dynamic> toJson() {
@@ -77,6 +225,8 @@ class OrderModel {
       "updated_at": updatedAt?.toIso8601String(),
       "dealer": dealer?.toJson(),
       "order_details": orderDetails.map((x) => x.toJson()).toList(),
+      "cancellation_history":
+      cancellationHistory?.map((x) => x.toJson()).toList(),
     };
   }
 
@@ -97,6 +247,14 @@ class OrderModel {
     DateTime? updatedAt,
     DealerModel? dealer,
     List<OrderDetailsModel>? orderDetails,
+    num? orderTotalPrice,
+    num? orderTotalDiscount,
+    num? amountDue,
+    num? totalDealerDiscount,
+    num? totalPrice,
+    int? totalCancelledQty,
+    List<CancellationHistoryModel>? cancellationHistory,
+    String? reasonForCancellation,
   }) {
     return OrderModel(
       orderNumber: orderNumber ?? this.orderNumber,
@@ -115,9 +273,22 @@ class OrderModel {
       updatedAt: updatedAt ?? this.updatedAt,
       dealer: dealer ?? this.dealer,
       orderDetails: orderDetails ?? this.orderDetails,
+      orderTotalPrice: orderTotalPrice ?? this.orderTotalPrice,
+      orderTotalDiscount: orderTotalDiscount ?? this.orderTotalDiscount,
+      amountDue: amountDue ?? this.amountDue,
+      totalDealerDiscount: totalDealerDiscount ?? this.totalDealerDiscount,
+      totalPrice: totalPrice ?? this.totalPrice,
+      totalCancelledQty: totalCancelledQty ?? this.totalCancelledQty,
+      cancellationHistory: cancellationHistory ?? this.cancellationHistory,
+      reasonForCancellation:
+      reasonForCancellation ?? this.reasonForCancellation,
     );
   }
 }
+
+// ─────────────────────────────────────────────
+// DealerModel
+// ─────────────────────────────────────────────
 
 class DealerModel {
   final String employeeId;
@@ -169,8 +340,12 @@ class DealerModel {
       town: json["town"] ?? "",
       brand: json["brand"] != null ? List<String>.from(json["brand"]) : [],
       address: json["address"] ?? "",
-      createdAt: json["created_at"] != null ? DateTime.tryParse(json["created_at"]) : null,
-      updatedAt: json["updated_at"] != null ? DateTime.tryParse(json["updated_at"]) : null,
+      createdAt: json["created_at"] != null
+          ? DateTime.tryParse(json["created_at"])
+          : null,
+      updatedAt: json["updated_at"] != null
+          ? DateTime.tryParse(json["updated_at"])
+          : null,
     );
   }
 
@@ -195,108 +370,323 @@ class DealerModel {
   }
 }
 
+// ─────────────────────────────────────────────
+// OrderDetailsModel
+// ─────────────────────────────────────────────
+
 class OrderDetailsModel {
-  final String orderNumber;
-  final String orderDetailsNumber;
   final String productId;
   final String productBrand;
   final String productName;
   final String productModel;
   final String productType;
-  final int qtyOrdered;
-  final int qtyDelivered;
+  final int? productPrice;
+  final int? discountPrice;
+  final int? qtyOrdered;
   final DateTime? deliveryDate;
-  final String notes;
-  final bool isFree;
-  final Map<String, dynamic> stockUsage;
-  final Map<String, dynamic> stockFlags;
-  final String status;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-
-  // For update API
-  final bool? hasProductionCompleted;
-  final bool? hasUnPackedCompleted;
-  final int? cancelQty;
-  final int? deliveredQty;
   final DateTime? deliveredDate;
+  final String? dealerDiscountId;
+  final bool isProductScheme;
+  final int? deliveredQty;
+  final String? status;
+  final int? cancelQty;
+  final int? totalCancelledQty;
+  final String? reasonForCancellation;
+  final List<CancellationHistoryModel>? cancellationHistory;
+  final String? notes;
+
+  // ✅ UI-only flag fields
+  final bool isDeliveryDateUpdated;
+  final bool isReasonUpdated;
+
+  // UI-only fields (not sent to backend)
+  final ProductModel? product;
+  final bool useDealerDiscount;
+  final num? discountAmount;
+  final DealerDiscountModel? dealerDiscount;
+
+  // Pricing / stock fields
+  final num? unitProductPrice;
+  final num? totalProductPrice;
+  final bool? isFree;
+  final num? dealerDiscountAmount;
+  final String? stockUsage;
+  final Map<String, dynamic>? stockFlags;
+  final int? qtyDelivered;
+
+  // Order update fields
+  final String? orderDetailsNumber;
+  final bool? hasUnpacked;
+  final bool? hasProduction;
+  final bool? hasPackedCompleted;
+  final bool? hasProductionCompleted;
+  final String? nextStatus;
 
   OrderDetailsModel({
-    required this.orderNumber,
-    required this.orderDetailsNumber,
     required this.productId,
     required this.productBrand,
     required this.productName,
     required this.productModel,
     required this.productType,
-    required this.qtyOrdered,
-    required this.qtyDelivered,
+    this.productPrice,
+    this.discountPrice,
+    this.qtyOrdered,
     this.deliveryDate,
-    required this.notes,
-    required this.isFree,
-    required this.stockUsage,
-    required this.stockFlags,
-    required this.status,
-    this.createdAt,
-    this.updatedAt,
-    this.hasProductionCompleted,
-    this.hasUnPackedCompleted,
-    this.cancelQty,
-    this.deliveredQty,
     this.deliveredDate,
+    this.dealerDiscountId,
+    this.isProductScheme = false,
+    this.deliveredQty,
+    this.status,
+    this.product,
+    this.useDealerDiscount = false,
+    this.discountAmount,
+    this.dealerDiscount,
+    this.unitProductPrice,
+    this.totalProductPrice,
+    this.isFree,
+    this.dealerDiscountAmount,
+    this.stockUsage,
+    this.stockFlags,
+    this.qtyDelivered,
+    this.orderDetailsNumber,
+    this.hasUnpacked,
+    this.hasProduction,
+    this.hasPackedCompleted,
+    this.hasProductionCompleted,
+    this.nextStatus,
+    this.cancelQty,
+    this.totalCancelledQty,
+    this.reasonForCancellation,
+    this.cancellationHistory,
+    this.isDeliveryDateUpdated = false, // ✅ default false
+    this.isReasonUpdated = false,
+    this.notes,// ✅ default false
   });
 
+  int get quantity => qtyOrdered ?? 1;
+  bool get isScheme => isProductScheme;
+
   factory OrderDetailsModel.fromJson(Map<String, dynamic> json) {
+    final stockFlagsData = json["stock_flags"];
+
     return OrderDetailsModel(
-      orderNumber: json["order_number"] ?? "",
-      orderDetailsNumber: json["order_details_number"] ?? "",
-      productId: json["product_id"] ?? "",
-      productBrand: json["product_brand"] ?? "",
-      productName: json["product_name"] ?? "",
-      productModel: json["product_model"] ?? "",
-      productType: json["product_type"] ?? "",
-      qtyOrdered: json["qty_ordered"] ?? 0,
-      qtyDelivered: json["qty_delivered"] ?? 0,
-      deliveryDate: json["delivery_date"] != null ? DateTime.tryParse(json["delivery_date"]) : null,
-      notes: json["notes"] ?? "",
-      isFree: json["is_free"] ?? false,
-      stockUsage: json["stock_usage"] ?? {},
-      stockFlags: json["stock_flags"] ?? {},
-      status: json["status"] ?? "",
-      createdAt: json["created_at"] != null ? DateTime.tryParse(json["created_at"]) : null,
-      updatedAt: json["updated_at"] != null ? DateTime.tryParse(json["updated_at"]) : null,
-      hasProductionCompleted: json["has_production_completed"],
-      hasUnPackedCompleted: json["has_unPacked_completed"],
-      cancelQty: json["cancel_qty"],
-      deliveredQty: json["delivered_qty"],
-      deliveredDate: json["delivered_date"] != null ? DateTime.tryParse(json["delivered_date"]) : null,
+      notes: json["notes"]?.toString(),
+      productId: json["product_id"]?.toString() ?? "",
+      productBrand: json["product_brand"]?.toString() ?? "",
+      productName: json["product_name"]?.toString() ?? "",
+      productModel: json["product_model"]?.toString() ?? "",
+      productType: json["product_type"]?.toString() ?? "",
+      productPrice: json["product_price"] != null
+          ? int.tryParse(json["product_price"].toString())
+          : null,
+      discountPrice: json["discount_price"] != null
+          ? int.tryParse(json["discount_price"].toString())
+          : null,
+      qtyOrdered: json["qty_ordered"] != null
+          ? int.tryParse(json["qty_ordered"].toString())
+          : null,
+      deliveryDate: json["delivery_date"] != null
+          ? DateTime.tryParse(json["delivery_date"].toString())
+          : null,
+      deliveredDate: json["delivered_date"] != null
+          ? DateTime.tryParse(json["delivered_date"].toString())
+          : null,
+      dealerDiscountId: json["dealer_discount_id"]?.toString(),
+      isProductScheme: json["is_product_scheme"] == true ||
+          json["is_product_scheme"]?.toString().toLowerCase() == 'true',
+      deliveredQty: json["delivered_qty"] != null
+          ? int.tryParse(json["delivered_qty"].toString())
+          : null,
+      status: json["status"]?.toString(),
+      unitProductPrice: json["unit_product_price"],
+      totalProductPrice: json["total_product_price"],
+      isFree: json["is_free"],
+      dealerDiscountAmount: json["dealer_discount"],
+      stockUsage: json["stock_usage"]?.toString(),
+      qtyDelivered: json["qty_delivered"] != null
+          ? int.tryParse(json["qty_delivered"].toString())
+          : null,
+      orderDetailsNumber: json["order_details_number"]?.toString(),
+      stockFlags: stockFlagsData != null
+          ? Map<String, dynamic>.from(stockFlagsData)
+          : null,
+      hasUnpacked: stockFlagsData?["hasUnpacked"] as bool?,
+      hasProduction: stockFlagsData?["hasProduction"] as bool?,
+      totalCancelledQty: json["total_cancelled_qty"] != null
+          ? int.tryParse(json["total_cancelled_qty"].toString())
+          : null,
+      cancellationHistory: json["cancellation_history"] != null
+          ? List<CancellationHistoryModel>.from(json["cancellation_history"]
+          .map((x) => CancellationHistoryModel.fromJson(x)))
+          : [],
+      reasonForCancellation: json["reason_for_cancellation"]?.toString(),
+
+      // ✅ UI-only fields — always reset when loading from API
+      hasPackedCompleted: null,
+      hasProductionCompleted: null,
+      nextStatus: null,
+      cancelQty: null,
+      isDeliveryDateUpdated: false,
+      isReasonUpdated: false,
+    );
+  }
+
+  /// Used only when updating an order item
+  Map<String, dynamic> toUpdateJson() {
+    return {
+      "order_details_number": orderDetailsNumber,
+      if (hasPackedCompleted != null)
+        "has_unPacked_completed": hasPackedCompleted,
+      if (hasProductionCompleted != null)
+        "has_production_completed": hasProductionCompleted,
+      if (nextStatus != null) "status": nextStatus,
+      if (isDeliveryDateUpdated && deliveryDate != null)
+        "delivered_date": deliveryDate!.toIso8601String().split('T').first,
+      if (cancelQty != null && cancelQty! > 0) "cancel_qty": cancelQty,
+      if (isReasonUpdated &&
+          reasonForCancellation != null &&
+          reasonForCancellation!.isNotEmpty)
+        "reason_for_cancellation": reasonForCancellation,
+    };
+  }
+
+  factory OrderDetailsModel.fromProduct(
+      ProductModel product, {
+        DealerDiscountModel? dealerDiscount,
+      }) {
+    return OrderDetailsModel(
+      productId: product.productId!,
+      productBrand: product.brand!,
+      productName: product.productName.toString(),
+      productModel: product.model.toString(),
+      productType: product.productType!,
+      productPrice: product.price?.toInt(),
+      qtyOrdered: 1,
+      isProductScheme: false,
+      product: product,
+      dealerDiscount: dealerDiscount,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      "order_number": orderNumber,
-      "order_details_number": orderDetailsNumber,
       "product_id": productId,
       "product_brand": productBrand,
       "product_name": productName,
       "product_model": productModel,
       "product_type": productType,
+      "product_price": productPrice,
+      "discount_price": discountAmount ?? 0,
       "qty_ordered": qtyOrdered,
-      "qty_delivered": qtyDelivered,
-      "delivery_date": deliveryDate?.toIso8601String(),
-      "notes": notes,
-      "is_free": isFree,
-      "stock_usage": stockUsage,
-      "stock_flags": stockFlags,
-      "status": status,
-      "created_at": createdAt?.toIso8601String(),
-      "updated_at": updatedAt?.toIso8601String(),
-      "has_production_completed": hasProductionCompleted,
-      "has_unPacked_completed": hasUnPackedCompleted,
-      "cancel_qty": cancelQty,
+      "delivery_date": deliveryDate?.toIso8601String().split('T').first,
+      "dealer_discount_id": dealerDiscountId,
+      "is_product_scheme": isProductScheme,
       "delivered_qty": deliveredQty,
-      "delivered_date": deliveredDate?.toIso8601String(),
+      "delivered_date": deliveredDate?.toIso8601String().split('T').first,
+      "status": status,
+      "cancellation_history":
+      cancellationHistory?.map((x) => x.toJson()).toList(),
     };
+  }
+
+  OrderDetailsModel copyWith({
+    String? notes,
+    String? productId,
+    String? productBrand,
+    String? productName,
+    String? productModel,
+    String? productType,
+    int? productPrice,
+    int? discountPrice,
+    int? qtyOrdered,
+    DateTime? deliveryDate,
+    DateTime? deliveredDate,
+    String? dealerDiscountId,
+    bool? isProductScheme,
+    int? deliveredQty,
+    String? status,
+    ProductModel? product,
+    bool? useDealerDiscount,
+    num? discountAmount,
+    DealerDiscountModel? dealerDiscount,
+    num? unitProductPrice,
+    num? totalProductPrice,
+    bool? isFree,
+    num? dealerDiscountAmount,
+    String? stockUsage,
+    Map<String, dynamic>? stockFlags,
+    int? qtyDelivered,
+    String? orderDetailsNumber,
+    bool? hasUnpacked,
+    bool? hasProduction,
+    bool? hasPackedCompleted,
+    bool? hasProductionCompleted,
+    String? newStatus,
+    int? cancelQty,
+    int? totalCancelledQty,
+    String? reasonForCancellation,
+    List<CancellationHistoryModel>? cancellationHistory,
+    bool? isDeliveryDateUpdated,
+    bool? isReasonUpdated,
+
+    // ✅ Sentinel flags to force-clear nullable fields
+    bool clearHasPackedCompleted = false,
+    bool clearHasProductionCompleted = false,
+    bool clearNextStatus = false,
+    bool clearCancelQty = false,
+    bool clearReasonForCancellation = false,
+  }) {
+    return OrderDetailsModel(
+      notes: notes ?? this.notes,
+      productId: productId ?? this.productId,
+      productBrand: productBrand ?? this.productBrand,
+      productName: productName ?? this.productName,
+      productModel: productModel ?? this.productModel,
+      productType: productType ?? this.productType,
+      productPrice: productPrice ?? this.productPrice,
+      discountPrice: discountPrice ?? this.discountPrice,
+      qtyOrdered: qtyOrdered ?? this.qtyOrdered,
+      deliveryDate: deliveryDate ?? this.deliveryDate,
+      deliveredDate: deliveredDate ?? this.deliveredDate,
+      dealerDiscountId: dealerDiscountId ?? this.dealerDiscountId,
+      isProductScheme: isProductScheme ?? this.isProductScheme,
+      deliveredQty: deliveredQty ?? this.deliveredQty,
+      status: status ?? this.status,
+      product: product ?? this.product,
+      useDealerDiscount: useDealerDiscount ?? this.useDealerDiscount,
+      discountAmount: discountAmount ?? this.discountAmount,
+      dealerDiscount: dealerDiscount ?? this.dealerDiscount,
+      unitProductPrice: unitProductPrice ?? this.unitProductPrice,
+      totalProductPrice: totalProductPrice ?? this.totalProductPrice,
+      isFree: isFree ?? this.isFree,
+      dealerDiscountAmount: dealerDiscountAmount ?? this.dealerDiscountAmount,
+      stockUsage: stockUsage ?? this.stockUsage,
+      stockFlags: stockFlags ?? this.stockFlags,
+      qtyDelivered: qtyDelivered ?? this.qtyDelivered,
+      orderDetailsNumber: orderDetailsNumber ?? this.orderDetailsNumber,
+      hasUnpacked: hasUnpacked ?? this.hasUnpacked,
+      hasProduction: hasProduction ?? this.hasProduction,
+      totalCancelledQty: totalCancelledQty ?? this.totalCancelledQty,
+      cancellationHistory: cancellationHistory ?? this.cancellationHistory,
+      isDeliveryDateUpdated: isDeliveryDateUpdated ?? this.isDeliveryDateUpdated,
+      isReasonUpdated: isReasonUpdated ?? this.isReasonUpdated, // ✅ fixed
+      // ✅ Sentinel-controlled fields
+      hasPackedCompleted: clearHasPackedCompleted
+          ? null
+          : (hasPackedCompleted ?? this.hasPackedCompleted),
+      hasProductionCompleted: clearHasProductionCompleted
+          ? null
+          : (hasProductionCompleted ?? this.hasProductionCompleted),
+      nextStatus: clearNextStatus ? null : (newStatus ?? this.nextStatus),
+      cancelQty: clearCancelQty ? null : (cancelQty ?? this.cancelQty),
+      reasonForCancellation: clearReasonForCancellation
+          ? null
+          : (reasonForCancellation ?? this.reasonForCancellation),
+    );
+  }
+
+  @override
+  String toString() {
+    return 'OrderDetailsModel(productId: $productId, productName: $productName, qtyOrdered: $qtyOrdered)';
   }
 }

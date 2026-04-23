@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../model/dealer_discount_model.dart';
@@ -7,6 +8,21 @@ final dealerDiscountControllerProvider =
 StateNotifierProvider<DealerDiscountController, AsyncValue<List<DealerDiscountModel>>>(
       (ref) => DealerDiscountController(ref.watch(dealerDiscountRepositoryProvider)),
 );
+
+final dealerProductDiscountProvider =
+FutureProvider.family<DealerDiscountModel?, Map<String, String>>(
+      (ref, params) async {
+    final repository = ref.read(dealerDiscountRepositoryProvider);
+    final discount = await repository.getDealerProductDiscounts(
+      dealerId: params['dealerId']!,
+      productId: params['productId']!,
+    );
+    debugPrint("✅ Dealer discount loaded: ${discount?.toJson()}");
+    return discount;
+  },
+);
+
+
 
 class DealerDiscountController extends StateNotifier<AsyncValue<List<DealerDiscountModel>>> {
   final DealerDiscountRepository _repository;
@@ -37,6 +53,25 @@ class DealerDiscountController extends StateNotifier<AsyncValue<List<DealerDisco
       state = AsyncValue.error(e, st);
     }
   }
+
+  Future<DealerDiscountModel?> getDealerProductDiscounts({
+    required String dealerId,
+    required String productId,
+  }) async {
+    try {
+      final discount = await _repository.getDealerProductDiscounts(
+        dealerId: dealerId,
+        productId: productId,
+      );
+      debugPrint('debug result ${discount!.toJson()}');
+      return discount;
+
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+
 
   /// ----------------- Update Dealer Discount
   Future<void> updateDealerDiscount(DealerDiscountModel discount) async {

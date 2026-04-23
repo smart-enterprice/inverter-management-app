@@ -1,0 +1,8 @@
+final List<String> roles = [
+  'ROLE_ADMIN',
+  'ROLE_SALESMAN',
+  'ROLE_PRODUCTION',
+  'ROLE_PACKING',
+  'ROLE_ACCOUNTS',
+  'ROLE_DELIVERY',
+];

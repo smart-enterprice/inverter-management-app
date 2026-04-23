@@ -10,10 +10,10 @@ final void Function()? onTap;
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        height: screenHeight*0.05,
+        height: Screen.h(context)*0.05,
         decoration: BoxDecoration(
           color: Theme.of(context).primaryColor,
-          borderRadius: BorderRadius.circular(screenWidth*0.04),
+          borderRadius: BorderRadius.circular(Screen.w(context)*0.04),
           boxShadow: [
             BoxShadow(
               color: Colors.grey.shade100,

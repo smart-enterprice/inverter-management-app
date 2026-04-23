@@ -1,309 +1,704 @@
-import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:multi_select_flutter/multi_select_flutter.dart';
+import 'package:inverter_management_app/screen/loadingScreen.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../../core/const/icons.dart';
 import '../../../../core/media_query/media_query.dart';
-import '../../../../core/theme/theme.dart';
 import '../../../../model/user_model.dart';
-import '../../../../widgets/expandedSectionDropdown.dart';
-import '../../../../widgets/scrollbar.dart';
+import '../../../../widgets/circle_button.dart';
 import '../../../brand/controller/brand_controller.dart';
 import '../../controller/signUp_controller.dart';
 
+// ─── Constants ──────────────────────────────────────────────────────────────
+const _kBlue       = Color(0xFF1B4FD8);
+const _kBlueBg     = Color(0xFFEEF2FF);
+const _kBlueBorder = Color(0xFFC7D4FF);
+const _kBg         = Color(0xFFF2F4F8);
+const _kCard       = Colors.white;
+const _kBorder     = Color(0xFFE5E7EB);
+const _kDark       = Color(0xFF111827);
+const _kMid        = Color(0xFF374151);
+const _kMuted      = Color(0xFF9CA3AF);
+const _kRed        = Color(0xFFDC2626);
+
+const _keralaDistricts = [
+  'Kasaragod', 'Kannur', 'Wayanad', 'Kozhikode', 'Malappuram',
+  'Palakkad', 'Thrissur', 'Ernakulam', 'Idukki', 'Kottayam',
+  'Alappuzha', 'Pathanamthitta', 'Kollam', 'Thiruvananthapuram',
+];
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 class AddDealerScreen extends ConsumerStatefulWidget {
   const AddDealerScreen({super.key});
 
   @override
-  ConsumerState<AddDealerScreen> createState() => _AddUserScreenState();
+  ConsumerState<AddDealerScreen> createState() => _AddDealerScreenState();
 }
-class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
-  late bool isRoleDropdownOpen = false;
-  final _formKey = GlobalKey<FormState>();
-  final scrollController = ScrollController();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _townController = TextEditingController();
-  final _shopController = TextEditingController();
-  late ScrollController _roleScrollController; // define at State level
-  final List<String> _keralaDistricts = [
-    "Kasaragod",
-    "Kannur",
-    "Wayanad",
-    "Kozhikode",
-    "Malappuram",
-    "Palakkad",
-    "Thrissur",
-    "Ernakulam",
-    "Idukki",
-    "Kottayam",
-    "Alappuzha",
-    "Pathanamthitta",
-    "Kollam",
-    "Thiruvananthapuram",
-  ];
-  String? _selectedDistrict;
-  File? _selectedImage;
-  final ImagePicker _picker = ImagePicker();
-  List<String> _selectedBrands = [];
-  String? _brandError;
 
+class _AddDealerScreenState extends ConsumerState<AddDealerScreen> {
+  final _formKey        = GlobalKey<FormState>();
+  final _nameCtrl       = TextEditingController();
+  final _emailCtrl      = TextEditingController();
+  final _phoneCtrl      = TextEditingController();
+  final _shopCtrl       = TextEditingController();
+  final _townCtrl       = TextEditingController();
+  final _addressCtrl    = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _roleScrollController = ScrollController();
-  }
+  String?      _selectedDistrict;
+  File?        _selectedImage;
+  List<String> _selectedBrands = [];   // stores brandId strings
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _passwordController.dispose();
-    _addressController.dispose();
-    _roleScrollController.dispose();
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    _shopCtrl.dispose();
+    _townCtrl.dispose();
+    _addressCtrl.dispose();
     super.dispose();
   }
+
+  // ── Image pick ─────────────────────────────────────────────────────────────
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: source,
-        maxWidth: 512,
-        maxHeight: 512,
-        imageQuality: 85,
+      final file = await ImagePicker().pickImage(
+        source: source, maxWidth: 512, maxHeight: 512, imageQuality: 85,
       );
-      if (pickedFile != null) {
-        setState(() {
-          _selectedImage = File(pickedFile.path);
-        });
-      }
+      if (!mounted || file == null) return;
+      setState(() => _selectedImage = File(file.path));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: ${e.toString()}'), backgroundColor: Colors.red),
-      );
+      if (!mounted) return;
+      _showSnack('Error picking image: $e', _kRed);
     }
   }
-  void _removeImage() {
-    setState(() {
-      _selectedImage = null;
-    });
-  }
-  void _showImagePickerDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context,) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(screenWidth * 0.04)),
-          title: const Text('Select Photo'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt, color: Colors.blue),
-                title: const Text('Camera'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library, color: Colors.green),
-                title: const Text('Gallery'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              if (_selectedImage != null)
-                ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text('Remove Photo'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _removeImage();
-                  },
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-  bool isPasswordHidden = true;
-  @override
-  @override
-  Widget build(BuildContext context) {
-    final brandState = ref.watch(brandControllerProvider); // ✅ add this here
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: _buildAppBar(),
-      body: brandState.when(
-        data: (brands) {
-          // ✅ Full form when brands are loaded
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-            child: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildProfileImageSection(),
-                    _buildInputField(label: 'Name', hint: 'Enter full name', controller: _nameController),
-                    _buildInputField(label: 'Email', hint: 'Enter email address', controller: _emailController, keyboardType: TextInputType.emailAddress),
-                    _buildInputField(label: 'Phone', hint: 'Enter phone number', controller: _phoneController, keyboardType: TextInputType.phone, digitsOnly: true),
-                    _buildInputField(label: 'Shop', hint: 'Enter shop name', controller: _shopController,),
-                    _buildDistrictDropdown(),
-                    _buildInputField(label: 'Town', hint: 'Enter Town', controller: _townController),
-                    _buildInputField(label: 'Address', hint: 'Enter address', controller: _addressController, maxLines: 3),
-                    _buildBrandDropdown(ref), // ✅ brands loaded here
-                    SizedBox(height: screenHeight * 0.03),
-                    Center(child: _buildSubmitButton(_handleSubmit)),
-                    SizedBox(height: screenHeight * 0.02),
-                  ],
-                ),
+  void _showPhotoPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36, height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: _kBorder, borderRadius: BorderRadius.circular(2),
               ),
             ),
-          );
-        },
-        loading: () {
-          // ⏳ Show shimmer placeholders for whole body
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-            child: SingleChildScrollView(
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined, color: _kBlue),
+              title: const Text('Camera',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: _kBlue),
+              title: const Text('Gallery',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            if (_selectedImage != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded,
+                    color: _kRed),
+                title: const Text('Remove Photo',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, color: _kRed)),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() => _selectedImage = null);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── District sheet ─────────────────────────────────────────────────────────
+  void _showDistrictSheet() {
+    String query = '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final filtered = _keralaDistricts
+              .where((d) => d.toLowerCase().contains(query.toLowerCase()))
+              .toList();
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.6,
+            maxChildSize: 0.85,
+            builder: (_, sc) => Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _shimmerCircle(), // profile image placeholder
-                  SizedBox(height: 20),
-                  ...List.generate(6, (_) => _shimmerBox()), // input fields shimmer
-                  SizedBox(height: 20),
-                  _shimmerButton(), // submit button shimmer
+                  Center(
+                    child: Container(
+                      width: 36, height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: _kBorder,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const Text('Select District',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: _kDark)),
+                  const SizedBox(height: 2),
+                  const Text('Kerala',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: _kMuted,
+                          fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 14),
+                  // search
+                  TextField(
+                    onChanged: (v) => setS(() => query = v),
+                    style: const TextStyle(
+                        fontSize: 13,
+                        color: _kDark,
+                        fontWeight: FontWeight.w500),
+                    decoration: InputDecoration(
+                      hintText: 'Search district...',
+                      hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: _kMuted,
+                          fontWeight: FontWeight.w400),
+                      prefixIcon: const Icon(Icons.search_rounded,
+                          color: _kMuted, size: 20),
+                      filled: true,
+                      fillColor: _kBg,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 11),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: _kBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: _kBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                            color: _kBlue, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView.builder(
+                      controller: sc,
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final d = filtered[i];
+                        final selected = _selectedDistrict == d;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() => _selectedDistrict = d);
+                            Navigator.pop(context);
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            margin: const EdgeInsets.only(bottom: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 13),
+                            decoration: BoxDecoration(
+                              color: selected ? _kBlueBg : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: selected
+                                    ? _kBlueBorder
+                                    : Colors.transparent,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(d,
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: selected
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
+                                          color: selected ? _kBlue : _kMid)),
+                                ),
+                                if (selected)
+                                  const Icon(Icons.check_rounded,
+                                      color: _kBlue, size: 18),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
           );
         },
-        error: (e, st) {
-          // ❌ Retry option if brands not loaded
-          return FutureBuilder(
-            future: Future.delayed(const Duration(seconds: 2), () => true),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                // Show shimmer placeholders during 2 sec delay
-                    return  Padding(
-                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _shimmerCircle(), // profile image placeholder
-                          SizedBox(height: screenHeight*0.01),
-                          ...List.generate(
-                              7, (_) => _shimmerBox()), // input fields shimmer
-                          SizedBox(height: screenHeight*0.13),
-                          Center(child: _shimmerButton()), // submit button shimmer
-                        ],
-                      ),
-                    );
-              }
-              // After shimmer delay -> show No Internet
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.wifi_off, size: 50, color: Colors.grey),
-                    SizedBox(height: 10),
-                    Text(
-                      "No Internet Connection",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                    ),
-                    SizedBox(height: screenHeight * 0.01),
-                    ElevatedButton(
-                      onPressed: () {
-                        ref.invalidate(brandControllerProvider); // retry
-                      },
-                      child: const Text("Retry"),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
       ),
-    );
-  }
-  AppBar _buildAppBar() {
-    return AppBar(
-      surfaceTintColor: Colors.transparent,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      elevation: 0,
-      leading: IconButton(
-        icon: SvgPicture.asset(AppIcons.back_Arrow, width: screenWidth * 0.06,colorFilter:ColorFilter.mode(Theme.of(context).primaryColor, BlendMode.srcIn) ,),
-        onPressed: () => Navigator.pop(context),
-      ),
-      centerTitle: true,
-      title:  Text('Add user', style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
     );
   }
 
-  Widget _buildProfileImageSection() {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
+  // ── Submit ─────────────────────────────────────────────────────────────────
+  void _handleSubmit() async {
+    if (_selectedBrands.isEmpty) {
+      _showSnack('Please select at least one brand', _kRed);
+      return;
+    }
+    if (!_formKey.currentState!.validate()) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) =>
+      const Center(child: CircularProgressIndicator(color: _kBlue)),
+    );
+
+    final error = await ref.read(signupControllerProvider.notifier).signup(
+      UserModel(
+        employeeName: _nameCtrl.text.trim(),
+        employeeEmail: _emailCtrl.text.trim(),
+        employeePhone: _phoneCtrl.text.trim(),
+        password: 'Shahulvm@123',
+        address: _addressCtrl.text.trim(),
+        role: 'ROLE_DEALER',
+        brand: _selectedBrands,
+        photo: '',
+        town: _townCtrl.text.trim(),
+        shopName: _shopCtrl.text.trim(),
+        district: _selectedDistrict,
+      ),
+      photoFile: _selectedImage,
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context);
+
+    if (error != null) {
+      _showSnack(error, _kRed);
+    } else {
+      _showSnack('Dealer added successfully!', Colors.green);
+      ref.invalidate(dealerListProvider);
+      Navigator.pop(context);
+    }
+  }
+
+  void _showSnack(String msg, Color bg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg,
+          style: const TextStyle(fontWeight: FontWeight.w600)),
+      backgroundColor: bg,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    final sh = Screen.h(context);
+    final brandState = ref.watch(loadBrandsControllerProvider);
+
+    return Scaffold(
+      backgroundColor: _kBg,
+      body: SafeArea(
+        child: brandState.when(
+          loading: () => _buildShimmer(context, sw, sh),
+          error: (e, _) => _buildError(context, sw, sh),
+          data: (brands) => Column(
+            children: [
+              // ── Top Nav ────────────────────────────────
+              Padding(
+                padding: EdgeInsets.symmetric(
+                    horizontal: sw * 0.04, vertical: sw * 0.03),
+                child: Row(
+                  children: [
+                    CircularIconButton(
+                      icon: Icons.arrow_back_ios_rounded,
+                      onTap: () => Navigator.pop(context),
+                    ),
+                    const Spacer(),
+                    Text('Add Dealer',
+                        style: TextStyle(
+                            fontSize: sw * 0.042,
+                            fontWeight: FontWeight.w700,
+                            color: _kDark,
+                            letterSpacing: -0.2)),
+                    const Spacer(),
+                    // balance space
+                    SizedBox(width: sw * 0.095),
+                  ],
+                ),
+              ),
+
+              // ── Form ───────────────────────────────────
+              Expanded(
+                child: Form(
+                  key: _formKey,
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: sw * 0.038),
+                    child: Column(
+                      children: [
+                        // Photo
+                        _buildPhotoSection(sw, sh),
+                        SizedBox(height: sh * 0.012),
+
+                        // Personal Info
+                        _SectionCard(
+                          icon: Icons.person_outline_rounded,
+                          title: 'Personal Info',
+                          children: [
+                            _buildField(
+                              sw: sw, sh: sh,
+                              label: 'Full Name',
+                              hint: 'Enter full name',
+                              controller: _nameCtrl,
+                              icon: Icons.person_outline,
+                              validator: (v) => v == null || v.trim().isEmpty
+                                  ? 'Name is required'
+                                  : null,
+                            ),
+                            _buildField(
+                              sw: sw, sh: sh,
+                              label: 'Email',
+                              hint: 'Enter email address',
+                              controller: _emailCtrl,
+                              icon: Icons.email_outlined,
+                              keyboard: TextInputType.emailAddress,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Email is required';
+                                }
+                                if (!v.contains('@')) {
+                                  return 'Enter a valid email';
+                                }
+                                return null;
+                              },
+                            ),
+                            _buildField(
+                              sw: sw, sh: sh,
+                              label: 'Phone',
+                              hint: 'Enter phone number',
+                              controller: _phoneCtrl,
+                              icon: Icons.phone_outlined,
+                              keyboard: TextInputType.phone,
+                              digitsOnly: true,
+                              isLast: true,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Phone is required';
+                                }
+                                if (v.length != 10) {
+                                  return 'Enter a valid 10-digit number';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: sh * 0.012),
+
+                        // Address
+                        _SectionCard(
+                          icon: Icons.location_on_outlined,
+                          title: 'Address',
+                          children: [
+                            // District picker
+                            _buildFieldLabel(sw, 'District'),
+                            SizedBox(height: sh * 0.006),
+                            GestureDetector(
+                              onTap: _showDistrictSheet,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: sw * 0.04,
+                                    vertical: sw * 0.035),
+                                decoration: BoxDecoration(
+                                  color: _kBg,
+                                  borderRadius:
+                                  BorderRadius.circular(sw * 0.028),
+                                  border: Border.all(color: _kBorder),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.map_outlined,
+                                        size: sw * 0.045,
+                                        color: _selectedDistrict != null
+                                            ? _kBlue
+                                            : _kMuted),
+                                    SizedBox(width: sw * 0.025),
+                                    Expanded(
+                                      child: Text(
+                                        _selectedDistrict ?? 'Select district',
+                                        style: TextStyle(
+                                            fontSize: sw * 0.036,
+                                            fontWeight: _selectedDistrict !=
+                                                null
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                            color: _selectedDistrict != null
+                                                ? _kDark
+                                                : _kMuted),
+                                      ),
+                                    ),
+                                    Icon(Icons.keyboard_arrow_down_rounded,
+                                        color: _kMuted, size: sw * 0.05),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: sh * 0.015),
+
+                            // Town + Shop row
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildField(
+                                    sw: sw, sh: sh,
+                                    label: 'Town',
+                                    hint: 'Town',
+                                    controller: _townCtrl,
+                                    icon: Icons.location_city_outlined,
+                                    validator: (v) =>
+                                    v == null || v.trim().isEmpty
+                                        ? 'Required'
+                                        : null,
+                                  ),
+                                ),
+                                SizedBox(width: sw * 0.025),
+                                Expanded(
+                                  child: _buildField(
+                                    sw: sw, sh: sh,
+                                    label: 'Shop',
+                                    hint: 'Shop name',
+                                    controller: _shopCtrl,
+                                    icon: Icons.storefront_outlined,
+                                    validator: (v) =>
+                                    v == null || v.trim().isEmpty
+                                        ? 'Required'
+                                        : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: sh * 0.002),
+
+                            _buildField(
+                              sw: sw, sh: sh,
+                              label: 'Street Address',
+                              hint: 'Enter full address',
+                              controller: _addressCtrl,
+                              icon: Icons.home_outlined,
+                              maxLines: 3,
+                              isLast: true,
+                              validator: (v) =>
+                              v == null || v.trim().isEmpty
+                                  ? 'Address is required'
+                                  : null,
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: sh * 0.012),
+
+                        // Brands
+                        _SectionCard(
+                          icon: Icons.local_offer_outlined,
+                          title: 'Brands',
+                          children: [
+                            _buildFieldLabel(sw, 'Select brands'),
+                            SizedBox(height: sh * 0.01),
+                            Wrap(
+                              spacing: sw * 0.02,
+                              runSpacing: sw * 0.02,
+                              children: brands.map((brand) {
+                                final id = brand.brandId.toString();
+                                final selected =
+                                _selectedBrands.contains(id);
+                                return GestureDetector(
+                                  onTap: () => setState(() => selected
+                                      ? _selectedBrands.remove(id)
+                                      : _selectedBrands.add(id)),
+                                  child: AnimatedContainer(
+                                    duration:
+                                    const Duration(milliseconds: 180),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: sw * 0.03,
+                                        vertical: sw * 0.018),
+                                    decoration: BoxDecoration(
+                                      color: selected
+                                          ? _kBlueBg
+                                          : _kBg,
+                                      borderRadius:
+                                      BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: selected
+                                            ? _kBlueBorder
+                                            : _kBorder,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          selected
+                                              ? Icons.check_circle_rounded
+                                              : Icons.add_circle_outline_rounded,
+                                          size: sw * 0.038,
+                                          color: selected
+                                              ? _kBlue
+                                              : _kMuted,
+                                        ),
+                                        SizedBox(width: sw * 0.015),
+                                        Text(
+                                          brand.brandName,
+                                          style: TextStyle(
+                                              fontSize: sw * 0.032,
+                                              fontWeight: FontWeight.w600,
+                                              color: selected
+                                                  ? _kBlue
+                                                  : _kMuted),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: sh * 0.025),
+
+                        // Submit
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _handleSubmit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _kBlue,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                  vertical: sh * 0.018),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                BorderRadius.circular(sw * 0.035),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Add Dealer',
+                              style: TextStyle(
+                                  fontSize: sw * 0.04,
+                                  fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: sh * 0.03),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Photo Section ──────────────────────────────────────────────────────────
+  Widget _buildPhotoSection(double sw, double sh) {
+    return Container(
+      padding: EdgeInsets.all(sw * 0.04),
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(sw * 0.04),
+        border: Border.all(color: _kBorder),
+      ),
       child: Row(
         children: [
           GestureDetector(
-            onTap: _showImagePickerDialog, // ✅ fixed
+            onTap: _showPhotoPicker,
             child: Stack(
               children: [
                 CircleAvatar(
-                  radius: screenWidth * 0.08,
+                  radius: sw * 0.085,
+                  backgroundColor: _kBlueBg,
                   backgroundImage: _selectedImage != null
                       ? FileImage(_selectedImage!)
-                      : const NetworkImage('https://i.pravatar.cc/150?img=3') as ImageProvider,
+                      : null,
+                  child: _selectedImage == null
+                      ? Icon(Icons.person_outline_rounded,
+                      size: sw * 0.09, color: _kBlue)
+                      : null,
                 ),
                 Positioned(
-                  bottom: 0,
-                  right: 0,
+                  bottom: 0, right: 0,
                   child: Container(
-                    padding: EdgeInsets.all(screenWidth * 0.02),
+                    width: sw * 0.062,
+                    height: sw * 0.062,
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor,
+                      color: _kBlue,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
-                    child: Icon(
-                      Icons.camera_alt,
-                      color: Colors.white,
-                      size: screenWidth * 0.04,
-                    ),
+                    child: Icon(Icons.camera_alt_outlined,
+                        color: Colors.white, size: sw * 0.032),
                   ),
                 ),
               ],
             ),
           ),
-
-          SizedBox(width: screenWidth * 0.04),
+          SizedBox(width: sw * 0.04),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Profile Image', style: TextStyle(fontSize: screenWidth * 0.04, fontWeight: FontWeight.w600, color: Colors.black87)),
-                SizedBox(height: screenHeight * 0.005),
+                Text('Profile Photo',
+                    style: TextStyle(
+                        fontSize: sw * 0.038,
+                        fontWeight: FontWeight.w700,
+                        color: _kDark)),
+                SizedBox(height: sh * 0.005),
                 Text(
-                  _selectedImage != null ? 'Tap to change photo' : 'Tap to add photo',
-                  style: TextStyle(fontSize: screenWidth * 0.032, color: Colors.grey[600]),
+                  _selectedImage != null
+                      ? 'Tap to change photo'
+                      : 'Tap to add a photo',
+                  style: TextStyle(
+                      fontSize: sw * 0.031,
+                      color: _kMuted,
+                      fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -312,60 +707,86 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
       ),
     );
   }
-  Widget _buildInputField({
+
+  // ── Field helpers ──────────────────────────────────────────────────────────
+  Widget _buildFieldLabel(double sw, String label) {
+    return Text(
+      label.toUpperCase(),
+      style: TextStyle(
+          fontSize: sw * 0.028,
+          fontWeight: FontWeight.w700,
+          color: _kMuted,
+          letterSpacing: 0.5),
+    );
+  }
+
+  Widget _buildField({
+    required double sw,
+    required double sh,
     required String label,
     required String hint,
     required TextEditingController controller,
-    TextInputType keyboardType = TextInputType.text,
-    bool obscureText = false,
+    required IconData icon,
+    TextInputType keyboard = TextInputType.text,
     bool digitsOnly = false,
     int maxLines = 1,
-    Widget? suffixIcon,
+    bool isLast = false,
+    String? Function(String?)? validator,
   }) {
     return Padding(
-      padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : sh * 0.015),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodyLarge),
-          SizedBox(height: screenHeight * 0.008),
+          _buildFieldLabel(sw, label),
+          SizedBox(height: sh * 0.006),
           TextFormField(
-            autovalidateMode: AutovalidateMode.disabled,
             controller: controller,
-            keyboardType: keyboardType,
-            obscureText: obscureText,
+            keyboardType: keyboard,
             maxLines: maxLines,
-            inputFormatters: digitsOnly ? [FilteringTextInputFormatter.digitsOnly] : null,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) return 'Please enter $label';
-              if (label == 'Email' && !_isValidEmail(value)) return 'Please enter a valid email';
-              if (label == 'Phone' && value.length != 10) return 'Please enter a valid 10-digit phone number';
-              if (label == 'Password' && value.length < 6) return 'Password must be at least 6 characters';
-              return null;
-            },
+            inputFormatters:
+            digitsOnly ? [FilteringTextInputFormatter.digitsOnly] : null,
+            validator: validator,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            style: TextStyle(
+                fontSize: sw * 0.036,
+                color: _kDark,
+                fontWeight: FontWeight.w500),
             decoration: InputDecoration(
-              suffixIcon: suffixIcon,
-              filled: false,
-              fillColor: Theme.of(context).focusColor,
               hintText: hint,
+              hintStyle: TextStyle(
+                  fontSize: sw * 0.034,
+                  color: _kMuted,
+                  fontWeight: FontWeight.w400),
+              prefixIcon:
+              Icon(icon, color: _kMuted, size: sw * 0.045),
+              filled: true,
+              fillColor: _kBg,
+              contentPadding: EdgeInsets.symmetric(
+                  horizontal: sw * 0.04,
+                  vertical: maxLines > 1 ? sw * 0.035 : 0),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: Colors.grey),
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide: const BorderSide(color: _kBorder),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide: const BorderSide(color: _kBorder),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: BorderSide(color:Theme.of(context).primaryColor, width: 2),
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide:
+                const BorderSide(color: _kBlue, width: 1.5),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                borderSide: const BorderSide(color: Colors.red, width: 1),
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide: const BorderSide(color: _kRed),
               ),
-              contentPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.018),
-              hintStyle: TextStyle(fontSize: screenWidth * 0.038, color: Colors.grey[500]),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(sw * 0.028),
+                borderSide:
+                const BorderSide(color: _kRed, width: 1.5),
+              ),
             ),
           ),
         ],
@@ -373,412 +794,191 @@ class _AddUserScreenState extends ConsumerState<AddDealerScreen> {
     );
   }
 
-
-  Widget _buildBrandDropdown(WidgetRef ref) {
-    final brandState = ref.watch(brandControllerProvider);
-    return Padding(
-      padding: EdgeInsets.only(bottom: screenHeight * 0.02),
-      child: FormField<List<String>>(
-        validator: (value) {
-          if (_selectedBrands.isEmpty) {
-            return 'Please select at least one brand';
-          }
-          return null;
-        },
-        builder: (fieldState) {
-          return Center(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text('Brands', style: Theme.of(context).textTheme.bodyLarge),
-                SizedBox(height: screenHeight * 0.008),
-                brandState.when(
-                  data: (brands) {
-                    return InkWell(
-                      onTap: () => _showBrandDialog(context, brands),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                          border: Border.all(
-                            color: fieldState.hasError
-                                ? Colors.red
-                                : Colors.grey.shade400,
-                            width: 1,
-                          ),
-                        ),
-                        child: _selectedBrands.isEmpty
-                            ? const Text("Select Brands")
-                            : Wrap(
-                          spacing: 6,
-                          children: _selectedBrands.map((id) {
-                            final brand = brands.firstWhere(
-                                    (b) => b.brandId.toString() == id);
-                            return Chip(
-                              deleteIconColor: Colors.white,
-                              backgroundColor:
-                              Theme.of(context).primaryColor,
-                              label: Text(
-                                brand.brandName,
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                              deleteIcon: const Icon(Icons.cancel),
-                              onDeleted: () {
-                                setState(() {
-                                  _selectedBrands.remove(id);
-                                  fieldState.didChange(_selectedBrands);
-                                });
-                              },
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    );
-                  },
-                  loading: () => const LinearProgressIndicator(),
-                  error: (e, _) => Text('Error: $e',
-                      style: const TextStyle(color: Colors.red)),
-                ),
-                if (fieldState.hasError)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 5, left: 5),
-                    child: Text(
-                      fieldState.errorText ?? '',
-                      style: const TextStyle(color: Colors.red, fontSize: 12),
-                    ),
-                  ),
-              ],
+  // ── Shimmer ────────────────────────────────────────────────────────────────
+  Widget _buildShimmer(BuildContext context, double sw, double sh) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(
+          horizontal: sw * 0.038, vertical: sw * 0.04),
+      child: Column(
+        children: [
+          // avatar shimmer
+          Shimmer.fromColors(
+            baseColor: Colors.grey.shade300,
+            highlightColor: Colors.grey.shade100,
+            child: Container(
+              height: sw * 0.22,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(sw * 0.04),
+              ),
             ),
-          );
-        },
+          ),
+          SizedBox(height: sh * 0.015),
+          // section shimmers
+          ...List.generate(3, (i) => Padding(
+            padding: EdgeInsets.only(bottom: sh * 0.015),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey.shade300,
+              highlightColor: Colors.grey.shade100,
+              child: Container(
+                height: sh * 0.22,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(sw * 0.04),
+                ),
+              ),
+            ),
+          )),
+          // button shimmer
+          Shimmer.fromColors(
+            baseColor: Colors.grey.shade300,
+            highlightColor: Colors.grey.shade100,
+            child: Container(
+              height: sh * 0.065,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(sw * 0.035),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-
-  void _showBrandDialog(BuildContext context, List brands) async {
-    final List<String> tempSelected = List.from(_selectedBrands);
-    String searchQuery = ""; // to track search text
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(screenWidth * 0.03),
+  // ── Error ──────────────────────────────────────────────────────────────────
+  Widget _buildError(BuildContext context, double sw, double sh) {
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: sw * 0.04, vertical: sw * 0.03),
+          child: Row(
+            children: [
+              CircularIconButton(
+                icon: Icons.arrow_back_ios_rounded,
+                onTap: () => Navigator.pop(context),
+              ),
+              const Spacer(),
+              Text('Add Dealer',
+                  style: TextStyle(
+                      fontSize: sw * 0.042,
+                      fontWeight: FontWeight.w700,
+                      color: _kDark)),
+              const Spacer(),
+              SizedBox(width: sw * 0.095),
+            ],
           ),
-          title: const Text("Select Brands"),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              // filter brands by search text
-              final filteredBrands = brands
-                  .where((b) => b.brandName
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()))
-                  .toList();
-
-              return SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 🔎 Search bar
-                    TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search brand...",
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(screenWidth*0.04),
-                        ),
-                        contentPadding:
-                         EdgeInsets.symmetric(horizontal: screenWidth*0.1, vertical: screenHeight*0.01),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          searchQuery = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    // ✅ Filtered brand list
-                    Expanded(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: filteredBrands.map<Widget>((b) {
-                          final id = b.brandId.toString();
-                          final isSelected = tempSelected.contains(id);
-                          return Row(
-                            children: [
-                              Checkbox(
-                                checkColor: Colors.white,
-                                activeColor: Theme.of(context).primaryColor,
-                                value: isSelected,
-                                onChanged: (checked) {
-                                  setState(() {
-                                    if (checked == true) {
-                                      tempSelected.add(id);
-                                    } else {
-                                      tempSelected.remove(id);
-                                    }
-                                  });
-                                },
-                              ),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      if (isSelected) {
-                                        tempSelected.remove(id);
-                                      } else {
-                                        tempSelected.add(id);
-                                      }
-                                    });
-                                  },
-                                  child: Text(
-                                    b.brandName,
-                                    style: const TextStyle(color: Colors.black),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
+        ),
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: sw * 0.18, height: sw * 0.18,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _kBorder),
+                  ),
+                  child: Icon(Icons.wifi_off_rounded,
+                      size: sw * 0.09, color: _kMuted),
                 ),
-              );
-            },
+                SizedBox(height: sh * 0.02),
+                Text('No Internet Connection',
+                    style: TextStyle(
+                        fontSize: sw * 0.04,
+                        fontWeight: FontWeight.w600,
+                        color: _kMid)),
+                SizedBox(height: sh * 0.025),
+                ElevatedButton(
+                  onPressed: () =>
+                      ref.invalidate(loadBrandsControllerProvider),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kBlue,
+                    foregroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(16),
+                    elevation: 0,
+                  ),
+                  child: const Icon(Icons.refresh_rounded),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child:  Text("Close",style: TextStyle(color: Theme.of(context).primaryColor),),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _selectedBrands = tempSelected;
-                });
-                Navigator.pop(context);
-              },
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
+        ),
+      ],
     );
   }
+}
 
+// ─── Section Card ─────────────────────────────────────────────────────────────
+class _SectionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final List<Widget> children;
 
+  const _SectionCard({
+    required this.icon,
+    required this.title,
+    required this.children,
+  });
 
-
-
-  Widget _buildDistrictDropdown() {
-    return Padding(
-      padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+  @override
+  Widget build(BuildContext context) {
+    final sw = Screen.w(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(sw * 0.04),
+        border: Border.all(color: _kBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('District', style: Theme.of(context).textTheme.bodyLarge),
-          SizedBox(height: screenHeight * 0.008),
-          FormField<String>(
-            validator: (value) => value == null ? 'Please select a District' : null,
-            builder: (state) {
-              return Column(
-                children: [
-                  GestureDetector(
-                    onTap: () => setState(() => isRoleDropdownOpen = !isRoleDropdownOpen),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).focusColor,
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                        border: Border.all(
-                          color: state.hasError
-                              ? Colors.red
-                              : Theme.of(context).scaffoldBackgroundColor,
-                        ),
-                      ),
-                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                      height: screenHeight * 0.065,
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _selectedDistrict != null
-                                ? _selectedDistrict!.replaceAll('District', '').replaceAll('_', ' ')
-                                : 'Select District',
-                            style: TextStyle(fontSize: screenWidth * 0.038),
-                          ),
-                          Icon(
-                            isRoleDropdownOpen
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                          ),
-                        ],
-                      ),
-                    ),
+          // header
+          Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: sw * 0.04, vertical: sw * 0.035),
+            child: Row(
+              children: [
+                Container(
+                  width: sw * 0.075,
+                  height: sw * 0.075,
+                  decoration: BoxDecoration(
+                    color: _kBg,
+                    borderRadius: BorderRadius.circular(sw * 0.022),
+                    border: Border.all(color: _kBorder),
                   ),
-                  SizedBox(height: 5),
-                  ExpandedSection(
-                    expand: isRoleDropdownOpen,
-                    height: screenHeight*0.01,
-                    child: MyScrollbar(
-                      builder: (context, scrollController) => ListView.builder(
-                        controller: _roleScrollController,
-                        shrinkWrap: true,
-                        itemCount: _keralaDistricts.length,
-                        itemBuilder: (context, index) {
-                          final role = _keralaDistricts[index];
-                          return RadioListTile<String>(
-                            title: Text(
-                              role.replaceAll('District', '').replaceAll('_', ' '),
-                              style: TextStyle(fontSize: screenWidth * 0.038),
-                            ),
-                            value: role,
-                            groupValue: _selectedDistrict,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedDistrict = value;
-                                isRoleDropdownOpen = false;
-                                state.didChange(value); // updates FormField validation
-                              });
-                            },
-                          );
-                        },
-                      ), scrollController:scrollController ,
-                    ),
-                  ),
-                  if (state.hasError)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5),
-                      child: Text(
-                        state.errorText!,
-                        style: TextStyle(color: Colors.red, fontSize: 12),
-                      ),
-                    ),
-                ],
-              );
-            },
+                  child: Icon(icon, size: sw * 0.04, color: _kDark),
+                ),
+                SizedBox(width: sw * 0.025),
+                Text(title,
+                    style: TextStyle(
+                        fontSize: sw * 0.036,
+                        fontWeight: FontWeight.w700,
+                        color: _kDark)),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: _kBorder),
+          Padding(
+            padding: EdgeInsets.all(sw * 0.04),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
           ),
         ],
       ),
     );
   }
-  Widget _buildSubmitButton(VoidCallback onTap) {
-    return SizedBox(
-      width: screenWidth * 0.5,
-      height: screenHeight*0.06,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-        ),
-        child:  Text('Submit',style: TextStyle(color: Colors.white,fontSize: 16,fontWeight: FontWeight.bold),),
-      ),
-    );
-  }
-
-
-  bool _isValidEmail(String email) {
-    return  RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$').hasMatch(email);
-
-  }
-
-  void _handleSubmit() async {
-    if (_formKey.currentState!.validate()) {
-      final controller = ref.read(signupControllerProvider.notifier);
-
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
-
-      final error = await controller.signup(
-        UserModel(
-          employeeName: _nameController.text,
-          employeeEmail: _emailController.text,
-          employeePhone: _phoneController.text,
-          password: 'Shahulvm@123',
-          address: _addressController.text,
-          role: 'ROLE_DEALER',
-          brand:_selectedBrands, photo: '',
-          town: _townController.text,
-          shopName: _shopController.text,
-          district: _selectedDistrict
-        ),
-        photoFile: _selectedImage, // ✅ send picked image for upload
-      );
-
-      Navigator.pop(context); // Remove loader
-
-      if (error != null) {
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } else {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dealer created successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context); // Go back
-      }
-    }
-  }
-
-  /// Shimmer placeholder widget
-  /// Rectangle shimmer (input fields)
-  Widget _shimmerBox() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 8),
-        height: screenHeight * 0.06,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
-  }
-
-  /// Circle shimmer (profile image)
-  Widget _shimmerCircle() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
-      child: CircleAvatar(
-        radius: screenWidth * 0.1,
-        backgroundColor: Colors.white,
-      ),
-    );
-  }
-
-  /// Button shimmer
-  Widget _shimmerButton() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
-      child: Container(
-        width: screenWidth * 0.5,
-        height: screenHeight * 0.06,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
-  }
-
 }
-

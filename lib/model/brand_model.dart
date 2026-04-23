@@ -3,6 +3,8 @@ class BrandModel {
   final String brandName;
   final List<String> brandModels;
   final String? description;
+  final Map<String, String>? brandModelsUpdate; // ✅ added
+  final List<String>? deleteModels; // ✅ added
   final String? status;
   final String? createdBy;
   final DateTime? createdAt;
@@ -12,6 +14,8 @@ class BrandModel {
     this.brandId,
     required this.brandName,
     required this.brandModels,
+    this.brandModelsUpdate,
+    this.deleteModels,
     required this.description,
     this.status,
     this.createdBy,
@@ -42,15 +46,23 @@ class BrandModel {
   }
 
   /// For updating a brand
-  Map<String, dynamic> toJsonUpdate() {
+  Map<String, dynamic> toJsonUpdate({
+    Map<String, String>? brandModelsUpdate,
+    List<String>? deletedModels,
+    List<String>? addModel
+  }) {
     return {
-      "brand_id": brandId,
+      // "brand_id": brandId,
       "brand_name": brandName,
-      "brand_models": brandModels,
+      "brand_models": addModel??[],
+      "brand_models_update": brandModelsUpdate ?? this.brandModelsUpdate ?? {},
+      "delete_models": deletedModels ?? deleteModels ?? [],
       "description": description,
       "status": status,
     };
   }
+
+
 
   BrandModel copyWith({
     String? brandId,

@@ -1,0 +1,16 @@
+final List<String> keralaDistricts = [
+  "Kasaragod",
+  "Kannur",
+  "Wayanad",
+  "Kozhikode",
+  "Malappuram",
+  "Palakkad",
+  "Thrissur",
+  "Ernakulam",
+  "Idukki",
+  "Kottayam",
+  "Alappuzha",
+  "Pathanamthitta",
+  "Kollam",
+  "Thiruvananthapuram",
+];

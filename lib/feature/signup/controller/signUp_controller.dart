@@ -3,13 +3,21 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../model/user_model.dart';
 import '../repository/signUp_repository.dart';
+import '../screen/dealer/dealers_screen.dart';
 
 final signupControllerProvider =
 StateNotifierProvider<SignupController, AsyncValue<void>>((ref) {
   final repository = ref.read(signupRepositoryProvider);
   return SignupController(repository);
+});
+
+// ✅ Add near other providers at the top
+final employeeByIdProvider = FutureProvider.family<UserModel?, String>((ref, id) async {
+  if (id.isEmpty) return null;
+  return ref.read(signupControllerProvider.notifier).getEmployeeById(id);
 });
 
 /// Provider to get employee list (excluding dealers)
@@ -18,17 +26,27 @@ final userListProvider = FutureProvider<List<UserModel>>((ref) async {
   return repository.getEmployees();
 });
 
-/// Optional: Provider to get dealer list
-final dealerListProvider = FutureProvider.autoDispose<List<UserModel>>((ref) async {
-  final repository = ref.read(signupRepositoryProvider);
-  // Keeps the provider alive even if widgets using it are disposed
-  final keepAlive = ref.keepAlive();
-  // Cancel autoDispose after some time if needed (optional)
-  final timer = Timer(const Duration(minutes: 5), () => keepAlive.close());
-  ref.onDispose(() => timer.cancel());
-  return repository.getDealers();
+/// Provider to get dealer list
+final dealerListProvider =
+StateNotifierProvider<DealerListNotifier, AsyncValue<List<UserModel>>>(
+      (ref) => DealerListNotifier(ref.read(signupRepositoryProvider)),
+);
+
+/// Provider to get users by role
+final usersByRoleProvider = FutureProvider.family<List<UserModel>, String>((ref, role) async {
+  final controller = ref.read(signupControllerProvider.notifier);
+  return await controller.getUsersByRole(role);
 });
 
+final currentUserProvider = FutureProvider<UserModel?>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final userId = prefs.getString('user_id');
+  if (userId == null) return null;
+  final repo = ref.read(signupControllerProvider.notifier);
+  print('Current user is refreshing');
+  return await repo.getEmployeeById(userId);
+
+});
 
 class SignupController extends StateNotifier<AsyncValue<void>> {
   final SignupRepository _repository;
@@ -80,12 +98,13 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
   }
 
   /// Get employee by ID
-  Future<UserModel?> getEmployeeById(String id) async {
+  Future<UserModel> getEmployeeById(String id) async {
     try {
-      return await _repository.getEmployeeById(id);
+      final user = await _repository.getEmployeeById(id);
+
+      return user;
     } catch (e) {
-      print('Error fetching user by ID: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -113,17 +132,24 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
     String? town,
     String? district,
     List<String>? brand,
+    File? photoFile,
+    List<String>? addBrands,
+    List<String>? removeBrands,
   }) async {
     state = const AsyncLoading();
-
     try {
+      String? finalPhotoUrl = photo;
+      if (photoFile != null) {
+        finalPhotoUrl = await _repository.uploadFile(photoFile);
+      }
+
       final updatedUser = oldUser.copyWith(
         employeeName: name,
         employeeEmail: email,
         employeePhone: phone,
-        shopName:shopName,
+        shopName: shopName,
         role: role,
-        photo: photo,
+        photo: finalPhotoUrl,
         address: address,
         town: town,
         district: district,
@@ -134,8 +160,12 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
         throw Exception('employeeId is required for update');
       }
 
-      await _repository.updateUser(updatedUser.employeeId!, updatedUser);
-      // await getEmployeeById(oldUser.employeeId!);
+      await _repository.updateUser(
+        updatedUser.employeeId!,
+        updatedUser,
+        addBrands: addBrands,
+        removeBrands: removeBrands,
+      );
       state = const AsyncData(null);
       return null;
     } catch (e, st) {
@@ -144,6 +174,16 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  /// ----------------- Get Users by Role
+  Future<List<UserModel>> getUsersByRole(String role) async {
+    try {
+      final users = await _repository.getUsersByRole(role);
+      return users;
+    } catch (e) {
+      print('Error fetching users by role: $e');
+      rethrow;
+    }
+  }
 
   /// Delete user
   Future<String?> deleteUser(String employeeId, String reason) async {
@@ -157,4 +197,5 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
       return 'Delete failed: $e';
     }
   }
+
 }

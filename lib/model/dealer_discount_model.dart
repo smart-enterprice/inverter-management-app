@@ -1,3 +1,5 @@
+import 'package:inverter_management_app/model/product_model.dart';
+
 class DealerDiscountModel {
   final String? dealerDiscountId;
   final String brandName;
@@ -6,6 +8,8 @@ class DealerDiscountModel {
   final num discountValue;
   final bool isPercentage;
   final String description;
+  final List<String> productId;
+  final List<ProductModel> products;
 
   DealerDiscountModel({
     this.dealerDiscountId,
@@ -15,6 +19,8 @@ class DealerDiscountModel {
     required this.discountValue,
     required this.isPercentage,
     required this.description,
+    required this.productId,
+    required this.products,
   });
 
   factory DealerDiscountModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +32,11 @@ class DealerDiscountModel {
       discountValue: json["discount_value"] ?? 0,
       isPercentage: json["is_percentage"] ?? false,
       description: json["description"] ?? "",
+      productId: List<String>.from(json["product_ids"] ?? []),
+      products: (json["products"] as List<dynamic>?)
+          ?.map((p) => ProductModel.fromJson(p as Map<String, dynamic>))
+          .toList() ??
+          [],
     );
   }
 
@@ -38,6 +49,7 @@ class DealerDiscountModel {
       "discount_value": discountValue,
       "is_percentage": isPercentage,
       "description": description,
+      "product_ids": productId,
     };
   }
 
@@ -49,6 +61,8 @@ class DealerDiscountModel {
     num? discountValue,
     bool? isPercentage,
     String? description,
+    List<String>? productId,
+    List<ProductModel>? products,
   }) {
     return DealerDiscountModel(
       dealerDiscountId: dealerDiscountId ?? this.dealerDiscountId,
@@ -58,6 +72,8 @@ class DealerDiscountModel {
       discountValue: discountValue ?? this.discountValue,
       isPercentage: isPercentage ?? this.isPercentage,
       description: description ?? this.description,
+      productId: productId ?? this.productId,
+      products: products ?? this.products,
     );
   }
 }

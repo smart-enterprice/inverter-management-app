@@ -25,10 +25,11 @@ class CreateCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: screenHeight * 0.15,
+        height: Screen.h(context) * 0.09,
+        width: Screen.w(context) * 0.2,
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(Screen.w(context) * 0.03),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),
@@ -42,20 +43,20 @@ class CreateCard extends StatelessWidget {
           children: [
             CircleAvatar(
               backgroundColor: backgroundColor,
-              radius: screenWidth*0.09,
+              radius: Screen.w(context) * 0.04,
               child: SvgPicture.asset(
                 iconPath,
                 colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
-                height: screenWidth * 0.1,
+                height: Screen.w(context) * 0.05,
               ),
             ),
-            SizedBox(height: screenHeight * 0.01),
+            SizedBox(height: Screen.h(context) * 0.01),
             Text(
               title,
               style: TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: 12,
               ),
             ),
           ],

@@ -55,6 +55,35 @@ class DealerDiscountRepository {
       throw Exception(e.response?.data ?? e.message);
     }
   }
+  Future<DealerDiscountModel?> getDealerProductDiscounts({
+    required String dealerId,
+    required String productId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/employees/dealer/get-discounts?page=1&limit=30',
+        data: {
+          "dealer_id": dealerId,
+          "product_id": productId,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List data = response.data['data'] ?? [];
+        if (data.isEmpty) return null; // No discount found
+        return DealerDiscountModel.fromJson(data.first);
+      } else {
+        throw "❌ Failed to fetch dealer product discounts";
+      }
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? e.message;
+      throw msg.toString();
+    } catch (e) {
+      throw "Unexpected error: $e";
+    }
+  }
+
+
 
   /// ------------------------- Update Dealer Discount
 

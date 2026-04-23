@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -9,6 +8,7 @@ import '../../../network/dio_client.dart';
 final signupRepositoryProvider = Provider<SignupRepository>((ref) {
   return SignupRepository();
 });
+
 
 class SignupRepository {
   final Dio _dio = DioClient.instance;
@@ -38,36 +38,64 @@ class SignupRepository {
     return UserModel.fromJson(response.data['data']);
   }
   /// ---------------------------- user update function
-  Future<void> updateUser(String employeeId, UserModel updatedData) async {
+  Future<void> updateUser(String employeeId, UserModel updatedData, {
+    List<String>? addBrands,
+    List<String>? removeBrands,
+  }) async
+  {
     try {
+      // ✅ Build a fresh modifiable map instead of relying on toJson()
+      final Map<String, dynamic> body = Map<String, dynamic>.from(updatedData.toJson());
+
+      // ✅ Always remove brand key from existing user data
+      body.remove('brand');
+
+      // ✅ Only add 'brand' key if there are NEW brands to add
+      if (addBrands != null && addBrands.isNotEmpty) {
+        body['brand'] = addBrands;
+      }
+
+      // ✅ Only add 'remove_brands' if there are brands to remove
+      if (removeBrands != null && removeBrands.isNotEmpty) {
+        body['remove_brands'] = removeBrands;
+      }
+
+      print('Update body: $body'); // should NOT have brand key unless adding new
+
       final response = await DioClient.instance.put(
         '/employees/$employeeId',
-        data: updatedData.toJson(),
+        data: body,
       );
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        print('------------------update success-------------------');
-        return;
-      } else {
-        // return response.data['message'];
-      }
+      if (response.statusCode == 200 || response.statusCode == 204) return;
     } on DioException catch (e) {
-      final statusCode = e.response?.statusCode;
-      String errorMessage = 'Update failed';
-
-      if (e.response?.data != null) {
-        final responseData = e.response!.data;
-        if (responseData is Map<String, dynamic>) {
-          errorMessage = responseData['message'] ?? errorMessage;
-        }
-      }
-
-      print('Repository DioException: $errorMessage');
+      final errorMessage = e.response?.data?['message'] ?? 'Update failed';
       throw Exception(errorMessage);
     } catch (e) {
-      print('Repository non-Dio exception: $e');
       throw Exception('Update error: $e');
     }
   }
+
+  /// ------------------------- Get Users by Role
+  Future<List<UserModel>> getUsersByRole(String role) async {
+    try {
+      final response = await _dio.get('/employees/getByRole/$role');
+
+      if (response.statusCode == 200) {
+        final List data = response.data['data'] ?? [];
+        return data.map((e) => UserModel.fromJson(e)).toList();
+      } else {
+        throw Exception('❌ Failed to fetch users by role');
+      }
+    } on DioException catch (e) {
+      final errorMessage =
+          e.response?.data?['message']?.toString() ?? e.message.toString();
+      throw Exception(errorMessage);
+    } catch (e) {
+      throw Exception('Unexpected error: $e');
+    }
+  }
+
+
   /// ------------------------- user delete function
   Future<void> deleteUser(String employeeId, String reason) async {
     try {
@@ -104,7 +132,7 @@ class SignupRepository {
 
     final success = data['success'].toString().toLowerCase() == 'true';
 
-    print('response raw is ooooooji : ${data} : ${success} : ${data['success']} : ${response.statusCode}');
+    print('response raw is ooooooji : $data : $success : ${data['success']} : ${response.statusCode}');
 
     if ((response.statusCode == 200 || response.statusCode == 201) && success) {
       return Uri.decodeFull(data['fileUrl'].toString());
@@ -112,5 +140,6 @@ class SignupRepository {
       throw Exception('File upload failed: ${data['message']}');
     }
   }
+
 
 }
