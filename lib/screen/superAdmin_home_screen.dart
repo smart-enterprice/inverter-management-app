@@ -1,19 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:inverter_management_app/screen/rolebasescreen/superAdminMobileView.dart';
-import 'package:inverter_management_app/screen/superAdminTabletView.dart';
-import '../../../core/utils/screen_type.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:inverter_management_app/feature/order/screen/orders_view_page.dart';
+import 'package:inverter_management_app/feature/order/screen/today_orders_screen.dart';
+import 'package:inverter_management_app/screen/Dashboard/superadmin_dashboard_screen.dart';
+import 'package:inverter_management_app/screen/createSection.dart';
+import 'package:inverter_management_app/widgets/app_bottom_nav.dart';
 
-
-class SuperAdminHomePage extends StatelessWidget {
+class SuperAdminHomePage extends ConsumerStatefulWidget {
   const SuperAdminHomePage({super.key});
 
   @override
+  ConsumerState<SuperAdminHomePage> createState() => _SuperAdminHomePageState();
+}
+
+class _SuperAdminHomePageState extends ConsumerState<SuperAdminHomePage> {
+  int _idx = 0;
+
+  static const List<Widget> _pages = [
+    SuperadminDashboard(),
+    OrdersViewPage(),
+    CreateSection(),
+    TodayOrdersScreen(),
+  ];
+
+  @override
   Widget build(BuildContext context) {
-    switch (getScreenType(context)) {
-      case ScreenType.tablet:
-        return const SuperAdminTabletView();
-      case ScreenType.mobile:
-        return const SuperAdminMobileView();
-    }
+    return RoleShell(
+      pages: _pages,
+      currentIndex: _idx,
+      onTap: (i) => setState(() => _idx = i),
+    );
   }
 }

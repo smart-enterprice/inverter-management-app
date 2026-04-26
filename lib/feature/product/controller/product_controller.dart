@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/product_model.dart';
@@ -14,26 +13,21 @@ FutureProvider.family<ProductModel?, String>((ref, id) {
   return ref.read(productControllerProvider.notifier).getProductById(id);
 });
 
-// ✅ String-keyed brand provider (comma-joined brand names)
 final productByBrandProvider =
 FutureProvider.family<List<ProductModel>, String>((ref, brandKey) async {
   final brands = brandKey.split(',');
-  final controller = ref.read(productControllerProvider.notifier);
-  return await controller.fetchProductsByBrand(brands);
+  return ref.read(productControllerProvider.notifier).fetchProductsByBrand(brands);
 });
 
 final lowStockProvider =
 FutureProvider.family<List<ProductModel>, int>((ref, threshold) async {
-  return await ref
-      .read(productControllerProvider.notifier)
-      .fetchLowStockProducts(threshold);
+  return ref.read(productControllerProvider.notifier).fetchLowStockProducts(threshold);
 });
 
 class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
   final Ref _ref;
-  Timer? _timer;
 
-  // ── Pagination state ──────────────────────────────────────────────────────
+  // ── Pagination state ───────────────────────────────────────────────────────
   int _currentPage = 1;
   static const int _pageSize = 20;
   bool _hasMore = true;
@@ -42,9 +36,19 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
   bool get hasMore => _hasMore;
   bool get isFetchingMore => _isFetchingMore;
 
+  // ✅ FIX: No Timer — removed the 1-minute background auto-refresh.
+  // The timer was firing constantly even when the user was not on the
+  // products screen, wasting bandwidth and resetting scroll position.
+  //
+  // Products are now refreshed by:
+  //   1. Pull-to-refresh on the products list screen (already implemented).
+  //   2. Calling ref.invalidate(productControllerProvider) after any mutation
+  //      (create / update / stock update) — already done in those methods.
+  //   3. Navigating back to the products screen triggers a provider rebuild
+  //      if the provider has been invalidated.
+
   ProductController(this._ref) : super(const AsyncLoading()) {
     fetchProducts();
-    _startAutoRefresh();
   }
 
   /// Initial / refresh fetch (page 1)
@@ -62,7 +66,7 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
     }
   }
 
-  /// Load next page and append to existing list (infinite scroll)
+  /// Load next page and append (infinite scroll)
   Future<void> fetchMoreProducts() async {
     if (_isFetchingMore || !_hasMore) return;
     final current = state.value;
@@ -83,24 +87,21 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
     }
   }
 
-  /// Create Product
+  /// Create product then refresh list
   Future<void> createProduct(ProductModel product) async {
     try {
       await _ref.read(productRepositoryProvider).createProduct(product);
       await fetchProducts();
     } on DioException catch (e) {
-      final errorMessage =
-          e.response?.data['message'] ?? 'Something went wrong';
+      final errorMessage = e.response?.data['message'] ?? 'Something went wrong';
       throw errorMessage;
     }
   }
 
-  /// Fetch Products by Brand (no pagination — brand filter returns full list)
+  /// Fetch products by brand (no pagination — brand filter returns full list)
   Future<List<ProductModel>> fetchProductsByBrand(List<String> brands) async {
     try {
-      return await _ref
-          .read(productRepositoryProvider)
-          .getProductsByBrand(brands);
+      return await _ref.read(productRepositoryProvider).getProductsByBrand(brands);
     } on DioException {
       rethrow;
     } catch (e) {
@@ -108,32 +109,30 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
     }
   }
 
-  /// Update Product
-  Future<void> updateProduct(
-      String productId, ProductModel updatedProduct) async {
+  /// Update product then refresh list
+  Future<void> updateProduct(String productId, ProductModel updatedProduct) async {
     try {
-      await _ref
-          .read(productRepositoryProvider)
-          .updateProduct(productId, updatedProduct);
+      await _ref.read(productRepositoryProvider).updateProduct(productId, updatedProduct);
       await fetchProducts();
     } on DioException catch (e) {
-      print("DIO ERROR: ${e.response?.data}");
       rethrow;
     } catch (e) {
       rethrow;
     }
   }
 
-  /// Update Stock
+  /// Update stock
   Future<void> updateStock(StockUpdate updatedStock) async {
     try {
       await _ref.read(productRepositoryProvider).updateStock(updatedStock);
+      // ✅ Refresh after stock change so UI reflects new quantities immediately
+      await fetchProducts();
     } catch (e) {
       rethrow;
     }
   }
 
-  /// Get Product by ID
+  /// Get single product by ID
   Future<ProductModel?> getProductById(String id) async {
     try {
       return await _ref.read(productRepositoryProvider).getProductById(id);
@@ -142,7 +141,7 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
     }
   }
 
-  /// Fetch Low Stock Products
+  /// Fetch low stock products
   Future<List<ProductModel>> fetchLowStockProducts(int threshold) async {
     try {
       return await _ref
@@ -153,15 +152,10 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
     }
   }
 
-  void _startAutoRefresh() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) => fetchProducts());
-    _ref.onDispose(() => _timer?.cancel());
-  }
-
+  // ✅ FIX: dispose() is now a no-op — no timer to cancel.
+  // Kept here so the override is explicit and clear.
   @override
   void dispose() {
-    _timer?.cancel();
     super.dispose();
   }
 }

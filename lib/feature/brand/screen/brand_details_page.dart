@@ -4,1475 +4,657 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:inverter_management_app/core/role/app_role.dart';
 import '../../../core/const/icons.dart';
-import '../../../core/media_query/media_query.dart';
 import '../../../model/brand_model.dart';
 import '../../../model/user_model.dart';
-import '../../../screen/loadingScreen.dart';
 import '../../../widgets/circle_button.dart';
 import '../../signup/controller/signUp_controller.dart';
 import '../controller/brand_controller.dart';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const _kBlue        = Color(0xFF1B4FD8);
-const _kBlueBg      = Color(0xFFEEF2FF);
-const _kBlueBorder  = Color(0xFFC7D4FF);
-const _kBg          = Color(0xFFF2F4F8);
-const _kCard        = Colors.white;
-const _kBorder      = Color(0xFFE5E7EB);
-const _kDark        = Color(0xFF111827);
-const _kMid         = Color(0xFF374151);
-const _kMuted       = Color(0xFF9CA3AF);
-const _kRed         = Color(0xFFDC2626);
-const _kRedBg       = Color(0xFFFEF2F2);
-const _kRedBorder   = Color(0xFFFECACA);
-const _kGreen       = Color(0xFF0A8A5C);
-const _kGreenBg     = Color(0xFFEDFAF4);
-const _kGreenBorder = Color(0xFF9FE0C5);
-const _kAmber       = Color(0xFFB45309);
-const _kAmberBg     = Color(0xFFFFFBEB);
-const _kAmberBorder = Color(0xFFFCD28A);
+// ── Zoho Books design tokens ──────────────────────────────────────────────────
+const _kP       = Color(0xFF185FA5);
+const _kPBg     = Color(0xFFEBF4FF);
+const _kPBd     = Color(0xFFBFD9F5);
+const _kBg      = Color(0xFFF7F8FA);
+const _kWhite   = Colors.white;
+const _kBd      = Color(0xFFE5E7EB);
+const _kT1      = Color(0xFF111827);
+const _kT2      = Color(0xFF374151);
+const _kT3      = Color(0xFF6B7280);
+const _kT4      = Color(0xFF9CA3AF);
+const _kGreen   = Color(0xFF0F6E56);
+const _kGreenBg = Color(0xFFEDFAF5);
+const _kGreenBd = Color(0xFF9FE0C5);
+const _kRed     = Color(0xFFDC2626);
+const _kRedBg   = Color(0xFFFEF2F2);
+const _kRedBd   = Color(0xFFFECACA);
+const _kAmber   = Color(0xFFB45309);
+const _kAmberBg = Color(0xFFFFFBEB);
+const _kAmberBd = Color(0xFFFCD28A);
 
+// ═════════════════════════════════════════════════════════════════════════════
 class BrandDetailsScreen extends ConsumerWidget {
   final String brandId;
   const BrandDetailsScreen({super.key, required this.brandId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sw = Screen.w(context);
-    final sh = Screen.h(context);
-    final brandAsync = ref.watch(brandByIdProvider(brandId));
-
-    return brandAsync.when(
-      loading: () => const Scaffold(
-          backgroundColor: _kBg, body: Center(child: GlobalLoader())),
-      error: (e, _) => _BrandErrorScreen(brandId: brandId),
-      data: (brand) => _BrandDetailView(brand: brand, brandId: brandId),
-    );
+    return ref.watch(brandByIdProvider(brandId)).when(
+        loading: () => const Scaffold(backgroundColor: _kBg,
+            body: Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5))),
+        error: (_, __) => _ErrorScreen(brandId: brandId),
+        data: (brand) => _DetailView(brand: brand, brandId: brandId));
   }
 }
 
-// ─── Main Detail View ─────────────────────────────────────────────────────────
-class _BrandDetailView extends ConsumerStatefulWidget {
-  final BrandModel brand;
-  final String brandId;
-  const _BrandDetailView({required this.brand, required this.brandId});
-
-  @override
-  ConsumerState<_BrandDetailView> createState() => _BrandDetailViewState();
+// ── Detail view ─────────────────────────────────────────────────────────────
+class _DetailView extends ConsumerStatefulWidget {
+  final BrandModel brand; final String brandId;
+  const _DetailView({required this.brand, required this.brandId});
+  @override ConsumerState<_DetailView> createState() => _DetailViewState();
 }
 
-class _BrandDetailViewState extends ConsumerState<_BrandDetailView> {
-  void _showSnack(String msg, Color bg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg,
-          style: const TextStyle(fontWeight: FontWeight.w600)),
-      backgroundColor: bg,
-      behavior: SnackBarBehavior.floating,
-      shape:
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ));
-  }
+class _DetailViewState extends ConsumerState<_DetailView> {
+  void _snack(String msg, Color bg) => ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
+          backgroundColor: bg, behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
 
   @override
   Widget build(BuildContext context) {
-    final sw = Screen.w(context);
-    final sh = Screen.h(context);
-    final brand = widget.brand;
-    final isActive = brand.status?.toLowerCase() == 'active';
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+    final b = widget.brand;
+    final active = b.status?.toLowerCase() == 'active';
 
-    return Scaffold(
-      backgroundColor: _kBg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Top Nav ──────────────────────────────
-            Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: sw * 0.04, vertical: sw * 0.03),
-              child: Row(
-                children: [
-                  CircularIconButton(
-                    icon: Icons.arrow_back_ios_rounded,
-                    onTap: () {
-                      ref.invalidate(loadBrandsControllerProvider);
-                      Navigator.pop(context);
-                    },
-                  ),
-                  const Spacer(),
-                  Text('Brand Details',
-                      style: TextStyle(
-                          fontSize: sw * 0.042,
-                          fontWeight: FontWeight.w700,
-                          color: _kDark,
-                          letterSpacing: -0.2)),
-                  const Spacer(),
-                  SizedBox(width: sw * 0.095),
-                ],
-              ),
-            ),
+    return Scaffold(backgroundColor: _kBg,
+        body: SafeArea(child: Column(children: [
+          // ── App bar ──────────────────────────────────────────────────────
+          Container(color: _kWhite,
+              padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.015, sw * 0.04, sh * 0.015),
+              child: Row(children: [
+                CircularIconButton(icon: Icons.arrow_back_ios_rounded,
+                    onTap: () { ref.invalidate(loadBrandsControllerProvider); Navigator.pop(context); }),
+                const Spacer(),
+                Text('Brand Details', style: TextStyle(
+                    fontSize: (sw * 0.042).clamp(14.0, 20.0), fontWeight: FontWeight.w700,
+                    color: _kT1, letterSpacing: -0.2)),
+                const Spacer(),
+                SizedBox(width: (sw * 0.095).clamp(32.0, 44.0)),
+              ])),
 
-            // ── Scrollable body ───────────────────────
-            Expanded(
-              child: RefreshIndicator(
-                color: _kBlue,
-                backgroundColor: Colors.white,
-                onRefresh: () async =>
-                    ref.invalidate(brandByIdProvider(widget.brandId)),
-                child: SingleChildScrollView(
+          // ── Body ─────────────────────────────────────────────────────────
+          Expanded(child: RefreshIndicator(color: _kP, backgroundColor: _kWhite,
+              onRefresh: () async => ref.invalidate(brandByIdProvider(widget.brandId)),
+              child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: sw * 0.038),
-                  child: Column(
-                    children: [
-                      SizedBox(height: sh * 0.005),
-
-                      // ── Brand header card ──────────────
-                      _buildHeaderCard(context, sw, sh, brand),
-                      SizedBox(height: sh * 0.012),
-
-                      // ── Status card ────────────────────
-                      _buildStatusCard(context, sw, brand, isActive),
-                      SizedBox(height: sh * 0.012),
-
-                      // ── Models card ────────────────────
-                      _buildModelsCard(context, sw, sh, brand),
-                      SizedBox(height: sh * 0.012),
-
-                      // ── Creator card ───────────────────
-                      ref
-                          .watch(employeeByIdProvider(
-                          brand.createdBy ?? ''))
-                          .when(
-                        data: (user) =>
-                            _buildCreatorCard(sw, sh, user),
+                  padding: EdgeInsets.fromLTRB(sw * 0.038, sh * 0.012, sw * 0.038, sh * 0.04),
+                  child: Column(children: [
+                    _headerCard(sw, sh, b),
+                    SizedBox(height: sh * 0.012),
+                    _statusCard(sw, b, active),
+                    SizedBox(height: sh * 0.012),
+                    _modelsCard(sw, sh, b),
+                    SizedBox(height: sh * 0.012),
+                    ref.watch(employeeByIdProvider(b.createdBy ?? '')).when(
+                        data: (user) => _creatorCard(sw, sh, user),
                         loading: () => const SizedBox.shrink(),
-                        error: (_, __) =>
-                            _buildCreatorCard(sw, sh, null),
-                      ),
-                      SizedBox(height: sh * 0.012),
-
-                      // ── Date row ───────────────────────
-                      RoleGuard(
-                        feature: AppFeature.viewTimestamps,
-                          child: _buildDateRow(sw, sh, brand)),
-                      SizedBox(height: sh * 0.04),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+                        error: (_, __) => _creatorCard(sw, sh, null)),
+                    SizedBox(height: sh * 0.012),
+                    RoleGuard(feature: AppFeature.viewTimestamps, child: _dateRow(sw, sh, b)),
+                    SizedBox(height: sh * 0.04),
+                  ])))),
+        ])));
   }
 
-  // ── Header card ─────────────────────────────────────────────────────────────
-  Widget _buildHeaderCard(
-      BuildContext context, double sw, double sh, BrandModel brand) {
+  // ── Header ──────────────────────────────────────────────────────────────
+  Widget _headerCard(double sw, double sh, BrandModel b) {
     return Container(
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(sw * 0.04),
-        border: Border.all(color: _kBorder),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Padding(
+        decoration: BoxDecoration(color: _kWhite,
+            borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+            border: Border.all(color: _kBd, width: 0.5)),
         padding: EdgeInsets.all(sw * 0.04),
-        child: Row(
-          children: [
-            Container(
-              width: sw * 0.14,
-              height: sw * 0.14,
-              decoration: BoxDecoration(
-                color: _kBlueBg,
-                borderRadius: BorderRadius.circular(sw * 0.035),
-                border: Border.all(color: _kBlueBorder),
-              ),
-              child: Center(
-                child: SvgPicture.asset(
-                  AppIcons.brand,
-                  width: sw * 0.07,
-                  colorFilter:
-                  const ColorFilter.mode(_kBlue, BlendMode.srcIn),
-                ),
-              ),
-            ),
-            SizedBox(width: sw * 0.035),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(brand.brandName,
-                      style: TextStyle(
-                          fontSize: sw * 0.045,
-                          fontWeight: FontWeight.w800,
-                          color: _kDark,
-                          letterSpacing: -0.3)),
-                  SizedBox(height: sw * 0.01),
-                  Text(
-                    brand.description ?? 'No description',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: sw * 0.031,
-                        color: _kMuted,
-                        fontWeight: FontWeight.w500),
-                  ),
-                  SizedBox(height: sw * 0.015),
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: sw * 0.025,
-                            vertical: sw * 0.008),
-                        decoration: BoxDecoration(
-                          color: _kBlueBg,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _kBlueBorder),
-                        ),
-                        child: Text(
-                          '${brand.brandModels.length} model${brand.brandModels.length != 1 ? 's' : ''}',
-                          style: TextStyle(
-                              fontSize: sw * 0.026,
-                              fontWeight: FontWeight.w700,
-                              color: _kBlue),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Edit button
-            RoleGuard(
-              feature: AppFeature.updateBrand,
-              child: GestureDetector(
-                onTap: () => _showEditBrandSheet(context, sw, brand),
-                child: Container(
-                  padding: EdgeInsets.all(sw * 0.022),
-                  decoration: BoxDecoration(
-                    color: _kBlueBg,
-                    borderRadius: BorderRadius.circular(sw * 0.025),
-                    border: Border.all(color: _kBlueBorder),
-                  ),
-                  child: SvgPicture.asset(
-                    AppIcons.edit,
-                    width: sw * 0.045,
-                    colorFilter:
-                    const ColorFilter.mode(_kBlue, BlendMode.srcIn),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+        child: Row(children: [
+          Container(
+              width: (sw * 0.13).clamp(44.0, 60.0), height: (sw * 0.13).clamp(44.0, 60.0),
+              decoration: BoxDecoration(color: _kPBg,
+                  borderRadius: BorderRadius.circular((sw * 0.035).clamp(10.0, 16.0)),
+                  border: Border.all(color: _kPBd, width: 0.5)),
+              child: Center(child: SvgPicture.asset(AppIcons.brand,
+                  width: (sw * 0.06).clamp(22.0, 30.0),
+                  colorFilter: const ColorFilter.mode(_kP, BlendMode.srcIn)))),
+          SizedBox(width: sw * 0.035),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(b.brandName, style: TextStyle(
+                fontSize: (sw * 0.042).clamp(14.0, 20.0), fontWeight: FontWeight.w800,
+                color: _kT1, letterSpacing: -0.3)),
+            SizedBox(height: sw * 0.008),
+            Text(b.description ?? 'No description', maxLines: 2, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
+            SizedBox(height: sw * 0.012),
+            _Pill(sw: sw,
+                label: '${b.brandModels.length} model${b.brandModels.length != 1 ? 's' : ''}',
+                fg: _kP, bg: _kPBg, bd: _kPBd),
+          ])),
+          RoleGuard(feature: AppFeature.updateBrand,
+              child: GestureDetector(onTap: () => _showEditSheet(context, sw, b),
+                  child: Container(
+                      padding: EdgeInsets.all((sw * 0.022).clamp(7.0, 12.0)),
+                      decoration: BoxDecoration(color: _kPBg,
+                          borderRadius: BorderRadius.circular((sw * 0.025).clamp(8.0, 12.0)),
+                          border: Border.all(color: _kPBd, width: 0.5)),
+                      child: Icon(Icons.edit_outlined, size: (sw * 0.045).clamp(15.0, 20.0), color: _kP)))),
+        ]));
   }
 
-  // ── Status card ──────────────────────────────────────────────────────────────
-  Widget _buildStatusCard(BuildContext context, double sw, BrandModel brand,
-      bool isActive) {
+  // ── Status ──────────────────────────────────────────────────────────────
+  Widget _statusCard(double sw, BrandModel b, bool active) {
+    final c = active ? _kGreen : _kRed;
+    final bg = active ? _kGreenBg : _kRedBg;
+    final bd = active ? _kGreenBd : _kRedBd;
     return Container(
-      decoration: BoxDecoration(
-        color: isActive ? _kGreenBg : _kRedBg,
-        borderRadius: BorderRadius.circular(sw * 0.04),
-        border: Border.all(
-            color: isActive ? _kGreenBorder : _kRedBorder, width: 1.5),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-            horizontal: sw * 0.04, vertical: sw * 0.035),
-        child: Row(
-          children: [
-            Container(
-              width: sw * 0.1,
-              height: sw * 0.1,
-              decoration: BoxDecoration(
-                color: isActive ? _kGreen : _kRed,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isActive ? Icons.check_rounded : Icons.pause_rounded,
-                color: Colors.white,
-                size: sw * 0.05,
-              ),
-            ),
-            SizedBox(width: sw * 0.035),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Brand Status',
-                      style: TextStyle(
-                          fontSize: sw * 0.028,
-                          color: isActive ? _kGreen : _kRed,
-                          fontWeight: FontWeight.w600)),
-                  Text(
-                    isActive ? 'Active' : 'Inactive',
-                    style: TextStyle(
-                        fontSize: sw * 0.038,
-                        fontWeight: FontWeight.w800,
-                        color: isActive ? _kGreen : _kRed),
-                  ),
-                ],
-              ),
-            ),
-            RoleGuard(
-              feature: AppFeature.updateStatus,
-              child: Switch(
-                value: isActive,
-                activeColor: _kGreen,
-                activeTrackColor: _kGreenBorder,
-                inactiveThumbColor: _kRed,
-                inactiveTrackColor: _kRedBorder,
-                onChanged: (val) async {
-                  try {
-                    final updated = brand.copyWith(
-                        status: val ? 'active' : 'inactive');
-                    await ref
-                        .read(brandControllerProvider.notifier)
-                        .updateBrand(updated, brand.brandName);
-                    ref.invalidate(brandByIdProvider(widget.brandId));
-                    _showSnack(
-                        'Status updated to ${val ? 'Active' : 'Inactive'}',
-                        Colors.green);
-                  } catch (e) {
-                    _showSnack('Failed to update: $e', _kRed);
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+        decoration: BoxDecoration(color: bg,
+            borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+            border: Border.all(color: bd, width: 0.5)),
+        padding: EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sw * 0.03),
+        child: Row(children: [
+          Container(width: (sw * 0.09).clamp(32.0, 42.0), height: (sw * 0.09).clamp(32.0, 42.0),
+              decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+              child: Icon(active ? Icons.check_rounded : Icons.pause_rounded,
+                  color: _kWhite, size: (sw * 0.045).clamp(15.0, 20.0))),
+          SizedBox(width: sw * 0.03),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Brand Status', style: TextStyle(
+                fontSize: (sw * 0.028).clamp(9.5, 12.5), color: c, fontWeight: FontWeight.w600)),
+            Text(active ? 'Active' : 'Inactive', style: TextStyle(
+                fontSize: (sw * 0.038).clamp(13.0, 17.0), fontWeight: FontWeight.w800, color: c)),
+          ])),
+          RoleGuard(feature: AppFeature.updateStatus,
+              child: Switch(value: active, activeColor: _kGreen, activeTrackColor: _kGreenBd,
+                  inactiveThumbColor: _kRed, inactiveTrackColor: _kRedBd,
+                  onChanged: (v) async {
+                    try {
+                      await ref.read(brandControllerProvider.notifier)
+                          .updateBrand(b.copyWith(status: v ? 'active' : 'inactive'), b.brandName);
+                      ref.invalidate(brandByIdProvider(widget.brandId));
+                      _snack('Status updated to ${v ? 'Active' : 'Inactive'}', _kGreen);
+                    } catch (e) { _snack('Failed: $e', _kRed); }
+                  })),
+        ]));
   }
 
-  // ── Models card ──────────────────────────────────────────────────────────────
-  Widget _buildModelsCard(BuildContext context, double sw, double sh,
-      BrandModel brand) {
-    return Container(
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(sw * 0.04),
-        border: Border.all(color: _kBorder),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // header
-          Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: sw * 0.04, vertical: sw * 0.035),
-            child: Row(
-              children: [
-                Container(
-                  width: sw * 0.075,
-                  height: sw * 0.075,
-                  decoration: BoxDecoration(
-                    color: _kAmberBg,
-                    borderRadius: BorderRadius.circular(sw * 0.022),
-                    border: Border.all(color: _kAmberBorder),
-                  ),
-                  child: Center(
-                    child: SvgPicture.asset(AppIcons.model,
-                        width: sw * 0.04,
-                        colorFilter: const ColorFilter.mode(
-                            _kAmber, BlendMode.srcIn)),
-                  ),
-                ),
-                SizedBox(width: sw * 0.025),
-                Expanded(
-                  child: Text('Models',
-                      style: TextStyle(
-                          fontSize: sw * 0.035,
-                          fontWeight: FontWeight.w700,
-                          color: _kDark)),
-                ),
-                RoleGuard(
-                  feature: AppFeature.updateBrand,
-                  child: GestureDetector(
-                    onTap: () =>
-                        _showManageModelsSheet(context, sw, sh, brand),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: sw * 0.03, vertical: sw * 0.01),
-                      decoration: BoxDecoration(
-                        color: _kBlueBg,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _kBlueBorder),
-                      ),
-                      child: Text('Edit',
-                          style: TextStyle(
-                              fontSize: sw * 0.03,
-                              fontWeight: FontWeight.w700,
-                              color: _kBlue)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, thickness: 1, color: _kBorder),
-          Padding(
-            padding: EdgeInsets.all(sw * 0.04),
-            child: brand.brandModels.isEmpty
-                ? Text('No models added yet',
-                style: TextStyle(
-                    fontSize: sw * 0.032,
-                    color: _kMuted,
-                    fontWeight: FontWeight.w500))
-                : Wrap(
-              spacing: sw * 0.02,
-              runSpacing: sw * 0.02,
-              children: brand.brandModels.map((m) {
-                return Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: sw * 0.03,
-                      vertical: sw * 0.015),
-                  decoration: BoxDecoration(
-                    color: _kAmberBg,
+  // ── Models ──────────────────────────────────────────────────────────────
+  Widget _modelsCard(double sw, double sh, BrandModel b) {
+    return _Section(sw: sw, icon: Icons.tag_rounded, iconBg: _kAmberBg,
+        iconColor: _kAmber, title: 'Models',
+        trailing: RoleGuard(feature: AppFeature.updateBrand,
+            child: _ActionPill(sw: sw, label: 'Edit', color: _kP, bg: _kPBg, bd: _kPBd,
+                onTap: () => _showModelsSheet(context, sw, sh, b))),
+        child: b.brandModels.isEmpty
+            ? Text('No models added yet', style: TextStyle(
+            fontSize: (sw * 0.032).clamp(11.0, 14.0), color: _kT4))
+            : Wrap(spacing: sw * 0.02, runSpacing: sw * 0.02,
+            children: b.brandModels.map((m) => Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: (sw * 0.03).clamp(10.0, 14.0),
+                    vertical: (sw * 0.013).clamp(4.0, 7.0)),
+                decoration: BoxDecoration(color: _kAmberBg,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _kAmberBorder),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SvgPicture.asset(AppIcons.model,
-                          width: sw * 0.032,
-                          colorFilter: const ColorFilter.mode(
-                              _kAmber, BlendMode.srcIn)),
-                      SizedBox(width: sw * 0.015),
-                      Text(m,
-                          style: TextStyle(
-                              fontSize: sw * 0.03,
-                              fontWeight: FontWeight.w600,
-                              color: _kAmber)),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
+                    border: Border.all(color: _kAmberBd, width: 0.5)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.tag_rounded, size: (sw * 0.03).clamp(10.0, 14.0), color: _kAmber),
+                  SizedBox(width: sw * 0.012),
+                  Text(m, style: TextStyle(fontSize: (sw * 0.03).clamp(10.0, 13.0),
+                      fontWeight: FontWeight.w600, color: _kAmber)),
+                ]))).toList()));
   }
 
-  // ── Creator card ─────────────────────────────────────────────────────────────
-  Widget _buildCreatorCard(double sw, double sh, UserModel? user) {
-    final initials = user != null
-        ? (user.employeeName ?? 'U').substring(0, 1).toUpperCase()
-        : '?';
-
-    return Container(
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(sw * 0.04),
-        border: Border.all(color: _kBorder),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: sw * 0.04, vertical: sw * 0.035),
-            child: Row(
-              children: [
-                Container(
-                  width: sw * 0.075,
-                  height: sw * 0.075,
-                  decoration: BoxDecoration(
-                    color: _kBg,
-                    borderRadius: BorderRadius.circular(sw * 0.022),
-                    border: Border.all(color: _kBorder),
-                  ),
-                  child: Icon(Icons.person_outline_rounded,
-                      size: sw * 0.04, color: _kDark),
-                ),
-                SizedBox(width: sw * 0.025),
-                Text('Created By',
-                    style: TextStyle(
-                        fontSize: sw * 0.035,
-                        fontWeight: FontWeight.w700,
-                        color: _kDark)),
-              ],
-            ),
-          ),
-          const Divider(height: 1, thickness: 1, color: _kBorder),
-          Padding(
-            padding: EdgeInsets.all(sw * 0.04),
-            child: user == null
-                ? Text('Creator information not available',
-                style: TextStyle(
-                    fontSize: sw * 0.032, color: _kMuted))
-                : Row(
-              children: [
-                CircleAvatar(
-                  radius: sw * 0.065,
-                  backgroundColor: _kBlueBg,
-                  child: Text(initials,
-                      style: TextStyle(
-                          fontSize: sw * 0.045,
-                          fontWeight: FontWeight.w800,
-                          color: _kBlue)),
-                ),
-                SizedBox(width: sw * 0.035),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.employeeName ?? 'Unknown',
-                        style: TextStyle(
-                            fontSize: sw * 0.036,
-                            fontWeight: FontWeight.w700,
-                            color: _kDark),
-                      ),
-                      SizedBox(height: sw * 0.008),
-                      Text(
-                        user.employeeEmail ?? '',
-                        style: TextStyle(
-                            fontSize: sw * 0.029,
-                            color: _kBlue,
-                            fontWeight: FontWeight.w500),
-                      ),
-                      SizedBox(height: sw * 0.005),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: sw * 0.02,
-                            vertical: sw * 0.006),
-                        decoration: BoxDecoration(
-                          color: _kBlueBg,
-                          borderRadius:
-                          BorderRadius.circular(20),
-                          border: Border.all(
-                              color: _kBlueBorder),
-                        ),
-                        child: Text(
-                          (user.role ?? '')
-                              .replaceAll('ROLE_', '')
-                              .toLowerCase(),
-                          style: TextStyle(
-                              fontSize: sw * 0.026,
-                              fontWeight: FontWeight.w700,
-                              color: _kBlue),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  // ── Creator ─────────────────────────────────────────────────────────────
+  Widget _creatorCard(double sw, double sh, UserModel? user) {
+    final init = user != null ? (user.employeeName ?? 'U')[0].toUpperCase() : '?';
+    return _Section(sw: sw, icon: Icons.person_outline_rounded, iconBg: _kBg,
+        iconColor: _kT1, title: 'Created By',
+        child: user == null
+            ? Text('Creator info not available', style: TextStyle(
+            fontSize: (sw * 0.032).clamp(11.0, 14.0), color: _kT4))
+            : Row(children: [
+          CircleAvatar(radius: (sw * 0.06).clamp(22.0, 30.0), backgroundColor: _kPBg,
+              child: Text(init, style: TextStyle(
+                  fontSize: (sw * 0.04).clamp(14.0, 20.0), fontWeight: FontWeight.w800, color: _kP))),
+          SizedBox(width: sw * 0.035),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(user.employeeName ?? 'Unknown', style: TextStyle(
+                fontSize: (sw * 0.036).clamp(12.0, 16.0), fontWeight: FontWeight.w700, color: _kT1)),
+            SizedBox(height: sw * 0.006),
+            Text(user.employeeEmail ?? '', style: TextStyle(
+                fontSize: (sw * 0.029).clamp(10.0, 13.0), color: _kP, fontWeight: FontWeight.w500)),
+            SizedBox(height: sw * 0.006),
+            _Pill(sw: sw,
+                label: (user.role ?? '').replaceAll('ROLE_', '').replaceAll('_', ' ').toLowerCase(),
+                fg: _kP, bg: _kPBg, bd: _kPBd),
+          ])),
+        ]));
   }
 
-  // ── Date row ─────────────────────────────────────────────────────────────────
-  Widget _buildDateRow(double sw, double sh, BrandModel brand) {
-    return Row(
-      children: [
-        Expanded(
-            child: _dateCard(sw, 'Created',
-                Icons.calendar_today_outlined, brand.createdAt)),
-        SizedBox(width: sw * 0.025),
-        Expanded(
-            child: _dateCard(
-                sw, 'Updated', Icons.update_rounded, brand.updatedAt)),
-      ],
-    );
+  // ── Date row ────────────────────────────────────────────────────────────
+  Widget _dateRow(double sw, double sh, BrandModel b) {
+    return Row(children: [
+      Expanded(child: _DateTile(sw: sw, label: 'Created', icon: Icons.calendar_today_outlined, date: b.createdAt)),
+      SizedBox(width: sw * 0.025),
+      Expanded(child: _DateTile(sw: sw, label: 'Updated', icon: Icons.update_rounded, date: b.updatedAt)),
+    ]);
   }
 
-  Widget _dateCard(
-      double sw, String label, IconData icon, dynamic date) {
-    return Container(
-      padding: EdgeInsets.all(sw * 0.04),
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(sw * 0.04),
-        border: Border.all(color: _kBorder),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: sw * 0.038, color: _kMuted),
-              SizedBox(width: sw * 0.015),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: sw * 0.028,
-                      color: _kMuted,
-                      fontWeight: FontWeight.w600)),
-            ],
-          ),
-          SizedBox(height: sw * 0.015),
-          Text(
-            _formatDate(date),
-            style: TextStyle(
-                fontSize: sw * 0.03,
-                fontWeight: FontWeight.w600,
-                color: _kDark),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(dynamic date) {
-    if (date == null) return '—';
-    try {
-      final d = date is String ? DateTime.parse(date) : date as DateTime;
-      return DateFormat('MMM dd, yyyy\nHH:mm').format(d);
-    } catch (_) {
-      return 'Invalid date';
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  //  Edit Brand Bottom Sheet
-  // ─────────────────────────────────────────────────────────────────────────────
-  void _showEditBrandSheet(
-      BuildContext context, double sw, BrandModel brand) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => _EditBrandSheet(
-        brand: brand,
-        onSave: (name, desc) async {
+  // ── Sheets ──────────────────────────────────────────────────────────────
+  void _showEditSheet(BuildContext ctx, double sw, BrandModel b) {
+    showModalBottomSheet(context: ctx, isScrollControlled: true, backgroundColor: _kWhite,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular((sw * 0.05).clamp(14.0, 22.0)))),
+        builder: (_) => _EditBrandSheet(brand: b, onSave: (name, desc) async {
           try {
-            await ref
-                .read(brandControllerProvider.notifier)
-                .updateBrand(brand.copyWith(brandName: name, description: desc),
-                brand.brandName);
+            await ref.read(brandControllerProvider.notifier)
+                .updateBrand(b.copyWith(brandName: name, description: desc), b.brandName);
             ref.invalidate(brandByIdProvider(widget.brandId));
-            _showSnack('Brand updated successfully', Colors.green);
-          } catch (e) {
-            _showSnack('Failed to update: $e', _kRed);
-          }
-        },
-      ),
-    );
+            _snack('Brand updated', _kGreen);
+          } catch (e) { _snack('Failed: $e', _kRed); }
+        }));
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  //  Manage Models Bottom Sheet
-  // ─────────────────────────────────────────────────────────────────────────────
-  void _showManageModelsSheet(
-      BuildContext context, double sw, double sh, BrandModel brand) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => _ManageModelsSheet(
-        brand: brand,
-        onSave: (renamed, deleted, added) async {
-          try {
-            final updated = BrandModel(
-              brandId: brand.brandId,
-              brandName: brand.brandName,
-              brandModels: brand.brandModels,
-              description: brand.description,
-              status: brand.status,
-              createdBy: brand.createdBy,
-              createdAt: brand.createdAt,
-              updatedAt: brand.updatedAt,
-            );
-            await ref
-                .read(brandControllerProvider.notifier)
-                .updateBrand(
-              updated,
-              brand.brandName,
-              brandModelsUpdate: renamed.isNotEmpty ? renamed : null,
-              deletedModels: deleted.isNotEmpty ? deleted : null,
-              addModel: added.isNotEmpty ? added : null,
-            );
-            ref.invalidate(brandByIdProvider(widget.brandId));
-            _showSnack('Models updated successfully', Colors.green);
-          } catch (e) {
-            _showSnack('Failed to update models: $e', _kRed);
-          }
-        },
-      ),
-    );
+  void _showModelsSheet(BuildContext ctx, double sw, double sh, BrandModel b) {
+    showModalBottomSheet(context: ctx, isScrollControlled: true, backgroundColor: _kWhite,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular((sw * 0.05).clamp(14.0, 22.0)))),
+        builder: (_) => _ManageModelsSheet(brand: b,
+            onSave: (renamed, deleted, added) async {
+              try {
+                final updated = BrandModel(brandId: b.brandId, brandName: b.brandName,
+                    brandModels: b.brandModels, description: b.description, status: b.status,
+                    createdBy: b.createdBy, createdAt: b.createdAt, updatedAt: b.updatedAt);
+                await ref.read(brandControllerProvider.notifier).updateBrand(updated, b.brandName,
+                    brandModelsUpdate: renamed.isNotEmpty ? renamed : null,
+                    deletedModels: deleted.isNotEmpty ? deleted : null,
+                    addModel: added.isNotEmpty ? added : null);
+                ref.invalidate(brandByIdProvider(widget.brandId));
+                _snack('Models updated', _kGreen);
+              } catch (e) { _snack('Failed: $e', _kRed); }
+            }));
   }
 }
 
-// ─── Edit Brand Sheet ─────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// Shared widgets
+// ═════════════════════════════════════════════════════════════════════════════
+
+class _Section extends StatelessWidget {
+  const _Section({required this.sw, required this.icon, required this.iconBg,
+    required this.iconColor, required this.title, required this.child, this.trailing});
+  final double sw; final IconData icon; final Color iconBg, iconColor;
+  final String title; final Widget child; final Widget? trailing;
+
+  @override Widget build(BuildContext context) => Container(
+      decoration: BoxDecoration(color: _kWhite,
+          borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+          border: Border.all(color: _kBd, width: 0.5)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(padding: EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sw * 0.035),
+            child: Row(children: [
+              Container(width: (sw * 0.075).clamp(26.0, 36.0), height: (sw * 0.075).clamp(26.0, 36.0),
+                  decoration: BoxDecoration(color: iconBg,
+                      borderRadius: BorderRadius.circular((sw * 0.022).clamp(6.0, 10.0))),
+                  child: Icon(icon, size: (sw * 0.04).clamp(14.0, 20.0), color: iconColor)),
+              SizedBox(width: sw * 0.025),
+              Expanded(child: Text(title, style: TextStyle(
+                  fontSize: (sw * 0.035).clamp(12.0, 16.0), fontWeight: FontWeight.w700, color: _kT1))),
+              if (trailing != null) trailing!,
+            ])),
+        Divider(height: 1, color: _kBd),
+        Padding(padding: EdgeInsets.all(sw * 0.04), child: child),
+      ]));
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.sw, required this.label, required this.fg,
+    required this.bg, required this.bd});
+  final double sw; final String label; final Color fg, bg, bd;
+  @override Widget build(BuildContext context) => Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: (sw * 0.025).clamp(8.0, 12.0), vertical: (sw * 0.008).clamp(3.0, 5.0)),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: bd, width: 0.5)),
+      child: Text(label, style: TextStyle(
+          fontSize: (sw * 0.026).clamp(9.0, 11.5), fontWeight: FontWeight.w700, color: fg)));
+}
+
+class _ActionPill extends StatelessWidget {
+  const _ActionPill({required this.sw, required this.label, required this.color,
+    required this.bg, required this.bd, required this.onTap});
+  final double sw; final String label; final Color color, bg, bd; final VoidCallback onTap;
+  @override Widget build(BuildContext context) => GestureDetector(onTap: onTap,
+      child: Container(
+          padding: EdgeInsets.symmetric(
+              horizontal: (sw * 0.03).clamp(10.0, 14.0), vertical: (sw * 0.01).clamp(3.0, 6.0)),
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: bd, width: 0.5)),
+          child: Text(label, style: TextStyle(
+              fontSize: (sw * 0.03).clamp(10.0, 13.0), fontWeight: FontWeight.w700, color: color))));
+}
+
+class _DateTile extends StatelessWidget {
+  const _DateTile({required this.sw, required this.label, required this.icon, required this.date});
+  final double sw; final String label; final IconData icon; final dynamic date;
+
+  String _fmt(dynamic d) {
+    if (d == null) return '—';
+    try { final dt = d is String ? DateTime.parse(d) : d as DateTime;
+    return DateFormat('MMM dd, yyyy\nHH:mm').format(dt); } catch (_) { return 'Invalid'; }
+  }
+
+  @override Widget build(BuildContext context) => Container(
+      padding: EdgeInsets.all(sw * 0.04),
+      decoration: BoxDecoration(color: _kWhite,
+          borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+          border: Border.all(color: _kBd, width: 0.5)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(icon, size: (sw * 0.035).clamp(12.0, 16.0), color: _kT4),
+          SizedBox(width: sw * 0.015),
+          Text(label, style: TextStyle(
+              fontSize: (sw * 0.028).clamp(9.5, 12.5), color: _kT4, fontWeight: FontWeight.w600)),
+        ]),
+        SizedBox(height: sw * 0.015),
+        Text(_fmt(date), style: TextStyle(
+            fontSize: (sw * 0.03).clamp(10.0, 13.0), fontWeight: FontWeight.w600, color: _kT1)),
+      ]));
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Sheets
+// ═════════════════════════════════════════════════════════════════════════════
+
+InputDecoration _deco(double sw, String hint, IconData icon, {int maxLines = 1}) {
+  final r = (sw * 0.028).clamp(8.0, 12.0);
+  return InputDecoration(hintText: hint,
+      hintStyle: TextStyle(fontSize: (sw * 0.034).clamp(11.5, 15.0), color: _kT4),
+      prefixIcon: Icon(icon, color: _kT4, size: (sw * 0.045).clamp(15.0, 20.0)),
+      filled: true, fillColor: _kBg,
+      contentPadding: EdgeInsets.symmetric(horizontal: sw * 0.04,
+          vertical: maxLines > 1 ? sw * 0.035 : 0),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+          borderSide: const BorderSide(color: _kBd, width: 0.5)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+          borderSide: const BorderSide(color: _kBd, width: 0.5)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+          borderSide: const BorderSide(color: _kP, width: 1.5)),
+      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+          borderSide: const BorderSide(color: _kRed)),
+      focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+          borderSide: const BorderSide(color: _kRed, width: 1.5)));
+}
+
+Widget _handle() => Center(child: Container(width: 36, height: 4,
+    margin: const EdgeInsets.only(bottom: 18),
+    decoration: BoxDecoration(color: _kBd, borderRadius: BorderRadius.circular(2))));
+
+Widget _label(double sw, String t) => Text(t.toUpperCase(),
+    style: TextStyle(fontSize: (sw * 0.028).clamp(9.5, 12.5),
+        fontWeight: FontWeight.w700, color: _kT4, letterSpacing: 0.5));
+
+Widget _actions(double sw, double sh, {required VoidCallback onCancel, required VoidCallback onSave}) {
+  return Row(children: [
+    Expanded(child: OutlinedButton(onPressed: onCancel,
+        style: OutlinedButton.styleFrom(
+            padding: EdgeInsets.symmetric(vertical: sh * 0.016),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            side: const BorderSide(color: _kBd, width: 0.5)),
+        child: Text('Cancel', style: TextStyle(
+            fontSize: (sw * 0.036).clamp(12.0, 15.0), fontWeight: FontWeight.w700, color: _kT4)))),
+    SizedBox(width: sw * 0.03),
+    Expanded(flex: 2, child: ElevatedButton(onPressed: onSave,
+        style: ElevatedButton.styleFrom(backgroundColor: _kP, foregroundColor: _kWhite,
+            padding: EdgeInsets.symmetric(vertical: sh * 0.016),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
+        child: Text('Save Changes', style: TextStyle(
+            fontSize: (sw * 0.036).clamp(12.0, 15.0), fontWeight: FontWeight.w700)))),
+  ]);
+}
+
+// ── Edit brand sheet ──────────────────────────────────────────────────────
 class _EditBrandSheet extends StatefulWidget {
   final BrandModel brand;
   final Future<void> Function(String name, String desc) onSave;
   const _EditBrandSheet({required this.brand, required this.onSave});
-
-  @override
-  State<_EditBrandSheet> createState() => _EditBrandSheetState();
+  @override State<_EditBrandSheet> createState() => _EditBrandSheetState();
 }
 
 class _EditBrandSheetState extends State<_EditBrandSheet> {
-  late final TextEditingController _nameCtrl;
-  late final TextEditingController _descCtrl;
-  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameCtrl, _descCtrl;
+  final _key = GlobalKey<FormState>();
+  @override void initState() { super.initState();
+  _nameCtrl = TextEditingController(text: widget.brand.brandName);
+  _descCtrl = TextEditingController(text: widget.brand.description ?? ''); }
+  @override void dispose() { _nameCtrl.dispose(); _descCtrl.dispose(); super.dispose(); }
 
-  @override
-  void initState() {
-    super.initState();
-    _nameCtrl = TextEditingController(text: widget.brand.brandName);
-    _descCtrl =
-        TextEditingController(text: widget.brand.description ?? '');
-  }
-
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _descCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final sw = Screen.w(context);
-    final sh = Screen.h(context);
-
-    return Padding(
-      padding:
-      EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-            sw * 0.05, sw * 0.04, sw * 0.05, sw * 0.06),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Handle(),
-              Text('Edit Brand',
-                  style: TextStyle(
-                      fontSize: sw * 0.045,
-                      fontWeight: FontWeight.w800,
-                      color: _kDark)),
-              Text(widget.brand.brandName,
-                  style: const TextStyle(
-                      fontSize: 12,
-                      color: _kMuted,
-                      fontWeight: FontWeight.w500)),
-              SizedBox(height: sw * 0.05),
-
-              _SheetLabel(sw: sw, label: 'Brand Name'),
-              SizedBox(height: sh * 0.006),
-              _SheetInput(
-                sw: sw,
-                ctrl: _nameCtrl,
-                hint: 'Enter brand name',
-                icon: Icons.label_outline_rounded,
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? 'Required'
-                    : null,
-              ),
-              SizedBox(height: sh * 0.015),
-
-              _SheetLabel(sw: sw, label: 'Description'),
-              SizedBox(height: sh * 0.006),
-              _SheetInput(
-                sw: sw,
-                ctrl: _descCtrl,
-                hint: 'Enter description',
-                icon: Icons.description_outlined,
-                maxLines: 3,
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? 'Required'
-                    : null,
-              ),
-
-              SizedBox(height: sh * 0.025),
-              _SheetActions(
-                sw: sw,
-                sh: sh,
-                onCancel: () => Navigator.pop(context),
-                onSave: () async {
-                  if (!_formKey.currentState!.validate()) return;
-                  Navigator.pop(context);
-                  await widget.onSave(
-                      _nameCtrl.text.trim(), _descCtrl.text.trim());
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  @override Widget build(BuildContext context) {
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+    return Padding(padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(sw * 0.05, sw * 0.04, sw * 0.05, sw * 0.06),
+            child: Form(key: _key, child: Column(mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _handle(),
+                  Text('Edit Brand', style: TextStyle(
+                      fontSize: (sw * 0.045).clamp(15.0, 21.0), fontWeight: FontWeight.w800, color: _kT1)),
+                  Text(widget.brand.brandName, style: TextStyle(
+                      fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
+                  SizedBox(height: sw * 0.05),
+                  _label(sw, 'Brand Name'), SizedBox(height: sh * 0.006),
+                  TextFormField(controller: _nameCtrl,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                      decoration: _deco(sw, 'Enter brand name', Icons.label_outline_rounded)),
+                  SizedBox(height: sh * 0.015),
+                  _label(sw, 'Description'), SizedBox(height: sh * 0.006),
+                  TextFormField(controller: _descCtrl, maxLines: 3,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                      decoration: _deco(sw, 'Enter description', Icons.description_outlined, maxLines: 3)),
+                  SizedBox(height: sh * 0.025),
+                  _actions(sw, sh, onCancel: () => Navigator.pop(context),
+                      onSave: () async {
+                        if (!_key.currentState!.validate()) return;
+                        Navigator.pop(context);
+                        await widget.onSave(_nameCtrl.text.trim(), _descCtrl.text.trim());
+                      }),
+                ]))));
   }
 }
 
-// ─── Manage Models Sheet ──────────────────────────────────────────────────────
+// ── Manage models sheet ───────────────────────────────────────────────────
 class _ManageModelsSheet extends StatefulWidget {
   final BrandModel brand;
-  final Future<void> Function(
-      Map<String, String> renamed,
-      List<String> deleted,
-      List<String> added) onSave;
-
+  final Future<void> Function(Map<String, String> renamed, List<String> deleted, List<String> added) onSave;
   const _ManageModelsSheet({required this.brand, required this.onSave});
-
-  @override
-  State<_ManageModelsSheet> createState() => _ManageModelsSheetState();
+  @override State<_ManageModelsSheet> createState() => _ManageModelsSheetState();
 }
 
 class _ManageModelsSheetState extends State<_ManageModelsSheet> {
-  final _newModelCtrl = TextEditingController();
-  final Map<String, String> _renamed  = {};
-  final List<String>        _deleted  = [];
-  final List<String>        _added    = [];
+  final _newCtrl = TextEditingController();
+  final Map<String, String> _renamed = {};
+  final List<String> _deleted = [];
+  final List<String> _added = [];
+  @override void dispose() { _newCtrl.dispose(); super.dispose(); }
 
-  @override
-  void dispose() {
-    _newModelCtrl.dispose();
-    super.dispose();
-  }
+  @override Widget build(BuildContext context) {
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+    final visible = widget.brand.brandModels.where((m) => !_deleted.contains(m)).toList();
 
-  @override
-  Widget build(BuildContext context) {
-    final sw = Screen.w(context);
-    final sh = Screen.h(context);
-    final visibleModels = widget.brand.brandModels
-        .where((m) => !_deleted.contains(m))
-        .toList();
-
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.75,
-      maxChildSize: 0.92,
-      builder: (_, sc) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Fixed header
-          Padding(
-            padding:
-            EdgeInsets.fromLTRB(sw * 0.05, sw * 0.04, sw * 0.05, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(child: _Handle()),
-                Text('Manage Models',
-                    style: TextStyle(
-                        fontSize: sw * 0.045,
-                        fontWeight: FontWeight.w800,
-                        color: _kDark)),
-                Text(widget.brand.brandName,
-                    style: const TextStyle(
-                        fontSize: 12,
-                        color: _kMuted,
-                        fontWeight: FontWeight.w500)),
+    return DraggableScrollableSheet(expand: false, initialChildSize: 0.75, maxChildSize: 0.92,
+        builder: (_, sc) => Column(children: [
+          // Header
+          Padding(padding: EdgeInsets.fromLTRB(sw * 0.05, sw * 0.04, sw * 0.05, 0),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Center(child: _handle()),
+                Text('Manage Models', style: TextStyle(
+                    fontSize: (sw * 0.045).clamp(15.0, 21.0), fontWeight: FontWeight.w800, color: _kT1)),
+                Text(widget.brand.brandName, style: TextStyle(
+                    fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
                 SizedBox(height: sw * 0.04),
-
-                // Add model row
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _newModelCtrl,
-                        style: TextStyle(
-                            fontSize: sw * 0.035,
-                            color: _kDark,
-                            fontWeight: FontWeight.w500),
-                        decoration: InputDecoration(
-                          hintText: 'New model name',
-                          hintStyle: TextStyle(
-                              fontSize: sw * 0.034,
-                              color: _kMuted,
-                              fontWeight: FontWeight.w400),
-                          prefixIcon: Icon(Icons.add_circle_outline,
-                              color: _kMuted, size: sw * 0.045),
-                          filled: true,
-                          fillColor: _kBg,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: sw * 0.04),
-                          border: OutlineInputBorder(
-                              borderRadius:
-                              BorderRadius.circular(sw * 0.028),
-                              borderSide:
-                              const BorderSide(color: _kBorder)),
-                          enabledBorder: OutlineInputBorder(
-                              borderRadius:
-                              BorderRadius.circular(sw * 0.028),
-                              borderSide:
-                              const BorderSide(color: _kBorder)),
-                          focusedBorder: OutlineInputBorder(
-                              borderRadius:
-                              BorderRadius.circular(sw * 0.028),
-                              borderSide: const BorderSide(
-                                  color: _kBlue, width: 1.5)),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: sw * 0.025),
-                    GestureDetector(
-                      onTap: () {
-                        final v = _newModelCtrl.text.trim();
-                        if (v.isNotEmpty) {
-                          setState(() {
-                            _added.add(v);
-                            _newModelCtrl.clear();
-                          });
-                        }
-                      },
+                // Add row
+                Row(children: [
+                  Expanded(child: TextField(controller: _newCtrl,
+                      style: TextStyle(fontSize: (sw * 0.035).clamp(12.0, 15.0), color: _kT1),
+                      decoration: _deco(sw, 'New model name', Icons.add_circle_outline))),
+                  SizedBox(width: sw * 0.025),
+                  GestureDetector(
+                      onTap: () { final v = _newCtrl.text.trim();
+                      if (v.isNotEmpty) setState(() { _added.add(v); _newCtrl.clear(); }); },
                       child: Container(
-                        width: sw * 0.12,
-                        height: sw * 0.12,
-                        decoration: BoxDecoration(
-                          color: _kBlueBg,
-                          borderRadius:
-                          BorderRadius.circular(sw * 0.028),
-                          border: Border.all(color: _kBlueBorder),
-                        ),
-                        child: Icon(Icons.add_rounded,
-                            color: _kBlue, size: sw * 0.055),
-                      ),
-                    ),
-                  ],
-                ),
+                          width: (sw * 0.12).clamp(42.0, 52.0), height: (sw * 0.12).clamp(42.0, 52.0),
+                          decoration: BoxDecoration(color: _kPBg,
+                              borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+                              border: Border.all(color: _kPBd, width: 0.5)),
+                          child: Icon(Icons.add_rounded, color: _kP, size: (sw * 0.055).clamp(18.0, 24.0)))),
+                ]),
                 SizedBox(height: sw * 0.04),
-                const Divider(height: 1, color: _kBorder),
+                Divider(height: 1, color: _kBd),
                 SizedBox(height: sw * 0.015),
-              ],
-            ),
-          ),
+              ])),
 
-          // Scrollable models list
-          Expanded(
-            child: ListView(
-              controller: sc,
-              padding: EdgeInsets.fromLTRB(
-                  sw * 0.05, 0, sw * 0.05, sw * 0.04),
+          // List
+          Expanded(child: ListView(controller: sc,
+              padding: EdgeInsets.fromLTRB(sw * 0.05, 0, sw * 0.05, sw * 0.04),
               children: [
-                // Existing models
-                if (visibleModels.isNotEmpty) ...[
-                  _SheetLabel(sw: sw, label: 'Existing Models'),
-                  SizedBox(height: sw * 0.02),
-                  ...visibleModels.map((m) {
-                    final isRenamed = _renamed.containsKey(m);
+                if (visible.isNotEmpty) ...[
+                  _label(sw, 'Existing Models'), SizedBox(height: sw * 0.02),
+                  ...visible.map((m) {
+                    final renamed = _renamed.containsKey(m);
                     return Container(
-                      margin: EdgeInsets.only(bottom: sw * 0.025),
-                      padding: EdgeInsets.symmetric(
-                          horizontal: sw * 0.035,
-                          vertical: sw * 0.025),
-                      decoration: BoxDecoration(
-                        color: isRenamed ? _kBlueBg : _kBg,
-                        borderRadius:
-                        BorderRadius.circular(sw * 0.028),
-                        border: Border.all(
-                            color: isRenamed
-                                ? _kBlueBorder
-                                : _kBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          SvgPicture.asset(AppIcons.model,
-                              width: sw * 0.04,
-                              colorFilter: const ColorFilter.mode(
-                                  _kAmber, BlendMode.srcIn)),
+                        margin: EdgeInsets.only(bottom: sw * 0.025),
+                        padding: EdgeInsets.symmetric(horizontal: sw * 0.035, vertical: sw * 0.025),
+                        decoration: BoxDecoration(color: renamed ? _kPBg : _kBg,
+                            borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+                            border: Border.all(color: renamed ? _kPBd : _kBd, width: 0.5)),
+                        child: Row(children: [
+                          Icon(Icons.tag_rounded, size: (sw * 0.04).clamp(14.0, 18.0), color: _kAmber),
                           SizedBox(width: sw * 0.025),
-                          Expanded(
-                            child: isRenamed
-                                ? Column(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                              children: [
-                                Text(m,
-                                    style: TextStyle(
-                                        fontSize: sw * 0.03,
-                                        color: _kMuted,
-                                        decoration:
-                                        TextDecoration
-                                            .lineThrough)),
-                                Text(_renamed[m]!,
-                                    style: TextStyle(
-                                        fontSize: sw * 0.034,
-                                        fontWeight:
-                                        FontWeight.w700,
-                                        color: _kBlue)),
-                              ],
-                            )
-                                : Text(m,
-                                style: TextStyle(
-                                    fontSize: sw * 0.034,
-                                    fontWeight: FontWeight.w600,
-                                    color: _kDark)),
-                          ),
-                          // Rename
-                          GestureDetector(
-                            onTap: () =>
-                                _showRenameDialog(context, sw, m),
-                            child: Container(
-                              width: sw * 0.08,
-                              height: sw * 0.08,
-                              decoration: BoxDecoration(
-                                color: _kBlueBg,
-                                borderRadius:
-                                BorderRadius.circular(sw * 0.02),
-                                border: Border.all(
-                                    color: _kBlueBorder),
-                              ),
-                              child: Center(
-                                child: SvgPicture.asset(AppIcons.edit,
-                                    width: sw * 0.038,
-                                    colorFilter:
-                                    const ColorFilter.mode(
-                                        _kBlue, BlendMode.srcIn)),
-                              ),
-                            ),
-                          ),
+                          Expanded(child: renamed
+                              ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(m, style: TextStyle(fontSize: (sw * 0.03).clamp(10.0, 13.0),
+                                color: _kT4, decoration: TextDecoration.lineThrough)),
+                            Text(_renamed[m]!, style: TextStyle(
+                                fontSize: (sw * 0.034).clamp(11.5, 15.0),
+                                fontWeight: FontWeight.w700, color: _kP)),
+                          ])
+                              : Text(m, style: TextStyle(fontSize: (sw * 0.034).clamp(11.5, 15.0),
+                              fontWeight: FontWeight.w600, color: _kT1))),
+                          _SmallBtn(sw: sw, icon: Icons.edit_outlined, color: _kP, bg: _kPBg, bd: _kPBd,
+                              onTap: () => _showRenameDialog(context, sw, m)),
                           SizedBox(width: sw * 0.02),
-                          // Delete
-                          GestureDetector(
-                            onTap: () => setState(() {
-                              _deleted.add(m);
-                              _renamed.remove(m);
-                            }),
-                            child: Container(
-                              width: sw * 0.08,
-                              height: sw * 0.08,
-                              decoration: BoxDecoration(
-                                color: _kRedBg,
-                                borderRadius:
-                                BorderRadius.circular(sw * 0.02),
-                                border: Border.all(
-                                    color: _kRedBorder),
-                              ),
-                              child: Center(
-                                child: SvgPicture.asset(AppIcons.delete,
-                                    width: sw * 0.038,
-                                    colorFilter:
-                                    const ColorFilter.mode(
-                                        _kRed, BlendMode.srcIn)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+                          _SmallBtn(sw: sw, icon: Icons.delete_outline_rounded, color: _kRed, bg: _kRedBg, bd: _kRedBd,
+                              onTap: () => setState(() { _deleted.add(m); _renamed.remove(m); })),
+                        ]));
                   }),
                   SizedBox(height: sw * 0.03),
                 ],
-
-                // New models
                 if (_added.isNotEmpty) ...[
-                  _SheetLabel(sw: sw, label: 'New Models'),
-                  SizedBox(height: sw * 0.02),
+                  _label(sw, 'New Models'), SizedBox(height: sw * 0.02),
                   ..._added.map((m) => Container(
-                    margin: EdgeInsets.only(bottom: sw * 0.025),
-                    padding: EdgeInsets.symmetric(
-                        horizontal: sw * 0.035,
-                        vertical: sw * 0.025),
-                    decoration: BoxDecoration(
-                      color: _kGreenBg,
-                      borderRadius:
-                      BorderRadius.circular(sw * 0.028),
-                      border: Border.all(color: _kGreenBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.fiber_new_rounded,
-                            color: _kGreen, size: sw * 0.045),
+                      margin: EdgeInsets.only(bottom: sw * 0.025),
+                      padding: EdgeInsets.symmetric(horizontal: sw * 0.035, vertical: sw * 0.025),
+                      decoration: BoxDecoration(color: _kGreenBg,
+                          borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+                          border: Border.all(color: _kGreenBd, width: 0.5)),
+                      child: Row(children: [
+                        Icon(Icons.fiber_new_rounded, color: _kGreen, size: (sw * 0.045).clamp(15.0, 20.0)),
                         SizedBox(width: sw * 0.025),
-                        Expanded(
-                          child: Text(m,
-                              style: TextStyle(
-                                  fontSize: sw * 0.034,
-                                  fontWeight: FontWeight.w700,
-                                  color: _kGreen)),
-                        ),
-                        GestureDetector(
-                          onTap: () =>
-                              setState(() => _added.remove(m)),
-                          child: Container(
-                            width: sw * 0.08,
-                            height: sw * 0.08,
-                            decoration: BoxDecoration(
-                              color: _kRedBg,
-                              borderRadius:
-                              BorderRadius.circular(sw * 0.02),
-                              border: Border.all(
-                                  color: _kRedBorder),
-                            ),
-                            child: Icon(
-                                Icons.delete_outline_rounded,
-                                size: sw * 0.038,
-                                color: _kRed),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )),
+                        Expanded(child: Text(m, style: TextStyle(
+                            fontSize: (sw * 0.034).clamp(11.5, 15.0), fontWeight: FontWeight.w700, color: _kGreen))),
+                        _SmallBtn(sw: sw, icon: Icons.delete_outline_rounded, color: _kRed, bg: _kRedBg, bd: _kRedBd,
+                            onTap: () => setState(() => _added.remove(m))),
+                      ]))),
                   SizedBox(height: sw * 0.03),
                 ],
-
-                // Actions
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(
-                              vertical: sw * 0.035),
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(12)),
-                          side: const BorderSide(color: _kBorder),
-                        ),
-                        child: Text('Cancel',
-                            style: TextStyle(
-                                fontSize: sw * 0.036,
-                                fontWeight: FontWeight.w700,
-                                color: _kMuted)),
-                      ),
-                    ),
-                    SizedBox(width: sw * 0.03),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          await widget.onSave(
-                              _renamed, _deleted, _added);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _kBlue,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(
-                              vertical: sw * 0.035),
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(12)),
-                          elevation: 0,
-                        ),
-                        child: Text('Save Changes',
-                            style: TextStyle(
-                                fontSize: sw * 0.036,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+                _actions(sw, sh, onCancel: () => Navigator.pop(context),
+                    onSave: () async { Navigator.pop(context); await widget.onSave(_renamed, _deleted, _added); }),
+              ])),
+        ]));
   }
 
-  void _showRenameDialog(BuildContext context, double sw, String model) {
+  void _showRenameDialog(BuildContext ctx, double sw, String model) {
     final ctrl = TextEditingController(text: _renamed[model] ?? model);
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(sw * 0.04)),
-        title: Text('Rename Model',
-            style: TextStyle(
-                fontSize: sw * 0.04,
-                fontWeight: FontWeight.w800,
-                color: _kDark)),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          style: TextStyle(
-              fontSize: sw * 0.036,
-              color: _kDark,
-              fontWeight: FontWeight.w500),
-          decoration: InputDecoration(
-            hintText: 'New name',
-            filled: true,
-            fillColor: _kBg,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(sw * 0.028),
-                borderSide: const BorderSide(color: _kBorder)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(sw * 0.028),
-                borderSide: const BorderSide(color: _kBorder)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(sw * 0.028),
-                borderSide:
-                const BorderSide(color: _kBlue, width: 1.5)),
-          ),
-        ),
+    showDialog(context: ctx, builder: (_) => AlertDialog(
+        backgroundColor: _kWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0))),
+        title: Text('Rename Model', style: TextStyle(
+            fontSize: (sw * 0.04).clamp(13.0, 18.0), fontWeight: FontWeight.w800, color: _kT1)),
+        content: TextField(controller: ctrl, autofocus: true,
+            style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
+            decoration: _deco(sw, 'New name', Icons.label_outline_rounded)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel',
-                style: TextStyle(
-                    color: _kMuted, fontWeight: FontWeight.w700)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: _kT4, fontWeight: FontWeight.w700))),
           ElevatedButton(
-            onPressed: () {
-              final v = ctrl.text.trim();
-              if (v.isNotEmpty && v != model) {
-                setState(() => _renamed[model] = v);
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: _kBlue,
-                foregroundColor: Colors.white,
-                elevation: 0),
-            child: const Text('Rename',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    ).whenComplete(() => ctrl.dispose());
+              onPressed: () { final v = ctrl.text.trim();
+              if (v.isNotEmpty && v != model) { setState(() => _renamed[model] = v); Navigator.pop(ctx); } },
+              style: ElevatedButton.styleFrom(backgroundColor: _kP, foregroundColor: _kWhite, elevation: 0),
+              child: const Text('Rename', style: TextStyle(fontWeight: FontWeight.w700))),
+        ])).whenComplete(() => ctrl.dispose());
   }
 }
 
-// ─── Error Screen ─────────────────────────────────────────────────────────────
-class _BrandErrorScreen extends ConsumerWidget {
+// ── Small action button ───────────────────────────────────────────────────
+class _SmallBtn extends StatelessWidget {
+  const _SmallBtn({required this.sw, required this.icon, required this.color,
+    required this.bg, required this.bd, required this.onTap});
+  final double sw; final IconData icon; final Color color, bg, bd; final VoidCallback onTap;
+
+  @override Widget build(BuildContext context) => GestureDetector(onTap: onTap,
+      child: Container(
+          width: (sw * 0.08).clamp(28.0, 36.0), height: (sw * 0.08).clamp(28.0, 36.0),
+          decoration: BoxDecoration(color: bg,
+              borderRadius: BorderRadius.circular((sw * 0.02).clamp(6.0, 10.0)),
+              border: Border.all(color: bd, width: 0.5)),
+          child: Icon(icon, size: (sw * 0.038).clamp(13.0, 17.0), color: color)));
+}
+
+// ── Error screen ──────────────────────────────────────────────────────────
+class _ErrorScreen extends ConsumerWidget {
   final String brandId;
-  const _BrandErrorScreen({required this.brandId});
+  const _ErrorScreen({required this.brandId});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sw = Screen.w(context);
-    final sh = Screen.h(context);
-    return Scaffold(
-      backgroundColor: _kBg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: sw * 0.04, vertical: sw * 0.03),
-              child: Row(
-                children: [
-                  CircularIconButton(
-                    icon: Icons.arrow_back_ios_rounded,
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  const Spacer(),
-                  Text('Brand Details',
-                      style: TextStyle(
-                          fontSize: sw * 0.042,
-                          fontWeight: FontWeight.w700,
-                          color: _kDark)),
-                  const Spacer(),
-                  SizedBox(width: sw * 0.095),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: sw * 0.18, height: sw * 0.18,
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: _kBorder)),
-                      child: Icon(Icons.wifi_off_rounded,
-                          size: sw * 0.09, color: _kMuted),
-                    ),
-                    SizedBox(height: sh * 0.02),
-                    Text('No Internet Connection',
-                        style: TextStyle(
-                            fontSize: sw * 0.04,
-                            fontWeight: FontWeight.w600,
-                            color: _kMid)),
-                    SizedBox(height: sh * 0.025),
-                    ElevatedButton(
-                      onPressed: () =>
-                          ref.invalidate(brandByIdProvider(brandId)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _kBlue,
-                        foregroundColor: Colors.white,
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(16),
-                        elevation: 0,
-                      ),
-                      child: const Icon(Icons.refresh_rounded),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  @override Widget build(BuildContext context, WidgetRef ref) {
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+    return Scaffold(backgroundColor: _kBg,
+        body: SafeArea(child: Column(children: [
+          Container(color: _kWhite,
+              padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.015, sw * 0.04, sh * 0.015),
+              child: Row(children: [
+                CircularIconButton(icon: Icons.arrow_back_ios_rounded, onTap: () => Navigator.pop(context)),
+                const Spacer(),
+                Text('Brand Details', style: TextStyle(
+                    fontSize: (sw * 0.042).clamp(14.0, 20.0), fontWeight: FontWeight.w700, color: _kT1)),
+                const Spacer(),
+                SizedBox(width: (sw * 0.095).clamp(32.0, 44.0)),
+              ])),
+          Expanded(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(width: (sw * 0.18).clamp(60.0, 90.0), height: (sw * 0.18).clamp(60.0, 90.0),
+                decoration: BoxDecoration(color: _kWhite, shape: BoxShape.circle,
+                    border: Border.all(color: _kBd, width: 0.5)),
+                child: Icon(Icons.wifi_off_rounded, size: (sw * 0.09).clamp(30.0, 44.0), color: _kT4)),
+            SizedBox(height: sh * 0.02),
+            Text('No Connection', style: TextStyle(
+                fontSize: (sw * 0.04).clamp(13.0, 18.0), fontWeight: FontWeight.w600, color: _kT2)),
+            SizedBox(height: sh * 0.02),
+            ElevatedButton(
+                onPressed: () => ref.invalidate(brandByIdProvider(brandId)),
+                style: ElevatedButton.styleFrom(backgroundColor: _kP, foregroundColor: _kWhite,
+                    shape: const CircleBorder(), padding: const EdgeInsets.all(14), elevation: 0),
+                child: const Icon(Icons.refresh_rounded)),
+          ]))),
+        ])));
   }
-}
-
-// ─── Shared sheet sub-widgets ─────────────────────────────────────────────────
-class _Handle extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Container(
-      width: 36, height: 4,
-      margin: const EdgeInsets.only(bottom: 18),
-      decoration: BoxDecoration(
-          color: _kBorder, borderRadius: BorderRadius.circular(2)),
-    ),
-  );
-}
-
-class _SheetLabel extends StatelessWidget {
-  final double sw;
-  final String label;
-  const _SheetLabel({required this.sw, required this.label});
-  @override
-  Widget build(BuildContext context) => Text(
-    label.toUpperCase(),
-    style: TextStyle(
-        fontSize: sw * 0.028,
-        fontWeight: FontWeight.w700,
-        color: _kMuted,
-        letterSpacing: 0.5),
-  );
-}
-
-class _SheetInput extends StatelessWidget {
-  final double sw;
-  final TextEditingController ctrl;
-  final String hint;
-  final IconData icon;
-  final int maxLines;
-  final String? Function(String?)? validator;
-
-  const _SheetInput({
-    required this.sw,
-    required this.ctrl,
-    required this.hint,
-    required this.icon,
-    this.maxLines = 1,
-    this.validator,
-  });
-
-  @override
-  Widget build(BuildContext context) => TextFormField(
-    controller: ctrl,
-    maxLines: maxLines,
-    validator: validator,
-    autovalidateMode: AutovalidateMode.onUserInteraction,
-    style: TextStyle(
-        fontSize: sw * 0.036,
-        color: _kDark,
-        fontWeight: FontWeight.w500),
-    decoration: InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(
-          fontSize: sw * 0.034,
-          color: _kMuted,
-          fontWeight: FontWeight.w400),
-      prefixIcon: Icon(icon, color: _kMuted, size: sw * 0.045),
-      filled: true,
-      fillColor: _kBg,
-      contentPadding: EdgeInsets.symmetric(
-          horizontal: sw * 0.04,
-          vertical: maxLines > 1 ? sw * 0.035 : 0),
-      border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.028),
-          borderSide: const BorderSide(color: _kBorder)),
-      enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.028),
-          borderSide: const BorderSide(color: _kBorder)),
-      focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.028),
-          borderSide: const BorderSide(color: _kBlue, width: 1.5)),
-      errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.028),
-          borderSide: const BorderSide(color: _kRed)),
-      focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.028),
-          borderSide:
-          const BorderSide(color: _kRed, width: 1.5)),
-    ),
-  );
-}
-
-class _SheetActions extends StatelessWidget {
-  final double sw, sh;
-  final VoidCallback onCancel;
-  final VoidCallback onSave;
-  const _SheetActions({
-    required this.sw,
-    required this.sh,
-    required this.onCancel,
-    required this.onSave,
-  });
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: OutlinedButton(
-          onPressed: onCancel,
-          style: OutlinedButton.styleFrom(
-            padding: EdgeInsets.symmetric(vertical: sh * 0.016),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-            side: const BorderSide(color: _kBorder),
-          ),
-          child: Text('Cancel',
-              style: TextStyle(
-                  fontSize: sw * 0.036,
-                  fontWeight: FontWeight.w700,
-                  color: _kMuted)),
-        ),
-      ),
-      SizedBox(width: sw * 0.03),
-      Expanded(
-        flex: 2,
-        child: ElevatedButton(
-          onPressed: onSave,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _kBlue,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.symmetric(vertical: sh * 0.016),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-            elevation: 0,
-          ),
-          child: Text('Save Changes',
-              style: TextStyle(
-                  fontSize: sw * 0.036,
-                  fontWeight: FontWeight.w700)),
-        ),
-      ),
-    ],
-  );
 }

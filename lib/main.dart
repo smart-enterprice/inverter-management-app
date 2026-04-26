@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/core/theme/theme.dart';
 import 'package:inverter_management_app/screen/splash_screen.dart';
 
+import 'core/utils/Navigation_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -16,6 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: NavigationService.navigatorKey,
       theme: AppTheme.theme,
       themeMode: ThemeMode.light,
       debugShowCheckedModeBanner: false,

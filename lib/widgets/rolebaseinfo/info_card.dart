@@ -1,98 +1,89 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:inverter_management_app/core/media_query/media_query.dart';
-
-import '../../feature/order/controller/order_controller.dart';
-import '../../feature/product/controller/product_controller.dart';
+import 'package:inverter_management_app/feature/order/controller/order_controller.dart';
+import 'package:inverter_management_app/feature/product/controller/product_controller.dart';
 
 class InfoCard extends ConsumerWidget {
   const InfoCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sw = Screen.w(context);
-    final sh = Screen.h(context);
+    final mq   = MediaQuery.of(context);
+    final sw   = mq.size.width;
+    final sh   = mq.size.height;
 
-    final lowStockAsync = ref.watch(lowStockProvider(5));
-    final lowStockCount = lowStockAsync.asData?.value.length ?? 0;
-    final ordersAsync = ref.watch(orderControllerProvider);
-    final totalOrders = ordersAsync.value?.length ?? 0;
+    final lowStockAsync  = ref.watch(lowStockProvider(5));
+    final lowStockCount  = lowStockAsync.asData?.value.length ?? 0;
+    final ordersAsync    = ref.watch(orderControllerProvider);
+    final totalOrders    = ordersAsync.value?.length ?? 0;
     final completedCount = ordersAsync.value
-        ?.where((o) => o.status == 'COMPLETED')
-        .length ??
-        0;
-    final pendingCount = ordersAsync.value
-        ?.where((o) => o.status == 'PENDING')
-        .length ??
-        0;
+        ?.where((o) => o.status == 'COMPLETED').length ?? 0;
+    final pendingCount   = ordersAsync.value
+        ?.where((o) => o.status == 'PENDING').length ?? 0;
 
-    return Column(children: [
-      // ── Row 1: Total + Completed ──────────────────────────────────────
-      Row(children: [
-        Expanded(
-          child: _StatTile(
-            sw: sw, sh: sh,
-            label: 'Total Orders',
-            value: totalOrders.toString(),
-            icon: Icons.receipt_long_rounded,
-            accent: const Color(0xFF1B4FD8),
-            accentBg: const Color(0xFFEEF2FF),
-            accentBorder: const Color(0xFFC7D2FE),
-          ),
-        ),
-        SizedBox(width: sw * 0.03),
-        Expanded(
-          child: _StatTile(
-            sw: sw, sh: sh,
-            label: 'Completed',
-            value: completedCount.toString(),
-            icon: Icons.task_alt_rounded,
-            accent: const Color(0xFF0A8A5C),
-            accentBg: const Color(0xFFEDFAF4),
-            accentBorder: const Color(0xFF9FE0C5),
-          ),
-        ),
-      ]),
-      SizedBox(height: sw * 0.03),
+    final gap = sw * 0.03;
 
-      // ── Row 2: Pending + Low Stock ────────────────────────────────────
-      Row(children: [
-        Expanded(
-          child: _StatTile(
-            sw: sw, sh: sh,
-            label: 'Pending',
-            value: pendingCount.toString(),
-            icon: Icons.pending_actions_rounded,
-            accent: const Color(0xFFB45309),
-            accentBg: const Color(0xFFFFFBEB),
-            accentBorder: const Color(0xFFFCD28A),
+    return Column(
+      children: [
+        Row(children: [
+          Expanded(
+            child: _StatTile(
+              sw: sw, sh: sh,
+              label: 'Total Orders',
+              value: totalOrders.toString(),
+              icon: Icons.receipt_long_rounded,
+              accent: const Color(0xFF185FA5),
+              accentBg: const Color(0xFFEBF4FF),
+              accentBorder: const Color(0xFFBFD9F5),
+            ),
           ),
-        ),
-        SizedBox(width: sw * 0.03),
-        Expanded(
-          child: _StatTile(
-            sw: sw, sh: sh,
-            label: 'Low Stock',
-            value: lowStockCount.toString(),
-            icon: Icons.inventory_2_outlined,
-            accent: const Color(0xFFDC2626),
-            accentBg: const Color(0xFFFEF2F2),
-            accentBorder: const Color(0xFFFECACA),
-            highlight: lowStockCount > 0,
+          SizedBox(width: gap),
+          Expanded(
+            child: _StatTile(
+              sw: sw, sh: sh,
+              label: 'Completed',
+              value: completedCount.toString(),
+              icon: Icons.task_alt_rounded,
+              accent: const Color(0xFF0F6E56),
+              accentBg: const Color(0xFFEDFAF5),
+              accentBorder: const Color(0xFF9FE0C5),
+            ),
           ),
-        ),
-      ]),
-    ]);
+        ]),
+        SizedBox(height: gap),
+        Row(children: [
+          Expanded(
+            child: _StatTile(
+              sw: sw, sh: sh,
+              label: 'Pending',
+              value: pendingCount.toString(),
+              icon: Icons.pending_actions_rounded,
+              accent: const Color(0xFFB45309),
+              accentBg: const Color(0xFFFFFBEB),
+              accentBorder: const Color(0xFFFCD28A),
+            ),
+          ),
+          SizedBox(width: gap),
+          Expanded(
+            child: _StatTile(
+              sw: sw, sh: sh,
+              label: 'Low Stock',
+              value: lowStockCount.toString(),
+              icon: Icons.inventory_2_outlined,
+              accent: const Color(0xFFDC2626),
+              accentBg: const Color(0xFFFEF2F2),
+              accentBorder: const Color(0xFFFECACA),
+              highlight: lowStockCount > 0,
+            ),
+          ),
+        ]),
+      ],
+    );
   }
 }
 
+// ── Stat tile — Zoho Books style ──────────────────────────────────────────────
 class _StatTile extends StatelessWidget {
-  final double sw, sh;
-  final String label, value;
-  final IconData icon;
-  final Color accent, accentBg, accentBorder;
-  final bool highlight;
-
   const _StatTile({
     required this.sw,
     required this.sh,
@@ -105,68 +96,83 @@ class _StatTile extends StatelessWidget {
     this.highlight = false,
   });
 
+  final double sw, sh;
+  final String label, value;
+  final IconData icon;
+  final Color accent, accentBg, accentBorder;
+  final bool highlight;
+
   @override
   Widget build(BuildContext context) {
+    // All sizes from MediaQuery
+    final pad      = sw * 0.038;
+    final iconBox  = (sw * 0.105).clamp(36.0, 52.0);
+    final iconSz   = (sw * 0.05).clamp(18.0, 26.0);
+    final iconR    = (sw * 0.025).clamp(8.0, 12.0);
+    final labelFs  = (sw * 0.027).clamp(9.5, 12.5);
+    final valueFs  = (sw * 0.05).clamp(18.0, 28.0);
+    final cardR    = (sw * 0.035).clamp(10.0, 16.0);
+    final gap      = sw * 0.025;
+
     return Container(
-      padding: EdgeInsets.all(sw * 0.042),
+      padding: EdgeInsets.all(pad),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(sw * 0.04),
+        borderRadius: BorderRadius.circular(cardR),
+        // Zoho Books: border only — no boxShadow
         border: Border.all(
           color: highlight ? accentBorder : const Color(0xFFE5E7EB),
-          width: highlight ? 1.5 : 1,
+          width: 0.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: highlight
-                ? accent.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Icon box
+          Container(
+            width: iconBox,
+            height: iconBox,
+            decoration: BoxDecoration(
+              color: accentBg,
+              borderRadius: BorderRadius.circular(iconR),
+            ),
+            child: Icon(icon, color: accent, size: iconSz),
+          ),
+          SizedBox(width: gap),
+
+          // Label + value
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: labelFs,
+                    color: const Color(0xFF6B7280),
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: sh * 0.004),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: valueFs,
+                    fontWeight: FontWeight.w800,
+                    color: highlight ? accent : const Color(0xFF111827),
+                    letterSpacing: -0.5,
+                    height: 1.1,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      child: Row(children: [
-        // Icon
-        Container(
-          width: sw * 0.11,
-          height: sw * 0.11,
-          decoration: BoxDecoration(
-            color: accentBg,
-            borderRadius: BorderRadius.circular(sw * 0.028),
-            border: Border.all(color: accentBorder),
-          ),
-          child: Icon(icon, color: accent, size: sw * 0.052),
-        ),
-        SizedBox(width: sw * 0.03),
-
-        // Text
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: sw * 0.028,
-                  color: const Color(0xFF6B7280),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: sh * 0.005),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: sw * 0.052,
-                  fontWeight: FontWeight.w800,
-                  color: highlight ? accent : const Color(0xFF111827),
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ]),
     );
   }
 }

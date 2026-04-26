@@ -85,3 +85,52 @@ class AppTheme {
     ),
   );
 }
+
+/// Single source of truth for all app colour constants.
+///
+/// Add this one import to any file that needs colours:
+/// ```dart
+/// import 'package:inverter_management_app/core/theme/app_colors.dart';
+/// ```
+abstract final class AppColors {
+  // ── Brand blue ─────────────────────────────────────────────────────────────
+  static const Color blue       = Color(0xFF1B4FD8);
+  static const Color blueBg     = Color(0xFFEEF2FF);
+  static const Color blueBorder = Color(0xFFC7D4FF);
+
+  // ── Neutrals ───────────────────────────────────────────────────────────────
+  static const Color bg     = Color(0xFFF2F4F8);
+  static const Color card   = Colors.white;
+  static const Color border = Color(0xFFE5E7EB);
+
+  // ── Text ───────────────────────────────────────────────────────────────────
+  static const Color dark  = Color(0xFF111827);
+  static const Color mid   = Color(0xFF374151);
+  static const Color muted = Color(0xFF9CA3AF);
+
+  // ── Green ──────────────────────────────────────────────────────────────────
+  static const Color green       = Color(0xFF0A8A5C);
+  static const Color greenBg     = Color(0xFFEDFAF4);
+  static const Color greenBorder = Color(0xFF9FE0C5);
+
+  // ── Red ────────────────────────────────────────────────────────────────────
+  static const Color red       = Color(0xFFDC2626);
+  static const Color redBg     = Color(0xFFFEF2F2);
+  static const Color redBorder = Color(0xFFFECACA);
+
+  // ── Amber ──────────────────────────────────────────────────────────────────
+  static const Color amber       = Color(0xFFB45309);
+  static const Color amberBg     = Color(0xFFFFFBEB);
+  static const Color amberBorder = Color(0xFFFCD28A);
+
+  // ── Purple ─────────────────────────────────────────────────────────────────
+  static const Color purple       = Color(0xFF7C3AED);
+  static const Color purpleBg     = Color(0xFFF5F3FF);
+  static const Color purpleBorder = Color(0xFFDDD6FE);
+
+  // ── Dashboard navy ─────────────────────────────────────────────────────────
+  static const Color navyDark        = Color(0xFF0F1C3F);
+  static const Color navyLight       = Color(0xFF1B3A7A);
+  static const Color accentBlue      = Color(0xFF4C8FFF);
+  static const Color accentBlueLight = Color(0xFF90BAFF);
+}
