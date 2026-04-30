@@ -1,191 +1,140 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/brand_model.dart';
 import '../repository/brand_repository.dart';
 
-final loadBrandsControllerProvider =
-StateNotifierProvider<BrandController, AsyncValue<List<BrandModel>>>((ref) {
-  final repository = ref.read(brandRepositoryProvider);
-  return BrandController(repository)..loadBrands();
-});
-final activeBrandControllerProvider =
-StateNotifierProvider<BrandController, AsyncValue<List<BrandModel>>>((ref) {
-  final repository = ref.read(brandRepositoryProvider);
-  return BrandController(repository)..loadActiveBrands();
-});
-//------------------------ Main BrandController Provider (for create/update/delete) ------------------//
+// ─── Providers ────────────────────────────────────────────────────────────────
+
+/// All brands list — used by most screens
 final brandControllerProvider =
-StateNotifierProvider<BrandController, AsyncValue<List<BrandModel>>>((ref) {
-  final repository = ref.read(brandRepositoryProvider);
-  return BrandController(repository);
+AsyncNotifierProvider<BrandController, List<BrandModel>>(
+  BrandController.new,
+);
+
+/// Active brands only — separate notifier, separate state
+final activeBrandControllerProvider =
+AsyncNotifierProvider<ActiveBrandController, List<BrandModel>>(
+  ActiveBrandController.new,
+);
+
+/// Single brand by ID
+final brandByIdProvider =
+FutureProvider.family<BrandModel, String>((ref, brandId) {
+  return ref.watch(brandRepositoryProvider).getBrandById(brandId).then(
+        (b) => b ?? (throw Exception('Brand not found')),
+  );
 });
 
-// provider for fetching dealer brands
-final dealerBrandsProvider = FutureProvider.family<List<BrandModel>, String>((ref, dealerId) async {
-  return ref.read(brandControllerProvider.notifier).getBrandsByDealer(dealerId);
+/// Brands by dealer ID
+final dealerBrandsProvider =
+FutureProvider.family<List<BrandModel>, String>((ref, dealerId) {
+  return ref.watch(brandRepositoryProvider).getBrandsByDealer(dealerId);
 });
 
-final brandByIdProvider = FutureProvider.family<BrandModel, String>((ref, brandId) async {
-  return ref.read(brandControllerProvider.notifier).getBrandById(brandId);
-});
-class BrandController extends StateNotifier<AsyncValue<List<BrandModel>>> {
-  final BrandRepository _repository;
+// ─── BrandController (all brands + mutations) ─────────────────────────────────
 
-  BrandController(this._repository) : super(const AsyncLoading());
+class BrandController extends AsyncNotifier<List<BrandModel>> {
+  late  BrandRepository _repo;
 
-  /// Load all brands
-  Future<void> loadBrands() async {
+  @override
+  Future<List<BrandModel>> build() async {
+    _repo = ref.watch(brandRepositoryProvider);
+    print('🔄 BrandController: fetching brands...');
     try {
-      final brands = await _repository.getBrands();
-      state = AsyncValue.data(brands);
+      final result = await _repo.getBrands();
+      print('✅ BrandController: got ${result.length} brands');
+      return result;
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      print('❌ BrandController ERROR: $e');
+      print('📍 StackTrace: $st');
+      rethrow;
     }
   }
 
-  /// Load only active brands
-  Future<void> loadActiveBrands() async {
-    try {
-      final brands = await _repository.getActiveBrands();
-      state = AsyncValue.data(brands);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
-  }
-
-  /// Create a brand and refresh list
   Future<String?> createBrand(BrandModel model) async {
     try {
-      await _repository.createBrand(model);
-      // await loadBrands();
+      await _repo.createBrand(model);
+      ref.invalidateSelf(); // re-fetch list
       return null;
-    } on DioException catch (e, st) {
-      String msg = 'Create brand failed.';
-      final responseData = e.response?.data;
-
-      if (responseData is Map<String, dynamic>) {
-        // First check for direct message (matches your error format)
-        if (responseData['message'] != null) {
-          msg = responseData['message'];
-        }
-        // Then check for nested errors structure
-        else if (responseData['errors'] != null &&
-            responseData['errors'] is List &&
-            responseData['errors'].isNotEmpty &&
-            responseData['errors'][0]['message'] != null) {
-          msg = responseData['errors'][0]['message'];
-        }
-      } else if (responseData is String) {
-        msg = responseData;
-      }
-
-      print('Create brand failed: $msg');
-      state = AsyncError(e, st);
-      return msg;
-    } catch (e, st) {
-      print('Unexpected error: $e');
-      state = AsyncError(e, st);
+    } on DioException catch (e) {
+      return _extractDioError(e, fallback: 'Create brand failed');
+    } catch (_) {
       return 'Something went wrong';
     }
   }
 
-  ///  Get brand by ID
-  Future<BrandModel> getBrandById(String brandId) async {
-    try {
-      final brand = await _repository.getBrandById(brandId);
-      if (brand == null) throw Exception('Brand not found');
-      return brand;
-    } on DioException {
-      rethrow;
-    } catch (e, st) {
-      state = AsyncError(e, st);
-      rethrow;
-    }
-  }
-
-
-
-  /// Update a brand and refresh list
-  Future<void> updateBrand(
+  Future<String?> updateBrand(
       BrandModel model,
       String name, {
         Map<String, String>? brandModelsUpdate,
         List<String>? deletedModels,
-        List<String>? addModel,  // ✅ Add this parameter
-      }) async
-  {
+        List<String>? addModel,
+      }) async {
     try {
-      await _repository.updateBrand(
+      await _repo.updateBrand(
         model,
         name,
         brandModelsUpdate: brandModelsUpdate,
         deletedModels: deletedModels,
-        addModel: addModel,  // ✅ Pass the correct parameter
+        addModel: addModel,
       );
-
-      // await loadBrands();
-    } on DioException {
-      // handle Dio-specific errors
-    rethrow;
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      ref.invalidateSelf();
+      return null;
+    } on DioException catch (e) {
+      return _extractDioError(e, fallback: 'Update brand failed');
+    } catch (_) {
+      return 'Something went wrong';
     }
   }
 
-
-  /// Delete a brand and refresh list
-  Future<void> deleteBrand(String brandId) async {
+  Future<String?> deleteBrand(String brandId) async {
     try {
-      await _repository.deleteBrand(brandId);
-      await loadBrands(); // refresh all brands
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      await _repo.deleteBrand(brandId);
+      ref.invalidateSelf();
+      return null;
+    } on DioException catch (e) {
+      return _extractDioError(e, fallback: 'Delete brand failed');
+    } catch (_) {
+      return 'Something went wrong';
     }
   }
 
-  /// Get only brand names for dropdowns
+  // ── Synchronous helpers (read from current state) ───────────────────────────
+
   List<String> get brandNames {
-    return state.when(
-      data: (brands) => brands
-          .map((b) => b.brandName)
-          .where((name) => name.isNotEmpty)
-          .toList()
-        ..sort(),
-      loading: () => [],
-      error: (_, __) => [],
-    );
+    final brands = state.valueOrNull;
+    if (brands == null) return [];
+    return brands
+        .map((b) => b.brandName)
+        .where((n) => n.isNotEmpty)
+        .toList()
+      ..sort();
   }
-  /// Get full BrandModel by name
-  BrandModel? getBrandByName(String name) {
-    return state.whenOrNull(
-      data: (brands) {
-        for (final b in brands) {
-          if (b.brandName == name) return b;
-        }
-        return null;
-      },
-    );
+  BrandModel? getBrandByName(String name) => state.valueOrNull
+      ?.where((b) => b.brandName == name)
+      .firstOrNull;
+}
+
+// ─── ActiveBrandController (read-only, separate state) ────────────────────────
+
+class ActiveBrandController extends AsyncNotifier<List<BrandModel>> {
+  @override
+  Future<List<BrandModel>> build() {
+    return ref.watch(brandRepositoryProvider).getActiveBrands();
   }
+}
 
-  //--------------------------------------------------------//
+// ─── Shared error helper ──────────────────────────────────────────────────────
 
-  Future<List<BrandModel>> getBrandsByDealer(String dealerId) async {
-    try {
-      final brands = await _repository.getBrandsByDealer(dealerId);
-      return brands;
-    } on DioException {
-      // Rethrow Dio errors to be handled by the UI
-      rethrow;
-    } catch (e) {
-      if (kDebugMode) print('Unexpected error: $e');
-      rethrow;
+String _extractDioError(DioException e, {required String fallback}) {
+  final data = e.response?.data;
+  if (data is Map<String, dynamic>) {
+    if (data['message'] != null) return data['message'] as String;
+    final errors = data['errors'];
+    if (errors is List && errors.isNotEmpty) {
+      return errors[0]['message'] as String? ?? fallback;
     }
   }
-
-
-
-
-
-
+  if (data is String) return data;
+  return fallback;
 }

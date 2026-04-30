@@ -6,10 +6,13 @@ import 'package:inverter_management_app/feature/authentication/screen/login_mobi
 import 'package:inverter_management_app/feature/order/controller/order_controller.dart';
 import 'package:inverter_management_app/feature/order/screen/order_view_page.dart';
 import 'package:inverter_management_app/feature/signup/controller/signUp_controller.dart';
-import 'package:inverter_management_app/screen/loadingScreen.dart';
 import 'package:inverter_management_app/widgets/data_card.dart';
 
+import '../../feature/notification/provider/notification_provider.dart';
+import '../../feature/notification/view/notification_screen.dart';
+
 // ── Design tokens ─────────────────────────────────────────────────────────────
+const _kP          = Color(0xFF185FA5);
 const _kPrimary    = Color(0xFF185FA5);
 const _kPrimaryBg  = Color(0xFFEBF4FF);
 const _kBg         = Color(0xFFF7F8FA);
@@ -27,15 +30,6 @@ const _kRedBorder  = Color(0xFFFECACA);
 // ─────────────────────────────────────────────────────────────────────────────
 // BaseDashboard
 // ─────────────────────────────────────────────────────────────────────────────
-/// Zoho Books inspired shared dashboard.
-/// Every role screen passes its own [quickAccessPanel] and optional [statsPanel].
-///
-/// ```dart
-/// BaseDashboard(
-///   quickAccessPanel: const ControlPanel(),
-///   statsPanel: const InfoCard(),         // optional
-/// )
-/// ```
 class BaseDashboard extends ConsumerStatefulWidget {
   const BaseDashboard({
     super.key,
@@ -43,11 +37,7 @@ class BaseDashboard extends ConsumerStatefulWidget {
     this.statsPanel,
   });
 
-  /// Role-specific quick-access grid / buttons shown in the middle section.
   final Widget quickAccessPanel;
-
-  /// Optional role-specific stats card shown at the top (below the header).
-  /// Omit for Packing / Production / Delivery / Accounts roles.
   final Widget? statsPanel;
 
   @override
@@ -82,9 +72,8 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
     return 'Good evening';
   }
 
-  // ── Logout ──────────────────────────────────────────────────────────────────
   Future<void> _logout(BuildContext context) async {
-    final result = await ref.read(loginControllerProvider).logout();
+    final result = await ref.read(loginControllerProvider.notifier).logout();
     if (!context.mounted) return;
     showAppSnackBar(
       context,
@@ -102,11 +91,11 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
 
   @override
   Widget build(BuildContext context) {
-    final mq          = MediaQuery.of(context);
-    final sw          = mq.size.width;
-    final sh          = mq.size.height;
-    final isTablet    = sw >= 600;
-    final hPad        = sw * (isTablet ? 0.05 : 0.045);
+    final mq       = MediaQuery.of(context);
+    final sw       = mq.size.width;
+    final sh       = mq.size.height;
+    final isTablet = sw >= 600;
+    final hPad     = sw * (isTablet ? 0.05 : 0.045);
 
     final ordersAsync = ref.watch(recentOrdersProvider);
     final user        = ref.watch(currentUserProvider).asData?.value;
@@ -116,7 +105,8 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
     final role = (user?.role ?? '...')
         .replaceAll('ROLE_', '')
         .replaceAll('_', ' ');
-    final photoUrl = (user?.photo != null && (user!.photo?.isNotEmpty ?? false))
+    final photoUrl =
+    (user?.photo != null && (user!.photo?.isNotEmpty ?? false))
         ? user.photo!
         : null;
 
@@ -156,20 +146,49 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
                     ],
 
                     // ── Quick access ──────────────────────────────────────
-                    _SectionLabel(
-                      text: 'Quick Access',
-                      sw: sw,
-                      sh: sh,
-                    ),
+                    _SectionLabel(text: 'Quick Access', sw: sw, sh: sh),
                     SizedBox(height: sh * 0.015),
                     widget.quickAccessPanel,
                     SizedBox(height: sh * 0.03),
 
                     // ── Recent orders ─────────────────────────────────────
-                    _SectionLabel(
-                      text: 'Recent Orders',
-                      sw: sw,
-                      sh: sh,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _SectionLabel(
+                            text: 'Recent Orders', sw: sw, sh: sh),
+                        GestureDetector(
+                          onTap: () =>
+                              ref.invalidate(recentOrdersProvider),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: sw * 0.03,
+                              vertical: sw * 0.015,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _kPrimaryBg,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: _kP.withValues(alpha: 0.3),
+                                  width: 0.5),
+                            ),
+                            child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.refresh_rounded,
+                                      size: (sw * 0.035).clamp(12.0, 16.0),
+                                      color: _kP),
+                                  SizedBox(width: sw * 0.012),
+                                  Text('Refresh',
+                                      style: TextStyle(
+                                          fontSize:
+                                          (sw * 0.028).clamp(9.5, 12.5),
+                                          fontWeight: FontWeight.w600,
+                                          color: _kP)),
+                                ]),
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: sh * 0.015),
                   ]),
@@ -180,13 +199,17 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
               ordersAsync.when(
                 loading: () => SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: sh * 0.06),
-                    child: const Center(child: GlobalLoader()),
+                    padding:
+                    EdgeInsets.symmetric(vertical: sh * 0.06),
+                    child: const Center(
+                        child: CircularProgressIndicator(
+                            color: _kP, strokeWidth: 2.5)),
                   ),
                 ),
                 error: (_, __) => SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: hPad),
+                    padding:
+                    EdgeInsets.symmetric(horizontal: hPad),
                     child: _ErrorState(sw: sw, sh: sh),
                   ),
                 ),
@@ -194,7 +217,8 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
                   if (orders.isEmpty) {
                     return SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: hPad),
+                        padding:
+                        EdgeInsets.symmetric(horizontal: hPad),
                         child: _EmptyState(sw: sw, sh: sh),
                       ),
                     );
@@ -214,7 +238,8 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
                           ctx,
                           MaterialPageRoute(
                             builder: (_) => OrderViewPage(
-                              orderNumber: orders[i].orderNumber.toString(),
+                              orderNumber:
+                              orders[i].orderNumber.toString(),
                             ),
                           ),
                         ),
@@ -233,9 +258,9 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _Header  — Zoho Books white top bar style
+// _Header
 // ─────────────────────────────────────────────────────────────────────────────
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   const _Header({
     required this.sw,
     required this.sh,
@@ -255,15 +280,18 @@ class _Header extends StatelessWidget {
   final VoidCallback onLogout;
 
   @override
-  Widget build(BuildContext context) {
-    final avatarR    = (sw * 0.055).clamp(20.0, 36.0);
-    final nameFs     = (sw * 0.046).clamp(15.0, 22.0);
-    final greetFs    = (sw * 0.030).clamp(10.0, 13.0);
-    final roleFs     = (sw * 0.026).clamp(9.0, 12.0);
-    final iconBtnSz  = (sw * 0.09).clamp(34.0, 46.0);
-    final iconSz     = (sw * 0.05).clamp(18.0, 24.0);
-    final pillH      = (sw * 0.018).clamp(2.0, 4.0);
-    final pillR      = (sw * 0.04).clamp(3.0, 10.0);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final avatarR   = (sw * 0.055).clamp(20.0, 36.0);
+    final nameFs    = (sw * 0.046).clamp(15.0, 22.0);
+    final greetFs   = (sw * 0.030).clamp(10.0, 13.0);
+    final roleFs    = (sw * 0.026).clamp(9.0, 12.0);
+    final iconBtnSz = (sw * 0.09).clamp(34.0, 46.0);
+    final iconSz    = (sw * 0.05).clamp(18.0, 24.0);
+    final pillH     = (sw * 0.018).clamp(2.0, 4.0);
+    final pillR     = (sw * 0.04).clamp(3.0, 10.0);
+
+    // Watch unread count — rebuilds only when badge number changes
+    final unread = ref.watch(unreadCountProvider);
 
     return Container(
       width: double.infinity,
@@ -273,12 +301,7 @@ class _Header extends StatelessWidget {
           bottom: BorderSide(color: _kBorder, width: 0.5),
         ),
       ),
-      padding: EdgeInsets.fromLTRB(
-        hPad,
-        sh * 0.018,
-        hPad,
-        sh * 0.018,
-      ),
+      padding: EdgeInsets.fromLTRB(hPad, sh * 0.018, hPad, sh * 0.018),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -330,7 +353,6 @@ class _Header extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: sh * 0.004),
-                // Role pill
                 Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: sw * 0.025,
@@ -354,6 +376,66 @@ class _Header extends StatelessWidget {
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          SizedBox(width: sw * 0.02),
+
+          // ── Notification bell ─────────────────────────────────────────────
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const NotificationScreen(),
+              ),
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: iconBtnSz,
+                  height: iconBtnSz,
+                  decoration: BoxDecoration(
+                    color: _kPrimaryBg,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _kPrimary.withValues(alpha: 0.25),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.notifications_outlined,
+                    size: iconSz,
+                    color: _kPrimary,
+                  ),
+                ),
+                if (unread > 0)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      constraints: const BoxConstraints(
+                          minWidth: 16, minHeight: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: _kRed,
+                        borderRadius: BorderRadius.circular(8),
+                        border:
+                        Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Text(
+                        unread > 99 ? '99+' : '$unread',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -398,10 +480,10 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fs        = (sw * 0.038).clamp(13.0, 17.0);
-    final barW      = (sw * 0.008).clamp(3.0, 5.0);
-    final barH      = (sh * 0.022).clamp(14.0, 20.0);
-    final barR      = barW / 2;
+    final fs   = (sw * 0.038).clamp(13.0, 17.0);
+    final barW = (sw * 0.008).clamp(3.0, 5.0);
+    final barH = (sh * 0.022).clamp(14.0, 20.0);
+    final barR = barW / 2;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,

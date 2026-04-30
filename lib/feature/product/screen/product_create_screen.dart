@@ -52,7 +52,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
   // Track whether selectors have been tapped for inline error display
   bool _brandTouched = false;
   bool _modelTouched = false;
-
+  String _selectedCategory = 'INVERTER';
   @override
   void initState() {
     super.initState();
@@ -60,6 +60,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
       'name':          TextEditingController(),
       'type':          TextEditingController(),
       'price':         TextEditingController(),
+      'cost':          TextEditingController(),
       'packedStock':   TextEditingController(),
       'unpackedStock': TextEditingController(),
       'packedNotes':   TextEditingController(),
@@ -90,13 +91,15 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
 
     try {
       final price = double.parse(_controllers['price']!.text.trim());
-
+      final cost  = double.tryParse(_controllers['cost']!.text.trim())??0.00;
       final product = ProductModel(
         brand:       selectedBrand,
         model:       selectedModel,
         productName: _controllers['name']!.text.trim(),
         productType: _controllers['type']!.text.trim(),
         price:       price,
+        cost: cost,
+        productCategory: _selectedCategory,
         stocks: [
           Stocks(
             type:       'ADD',
@@ -104,12 +107,13 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
             stock:      int.tryParse(_controllers['packedStock']!.text) ?? 0,
             stockNotes: _controllers['packedNotes']!.text,
           ),
-          Stocks(
-            type:       'ADD',
-            stockType:  'UNPACKED',
-            stock:      int.tryParse(_controllers['unpackedStock']!.text) ?? 0,
-            stockNotes: _controllers['unpackedNotes']!.text,
-          ),
+          if (_selectedCategory == 'INVERTER')
+            Stocks(
+              type:       'ADD',
+              stockType:  'UNPACKED',
+              stock:      int.tryParse(_controllers['unpackedStock']!.text) ?? 0,
+              stockNotes: _controllers['unpackedNotes']!.text,
+            ),
         ],
       );
 
@@ -441,6 +445,7 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                     SizedBox(height: sh * 0.012),
 
                     // ── Product Info ───────────────────────────────────
+// ── Product Info ───────────────────────────────────────────────────
                     _CreateSection(
                       sw:        sw,
                       icon:      Icons.inventory_2_outlined,
@@ -455,59 +460,97 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                           controller: _controllers['name']!,
                           icon:       Icons.label_outline_rounded,
                           validator:  (v) =>
-                          (v == null || v.trim().isEmpty)
-                              ? 'Product name is required'
-                              : null,
+                          (v == null || v.trim().isEmpty) ? 'Product name is required' : null,
                         ),
                         SizedBox(height: sh * 0.015),
                         _LabelledField(
                           sw:         sw, sh: sh,
                           label:      'Product Type',
-                          hint:       'e.g. Inverter, Battery',
+                          hint:       'e.g. C10 Battery, Solar Inverter',
                           controller: _controllers['type']!,
                           icon:       Icons.category_outlined,
                           validator:  (v) =>
-                          (v == null || v.trim().isEmpty)
-                              ? 'Product type is required'
-                              : null,
+                          (v == null || v.trim().isEmpty) ? 'Product type is required' : null,
                         ),
+                        SizedBox(height: sh * 0.015),
+
+                        // ── Category ────────────────────────────────────────────────
+                        _SectionLabel(sw: sw, text: 'Category'),
+                        SizedBox(height: sh * 0.008),
+                        Row(children: [
+                          Expanded(child: _CategoryRadioTile(
+                            sw:       sw,
+                            label:    'INVERTER',
+                            icon:     Icons.bolt_rounded,
+                            color:    _kP,
+                            bg:       _kPBg,
+                            bd:       _kPBd,
+                            selected: _selectedCategory == 'INVERTER',
+                            onTap:    () => setState(() => _selectedCategory = 'INVERTER'),
+                          )),
+                          SizedBox(width: sw * 0.03),
+                          Expanded(child: _CategoryRadioTile(
+                            sw:       sw,
+                            label:    'BATTERY',
+                            icon:     Icons.battery_charging_full_rounded,
+                            color:    _kGreen,
+                            bg:       _kGreenBg,
+                            bd:       _kGreenBd,
+                            selected: _selectedCategory == 'BATTERY',
+                            onTap:    () => setState(() => _selectedCategory = 'BATTERY'),
+                          )),
+                        ]),
                       ]),
                     ),
                     SizedBox(height: sh * 0.012),
 
                     // ── Pricing ────────────────────────────────────────
+                    // ── Pricing ────────────────────────────────────────────────────────
                     _CreateSection(
                       sw:        sw,
                       icon:      Icons.payments_outlined,
                       iconBg:    _kGreenBg,
                       iconColor: _kGreen,
                       title:     'Pricing',
-                      child: _LabelledField(
-                        sw:         sw, sh: sh,
-                        label:      'Price (₹)',
-                        hint:       'Enter selling price',
-                        controller: _controllers['price']!,
-                        icon:       Icons.currency_rupee,
-                        keyboard:   const TextInputType.numberWithOptions(decimal: true),
-                        inputFormatters: [
-                          // Allow digits and a single decimal point only
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                        ],
-                        // ✅ Zero IS allowed  |  ❌ Negative IS NOT allowed
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return 'Price is required';
-                          }
-                          final val = double.tryParse(v.trim());
-                          if (val == null) return 'Enter a valid number';
-                          if (val < 0) return 'Price cannot be negative';
-                          return null; // 0.0 is valid
-                        },
-                      ),
+                      child: Column(children: [
+                        _LabelledField(
+                          sw:         sw, sh: sh,
+                          label:      'Price (₹)',
+                          hint:       'Enter selling price',
+                          controller: _controllers['price']!,
+                          icon:       Icons.currency_rupee,
+                          keyboard:   const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'Price is required';
+                            final val = double.tryParse(v.trim());
+                            if (val == null) return 'Enter a valid number';
+                            if (val < 0) return 'Price cannot be negative';
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: sh * 0.015),
+                        _LabelledField(
+                          sw:         sw, sh: sh,
+                          label:      'Cost (₹)',
+                          hint:       'Enter cost price',
+                          controller: _controllers['cost']!,
+                          icon:       Icons.price_change_outlined,
+                          keyboard:   const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return null; // optional
+                            final val = double.tryParse(v.trim());
+                            if (val == null) return 'Enter a valid number';
+                            if (val < 0) return 'Cost cannot be negative';
+                            return null;
+                          },
+                        ),
+                      ]),
                     ),
                     SizedBox(height: sh * 0.012),
 
-                    // ── Stock ──────────────────────────────────────────
+                    // ── Stock ──────────────────────────────────────────────────────────
                     _CreateSection(
                       sw:        sw,
                       icon:      Icons.inventory_outlined,
@@ -515,29 +558,33 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                       iconColor: _kAmber,
                       title:     'Stock',
                       child: Column(children: [
-                        // Side-by-side stock tiles
-                        Row(
+                        // BATTERY → packed only | INVERTER → both
+                        _selectedCategory == 'BATTERY'
+                            ? _StockInputTile(
+                          sw:         sw,
+                          label:      'Packed',
+                          icon:       Icons.check_box_outlined,
+                          color:      _kP,
+                          controller: _controllers['packedStock']!,
+                        )
+                            : Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: _StockInputTile(
-                                sw:         sw,
-                                label:      'Packed',
-                                icon:       Icons.check_box_outlined,
-                                color:      _kP,
-                                controller: _controllers['packedStock']!,
-                              ),
-                            ),
+                            Expanded(child: _StockInputTile(
+                              sw:         sw,
+                              label:      'Packed',
+                              icon:       Icons.check_box_outlined,
+                              color:      _kP,
+                              controller: _controllers['packedStock']!,
+                            )),
                             SizedBox(width: sw * 0.03),
-                            Expanded(
-                              child: _StockInputTile(
-                                sw:         sw,
-                                label:      'Unpacked',
-                                icon:       Icons.indeterminate_check_box_outlined,
-                                color:      _kAmber,
-                                controller: _controllers['unpackedStock']!,
-                              ),
-                            ),
+                            Expanded(child: _StockInputTile(
+                              sw:         sw,
+                              label:      'Unpacked',
+                              icon:       Icons.indeterminate_check_box_outlined,
+                              color:      _kAmber,
+                              controller: _controllers['unpackedStock']!,
+                            )),
                           ],
                         ),
                         SizedBox(height: sh * 0.015),
@@ -549,15 +596,17 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
                           icon:       Icons.note_outlined,
                           maxLines:   3,
                         ),
-                        SizedBox(height: sh * 0.015),
-                        _LabelledField(
-                          sw:         sw, sh: sh,
-                          label:      'Unpacked Notes',
-                          hint:       'Notes for unpacked stock (optional)',
-                          controller: _controllers['unpackedNotes']!,
-                          icon:       Icons.note_alt_outlined,
-                          maxLines:   3,
-                        ),
+                        if (_selectedCategory == 'INVERTER') ...[
+                          SizedBox(height: sh * 0.015),
+                          _LabelledField(
+                            sw:         sw, sh: sh,
+                            label:      'Unpacked Notes',
+                            hint:       'Notes for unpacked stock (optional)',
+                            controller: _controllers['unpackedNotes']!,
+                            icon:       Icons.note_alt_outlined,
+                            maxLines:   3,
+                          ),
+                        ],
                       ]),
                     ),
                     SizedBox(height: sh * 0.025),
@@ -665,7 +714,81 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
     ]),
   );
 }
+// ═════════════════════════════════════════════════════════════════════════════
+// _CategoryRadioTile
+// ═════════════════════════════════════════════════════════════════════════════
+class _CategoryRadioTile extends StatelessWidget {
+  const _CategoryRadioTile({
+    required this.sw,
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.bg,
+    required this.bd,
+    required this.selected,
+    required this.onTap,
+  });
+  final double   sw;
+  final String   label;
+  final IconData icon;
+  final Color    color, bg, bd;
+  final bool     selected;
+  final VoidCallback onTap;
 
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: EdgeInsets.symmetric(
+          horizontal: sw * 0.035, vertical: sw * 0.03),
+      decoration: BoxDecoration(
+        color: selected ? bg : _kBg,
+        borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+        border: Border.all(
+            color: selected ? color.withValues(alpha: 0.5) : _kBd,
+            width: selected ? 1.5 : 0.5),
+      ),
+      child: Row(children: [
+        Container(
+          width:  (sw * 0.07).clamp(24.0, 34.0),
+          height: (sw * 0.07).clamp(24.0, 34.0),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: 0.15) : _kWhite,
+            borderRadius: BorderRadius.circular((sw * 0.018).clamp(5.0, 8.0)),
+            border: Border.all(
+                color: selected ? color.withValues(alpha: 0.3) : _kBd,
+                width: 0.5),
+          ),
+          child: Icon(icon,
+              size:  (sw * 0.038).clamp(13.0, 18.0),
+              color: selected ? color : _kT4),
+        ),
+        SizedBox(width: sw * 0.02),
+        Expanded(child: Text(label,
+            style: TextStyle(
+                fontSize:   (sw * 0.03).clamp(10.5, 13.5),
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color:      selected ? color : _kT3))),
+        Container(
+          width:  (sw * 0.038).clamp(13.0, 18.0),
+          height: (sw * 0.038).clamp(13.0, 18.0),
+          decoration: BoxDecoration(
+            color:  selected ? color : _kWhite,
+            shape:  BoxShape.circle,
+            border: Border.all(
+                color: selected ? color : _kBd, width: 1.5),
+          ),
+          child: selected
+              ? Icon(Icons.check_rounded,
+              size:  (sw * 0.024).clamp(8.0, 11.0),
+              color: _kWhite)
+              : null,
+        ),
+      ]),
+    ),
+  );
+}
 // ═════════════════════════════════════════════════════════════════════════════
 // Shared utilities
 // ═════════════════════════════════════════════════════════════════════════════

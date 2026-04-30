@@ -5,37 +5,26 @@ import '../../../model/order_model.dart';
 import '../repository/order_repository.dart';
 
 // ─────────────────────────────────────────────
-// Params classes
+// Params classes — unchanged
 // ─────────────────────────────────────────────
 
-/// Used for status-based fetching (ALL or a specific status)
 class OrderStatusParams {
-  final String? status; // null / 'ALL' → no status param in API
-
+  final String? status;
   const OrderStatusParams({this.status});
-
   bool get isAll => status == null || status == 'ALL';
 
   @override
   bool operator ==(Object other) =>
       other is OrderStatusParams && other.status == status;
-
   @override
   int get hashCode => status.hashCode;
 }
 
-/// Used for paginated fetching with optional status filter
 class PaginatedOrderParams {
-  final String? status; // null or 'ALL' → no status param
+  final String? status;
   final int page;
   final int limit;
-
-  const PaginatedOrderParams({
-    this.status,
-    required this.page,
-    required this.limit,
-  });
-
+  const PaginatedOrderParams({this.status, required this.page, required this.limit});
   bool get isAll => status == null || status == 'ALL';
 
   @override
@@ -44,124 +33,152 @@ class PaginatedOrderParams {
           other.status == status &&
           other.page == page &&
           other.limit == limit;
-
   @override
   int get hashCode => Object.hash(status, page, limit);
 }
 
-/// Used for date-range fetching (separate endpoint, no status)
 class DateFilterParams {
-  final String startDate; // 'yyyy-MM-dd'
-  final String endDate;   // 'yyyy-MM-dd'
+  final String? startDate;
+  final String? endDate;
+  final String? deliveryStartDate;
+  final String? deliveryEndDate;
+  final int page;
+  final int limit;
 
-  const DateFilterParams({required this.startDate, required this.endDate});
+  const DateFilterParams({
+    this.startDate,
+    this.endDate,
+    this.deliveryStartDate,
+    this.deliveryEndDate,
+    this.page = 1,
+    this.limit = 20,
+  });
+
+  DateFilterParams copyWith({
+    String? startDate,
+    String? endDate,
+    String? deliveryStartDate,
+    String? deliveryEndDate,
+    int? page,
+    int? limit,
+  }) => DateFilterParams(
+    startDate: startDate ?? this.startDate,
+    endDate: endDate ?? this.endDate,
+    deliveryStartDate: deliveryStartDate ?? this.deliveryStartDate,
+    deliveryEndDate: deliveryEndDate ?? this.deliveryEndDate,
+    page: page ?? this.page,
+    limit: limit ?? this.limit,
+  );
 
   @override
   bool operator ==(Object other) =>
       other is DateFilterParams &&
           other.startDate == startDate &&
-          other.endDate == endDate;
+          other.endDate == endDate &&
+          other.deliveryStartDate == deliveryStartDate &&
+          other.deliveryEndDate == deliveryEndDate &&
+          other.page == page &&
+          other.limit == limit;
 
   @override
-  int get hashCode => Object.hash(startDate, endDate);
+  int get hashCode =>
+      Object.hash(startDate, endDate, deliveryStartDate, deliveryEndDate, page, limit);
 }
 
 // ─────────────────────────────────────────────
-// Providers
+// FutureProvider family — unchanged
 // ─────────────────────────────────────────────
 
-/// ALL orders or filtered by status (with pagination)
-/// → /order-details?includeRejected=false&page=N&limit=N[&status=CANCELLED]
 final paginatedOrdersProvider =
 FutureProvider.family<List<OrderModel>, PaginatedOrderParams>(
         (ref, params) async {
       final repository = ref.watch(orderRepositoryProvider);
-      return await repository.getAllOrders(
+      return repository.getAllOrders(
         status: params.isAll ? null : params.status,
         page: params.page,
         limit: params.limit,
       );
     });
 
-/// Legacy provider - kept for backward compatibility
 final ordersProvider =
 FutureProvider.family<List<OrderModel>, OrderStatusParams>(
         (ref, params) async {
       final repository = ref.watch(orderRepositoryProvider);
-      return await repository.getAllOrders(
+      return repository.getAllOrders(
         status: params.isAll ? null : params.status,
       );
     });
 
-/// Date-range filtered orders (no status)
-/// → /order-details/date-filter?year=...&month=...&start_date=...&end_date=...
 final filteredOrdersProvider =
 FutureProvider.family<List<OrderModel>, DateFilterParams>(
         (ref, params) async {
       final repository = ref.watch(orderRepositoryProvider);
-      return await repository.getOrdersByDateFilter(
+      return repository.getOrdersByDateFilter(
         startDate: params.startDate,
         endDate: params.endDate,
+        deliveryStartDate: params.deliveryStartDate,
+        deliveryEndDate: params.deliveryEndDate,
+        page: params.page,
+        limit: params.limit,
       );
     });
 
-/// Single order by ID
 final orderByIdProvider =
 FutureProvider.family<OrderModel?, String>((ref, orderId) async {
   final repository = ref.watch(orderRepositoryProvider);
-  return await repository.getOrderById(orderId);
+  return repository.getOrderById(orderId);
 });
 
-/// Recent 5 orders for dashboard
 final recentOrdersProvider = FutureProvider<List<OrderModel>>((ref) async {
   final repository = ref.watch(orderRepositoryProvider);
-  return await repository.getAllOrders(limit: 5);
+  return repository.getAllOrders(limit: 5);
 });
 
-/// Orders by dealer
 final ordersByDealerProvider =
 FutureProvider.family<List<OrderModel>, String>((ref, dealerId) async {
   final repository = ref.watch(orderRepositoryProvider);
-  return await repository.getOrdersByDealer(dealerId);
+  return repository.getOrdersByDealer(dealerId);
 });
 
 // ─────────────────────────────────────────────
-// OrderController (create / update operations)
+// OrderController — AsyncNotifier
 // ─────────────────────────────────────────────
 
 final orderControllerProvider =
-StateNotifierProvider<OrderController, AsyncValue<List<OrderModel>>>((ref) {
-  return OrderController(ref.read(orderRepositoryProvider));
-});
+AsyncNotifierProvider<OrderController, List<OrderModel>>(
+  OrderController.new,
+);
 
-class OrderController extends StateNotifier<AsyncValue<List<OrderModel>>> {
-  final OrderRepository _orderRepository;
+class OrderController extends AsyncNotifier<List<OrderModel>> {
+  late final OrderRepository _repo;
 
-  OrderController(this._orderRepository) : super(const AsyncValue.loading()) {
-    getAllOrders();
+  @override
+  Future<List<OrderModel>> build() async {
+    _repo = ref.watch(orderRepositoryProvider);
+    return _repo.getAllOrders(limit: 10000);
   }
 
   Future<void> createOrder(OrderModel order) async {
     try {
-      await _orderRepository.createOrder(order);
+      await _repo.createOrder(order);
     } on DioException {
       rethrow;
     }
   }
 
   Future<void> getAllOrders({int limit = 10000}) async {
+    state = const AsyncValue.loading();
     try {
-      state = const AsyncValue.loading();
-      final orders = await _orderRepository.getAllOrders(limit: limit);
+      final orders = await _repo.getAllOrders(limit: limit);
       state = AsyncValue.data(orders);
-    } catch (e) {
-      rethrow;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 
   Future<OrderModel?> getOrderById(String orderId) async {
     try {
-      return await _orderRepository.getOrderById(orderId);
+      return await _repo.getOrderById(orderId);
     } catch (_) {
       rethrow;
     }
@@ -169,9 +186,8 @@ class OrderController extends StateNotifier<AsyncValue<List<OrderModel>>> {
 
   Future<void> updateOrderItemStatus(OrderModel order) async {
     try {
-      final jsonData = order.toUpdateItemJson();
-      print('📤 Sending to API (updateOrderItemStatus): $jsonData');
-      await _orderRepository.updateOrderItemStatus(order);
+      print('📤 Sending to API (updateOrderItemStatus): ${order.toUpdateItemJson()}');
+      await _repo.updateOrderItemStatus(order);
       await getAllOrders();
     } catch (_) {
       rethrow;
@@ -180,10 +196,8 @@ class OrderController extends StateNotifier<AsyncValue<List<OrderModel>>> {
 
   Future<void> updateOrder(OrderModel order) async {
     try {
-      final jsonData = order.toUpdateJson();
-
-      print('📤 Sending to API (updateOrder): $jsonData');
-      await _orderRepository.updateOrder(order);
+      print('📤 Sending to API (updateOrder): ${order.toUpdateJson()}');
+      await _repo.updateOrder(order);
       await getAllOrders();
     } catch (_) {
       rethrow;
@@ -192,10 +206,8 @@ class OrderController extends StateNotifier<AsyncValue<List<OrderModel>>> {
 
   Future<void> updatePaymentOrder(OrderModel order) async {
     try {
-      final jsonData = order.toUpdatePaymentJson();
-
-      print('📤 Sending to API (updatePayment): $jsonData');
-      await _orderRepository.updateOrderPayment(order);
+      print('📤 Sending to API (updatePayment): ${order.toUpdatePaymentJson()}');
+      await _repo.updateOrderPayment(order);
       await getAllOrders();
     } catch (_) {
       rethrow;
@@ -205,7 +217,7 @@ class OrderController extends StateNotifier<AsyncValue<List<OrderModel>>> {
   Future<List<OrderModel>> getOrdersByDealer(String dealerId,
       {int limit = 10000}) async {
     try {
-      return await _orderRepository.getOrdersByDealer(dealerId, limit: limit);
+      return await _repo.getOrdersByDealer(dealerId, limit: limit);
     } catch (_) {
       rethrow;
     }

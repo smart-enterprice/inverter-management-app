@@ -196,11 +196,12 @@ class _AddDealerScreenState extends ConsumerState<AddDealerScreen> {
   Widget build(BuildContext context) {
     final sw = MediaQuery.sizeOf(context).width;
     final sh = MediaQuery.sizeOf(context).height;
-    final brandState = ref.watch(loadBrandsControllerProvider);
+    final brandState = ref.watch(brandControllerProvider);
 
     return Scaffold(backgroundColor: _kBg,
         body: SafeArea(child: brandState.when(
-            loading: () => _shimmer(sw, sh),
+            loading: () => const Scaffold(backgroundColor: _kBg,
+                body: Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5))),
             error: (_, __) => _errorView(context, sw, sh),
             data: (brands) => Column(children: [
               // App bar
@@ -390,16 +391,6 @@ class _AddDealerScreenState extends ConsumerState<AddDealerScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(color: _kBd, borderRadius: BorderRadius.circular(2))));
 
-  Widget _shimmer(double sw, double sh) => SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: sw * 0.038, vertical: sw * 0.04),
-      child: Column(children: [
-        ...List.generate(4, (i) => Padding(padding: EdgeInsets.only(bottom: sh * 0.015),
-            child: Shimmer.fromColors(baseColor: Colors.grey.shade300, highlightColor: Colors.grey.shade100,
-                child: Container(height: i == 0 ? sw * 0.22 : sh * 0.22,
-                    decoration: BoxDecoration(color: _kWhite,
-                        borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0))))))),
-      ]));
-
   Widget _errorView(BuildContext ctx, double sw, double sh) => Column(children: [
     Container(color: _kWhite,
         padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.015, sw * 0.04, sh * 0.015),
@@ -419,7 +410,7 @@ class _AddDealerScreenState extends ConsumerState<AddDealerScreen> {
       Text('No Connection', style: TextStyle(
           fontSize: (sw * 0.04).clamp(13.0, 18.0), fontWeight: FontWeight.w600, color: _kT2)),
       SizedBox(height: sh * 0.02),
-      ElevatedButton(onPressed: () => ref.invalidate(loadBrandsControllerProvider),
+      ElevatedButton(onPressed: () => ref.invalidate(brandControllerProvider),
           style: ElevatedButton.styleFrom(backgroundColor: _kP, foregroundColor: _kWhite,
               shape: const CircleBorder(), padding: const EdgeInsets.all(14), elevation: 0),
           child: const Icon(Icons.refresh_rounded)),

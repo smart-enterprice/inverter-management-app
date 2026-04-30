@@ -91,7 +91,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
   Widget build(BuildContext context) {
     final sw         = Screen.w(context);
     final sh         = Screen.h(context);
-    final brandState = ref.watch(loadBrandsControllerProvider);
+    final brandState = ref.watch(brandControllerProvider);
 
     return brandState.when(
       loading: () => const Scaffold(
@@ -99,7 +99,11 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
           body: Center(
               child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5))),
 
-      error: (_, __) => _errorScaffold(context, sw, sh),
+      error: (error, stackTrace) {
+        print('🖥️ UI ERROR: $error');
+        print('🖥️ UI STACK: $stackTrace');
+        return _errorScaffold(context, sw, sh);
+      },
 
       data: (brands) {
         // Filter by status + search query
@@ -179,7 +183,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                 color:           _kP,
                 backgroundColor: _kWhite,
                 onRefresh: () async =>
-                    ref.invalidate(loadBrandsControllerProvider),
+                    ref.invalidate(brandControllerProvider),
                 child: ListView.builder(
                   physics:   const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.fromLTRB(
@@ -204,6 +208,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                         ),
                       ),
                     );
+                    ref.invalidate(brandControllerProvider);
                   },
                 ),
               ),
@@ -416,7 +421,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
               SizedBox(height: sh * 0.025),
               ElevatedButton.icon(
                   onPressed: () =>
-                      ref.invalidate(loadBrandsControllerProvider),
+                      ref.invalidate(brandControllerProvider),
                   icon:  Icon(Icons.refresh_rounded,
                       size: (sw * 0.04).clamp(14.0, 18.0)),
                   label: Text('Retry',

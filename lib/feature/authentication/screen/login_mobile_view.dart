@@ -43,7 +43,7 @@ class _LoginScreenState extends ConsumerState<LoginMobileView> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      final result = await ref.read(loginControllerProvider).login(
+      final result = await ref.read(loginControllerProvider.notifier).login(
           _emailCtrl.text.trim(), _passCtrl.text.trim());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

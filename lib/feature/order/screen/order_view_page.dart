@@ -163,8 +163,8 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
     final orderAsync = ref.watch(orderByIdProvider(widget.orderNumber));
 
     return orderAsync.when(
-      loading: () => const Scaffold(
-          backgroundColor: _kBg, body: Center(child: GlobalLoader())),
+      loading: () => const Scaffold(backgroundColor: _kBg,
+          body: Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5))),
       error: (_, __) => _buildError(context, sw, sh),
       data: (order) {
         if (order == null) return _buildError(context, sw, sh);

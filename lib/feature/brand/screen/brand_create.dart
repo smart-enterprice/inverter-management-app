@@ -41,9 +41,9 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
     final models = _modelCtrls.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
     if (models.toSet().length != models.length) { _snack('Duplicate model names are not allowed', _kRed); return; }
     setState(() => _loading = true);
-    final error = await ref.read(loadBrandsControllerProvider.notifier).createBrand(
+    final error = await ref.read(brandControllerProvider.notifier).createBrand(
         BrandModel(brandName: _nameCtrl.text.trim(), description: _descCtrl.text.trim(), brandModels: models));
-    await ref.read(loadBrandsControllerProvider.notifier).loadBrands();
+    await ref.read(brandControllerProvider.notifier).build();
     setState(() => _loading = false);
     if (!mounted) return;
     if (error != null) { _snack(error, _kRed); }

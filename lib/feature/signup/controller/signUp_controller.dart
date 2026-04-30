@@ -6,73 +6,70 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../model/user_model.dart';
 import '../repository/signUp_repository.dart';
-import '../screen/dealer/dealers_screen.dart';
+
+// ─────────────────────────────────────────────
+// Providers
+// ─────────────────────────────────────────────
 
 final signupControllerProvider =
-StateNotifierProvider<SignupController, AsyncValue<void>>((ref) {
-  final repository = ref.read(signupRepositoryProvider);
-  return SignupController(repository);
-});
+AsyncNotifierProvider<SignupController, void>(
+  SignupController.new,
+);
 
-// ✅ Add near other providers at the top
-final employeeByIdProvider = FutureProvider.family<UserModel?, String>((ref, id) async {
+final employeeByIdProvider =
+FutureProvider.family<UserModel?, String>((ref, id) async {
   if (id.isEmpty) return null;
   return ref.read(signupControllerProvider.notifier).getEmployeeById(id);
 });
 
-/// Provider to get employee list (excluding dealers)
 final userListProvider = FutureProvider<List<UserModel>>((ref) async {
-  final repository = ref.read(signupRepositoryProvider);
-  return repository.getEmployees();
+  return ref.read(signupRepositoryProvider).getEmployees();
 });
 
-/// Provider to get dealer list
 final dealerListProvider =
-StateNotifierProvider<DealerListNotifier, AsyncValue<List<UserModel>>>(
-      (ref) => DealerListNotifier(ref.read(signupRepositoryProvider)),
+AsyncNotifierProvider<DealerListNotifier, List<UserModel>>(
+  DealerListNotifier.new,
 );
 
-/// Provider to get users by role
-final usersByRoleProvider = FutureProvider.family<List<UserModel>, String>((ref, role) async {
-  final controller = ref.read(signupControllerProvider.notifier);
-  return await controller.getUsersByRole(role);
+final usersByRoleProvider =
+FutureProvider.family<List<UserModel>, String>((ref, role) async {
+  return ref.read(signupControllerProvider.notifier).getUsersByRole(role);
 });
 
 final currentUserProvider = FutureProvider<UserModel?>((ref) async {
   final prefs = await SharedPreferences.getInstance();
   final userId = prefs.getString('user_id');
   if (userId == null) return null;
-  final repo = ref.read(signupControllerProvider.notifier);
   print('Current user is refreshing');
-  return await repo.getEmployeeById(userId);
-
+  return ref.read(signupControllerProvider.notifier).getEmployeeById(userId);
 });
 
-class SignupController extends StateNotifier<AsyncValue<void>> {
-  final SignupRepository _repository;
+// ─────────────────────────────────────────────
+// SignupController — AsyncNotifier<void>
+// ─────────────────────────────────────────────
 
-  SignupController(this._repository) : super(const AsyncData(null));
+class SignupController extends AsyncNotifier<void> {
+  late final SignupRepository _repo;
+
+  @override
+  Future<void> build() async {
+    _repo = ref.watch(signupRepositoryProvider);
+  }
 
   /// Signup user
-  Future<String?> signup(UserModel request,{File? photoFile}) async {
+  Future<String?> signup(UserModel request, {File? photoFile}) async {
     state = const AsyncLoading();
     try {
-      // ✅ Step 1: Upload photo if selected
       if (photoFile != null) {
-        final fileUrl = await _repository.uploadFile(photoFile);
-
-        request = request.copyWith(photo: fileUrl); // replace local path with URL
+        final fileUrl = await _repo.uploadFile(photoFile);
+        request = request.copyWith(photo: fileUrl);
       }
-
-      // ✅ Step 2: Call signup API
-      await _repository.userSignup(request);
-
+      await _repo.userSignup(request);
       state = const AsyncData(null);
       return null;
     } on DioException catch (e, st) {
       String msg = 'Signup failed.';
       final responseData = e.response?.data;
-
       if (responseData is Map<String, dynamic>) {
         if (responseData['errors'] != null &&
             responseData['errors'] is List &&
@@ -86,7 +83,6 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
       } else {
         msg = responseData.toString();
       }
-
       print('Signup failed: $msg');
       state = AsyncError(e, st);
       return msg;
@@ -100,23 +96,20 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
   /// Get employee by ID
   Future<UserModel> getEmployeeById(String id) async {
     try {
-      final user = await _repository.getEmployeeById(id);
-
-      return user;
+      return await _repo.getEmployeeById(id);
     } catch (e) {
       rethrow;
     }
   }
 
-
-  /// Get users
+  /// Get employees
   Future<List<UserModel>> getEmployees() async {
-    return await _repository.getEmployees();
+    return _repo.getEmployees();
   }
 
   /// Get dealers
   Future<List<UserModel>> getDealers() async {
-    return await _repository.getDealers();
+    return _repo.getDealers();
   }
 
   /// Update user
@@ -140,7 +133,7 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
     try {
       String? finalPhotoUrl = photo;
       if (photoFile != null) {
-        finalPhotoUrl = await _repository.uploadFile(photoFile);
+        finalPhotoUrl = await _repo.uploadFile(photoFile);
       }
 
       final updatedUser = oldUser.copyWith(
@@ -160,7 +153,7 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
         throw Exception('employeeId is required for update');
       }
 
-      await _repository.updateUser(
+      await _repo.updateUser(
         updatedUser.employeeId!,
         updatedUser,
         addBrands: addBrands,
@@ -174,11 +167,10 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// ----------------- Get Users by Role
+  /// Get users by role
   Future<List<UserModel>> getUsersByRole(String role) async {
     try {
-      final users = await _repository.getUsersByRole(role);
-      return users;
+      return await _repo.getUsersByRole(role);
     } catch (e) {
       print('Error fetching users by role: $e');
       rethrow;
@@ -189,7 +181,7 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
   Future<String?> deleteUser(String employeeId, String reason) async {
     state = const AsyncLoading();
     try {
-      await _repository.deleteUser(employeeId, reason);
+      await _repo.deleteUser(employeeId, reason);
       state = const AsyncData(null);
       return null;
     } catch (e, st) {
@@ -197,5 +189,59 @@ class SignupController extends StateNotifier<AsyncValue<void>> {
       return 'Delete failed: $e';
     }
   }
+}
 
+// ─────────────────────────────────────────────
+// DealerListNotifier — AsyncNotifier
+// ─────────────────────────────────────────────
+
+class DealerListNotifier extends AsyncNotifier<List<UserModel>> {
+  late final SignupRepository _repo;
+  int _page = 1;
+  static const int _limit = 20;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+
+  bool get hasMore => _hasMore;
+  bool get isLoadingMore => _isLoadingMore;
+
+  @override
+  Future<List<UserModel>> build() async {
+    _repo = ref.watch(signupRepositoryProvider);
+    _page = 1;
+    _hasMore = true;
+    return _repo.getDealers(page: _page, limit: _limit);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    try {
+      _page = 1;
+      _hasMore = true;
+      final dealers = await _repo.getDealers(page: _page, limit: _limit);
+      if (dealers.length < _limit) _hasMore = false;
+      state = AsyncData(dealers);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    final current = state.valueOrNull;
+    if (current == null) return;
+
+    _isLoadingMore = true;
+    try {
+      _page++;
+      final more = await _repo.getDealers(page: _page, limit: _limit);
+      if (more.length < _limit) _hasMore = false;
+      state = AsyncData([...current, ...more]);
+    } catch (_) {
+      _page--;
+      rethrow;
+    } finally {
+      _isLoadingMore = false;
+    }
+  }
 }

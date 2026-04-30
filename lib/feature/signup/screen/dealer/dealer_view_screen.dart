@@ -20,9 +20,6 @@ final dealerProvider = FutureProvider.family<UserModel, String>((ref, id) async 
   return ref.read(signupControllerProvider.notifier).getEmployeeById(id);
 });
 
-final dealerBrandsProvider = FutureProvider.family<List<BrandModel>, String>((ref, id) async {
-  return ref.read(brandControllerProvider.notifier).getBrandsByDealer(id);
-});
 
 // ── Zoho tokens ───────────────────────────────────────────────────────────────
 const _kP       = Color(0xFF185FA5);
@@ -72,6 +69,7 @@ class _DealerViewState extends ConsumerState<DealerView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(dealerDiscountControllerProvider.notifier).getDealerDiscounts(widget.dealerId);
     });
+    ref.read(dealerBrandsProvider(widget.dealerId).future);
   }
 
   void _snack(String msg, Color bg) => ScaffoldMessenger.of(context).showSnackBar(
@@ -403,14 +401,14 @@ class _DealerViewState extends ConsumerState<DealerView> {
   void _editBusiness(BuildContext ctx, WidgetRef ref, UserModel d) async {
     final sw = MediaQuery.sizeOf(ctx).width;
     final sh = MediaQuery.sizeOf(ctx).height;
-    final allBrands = ref.read(activeBrandControllerProvider).maybeWhen(data: (x) => x, orElse: () => <BrandModel>[]);
-    final current = await ref.read(brandControllerProvider.notifier).getBrandsByDealer(widget.dealerId);
+    final allBrands = ref.read(activeBrandControllerProvider)
+        .maybeWhen(data: (x) => x, orElse: () => <BrandModel>[]);
+    final current = await ref.read(dealerBrandsProvider(widget.dealerId).future);
     if (!ctx.mounted) return;
     final currentNames = current.map((b) => b.brandName).toSet();
     final shopC = TextEditingController(text: d.shopName ?? '');
     final Set<BrandModel> toRemove = {};
     final Set<BrandModel> toAdd = {};
-
     await showModalBottomSheet(context: ctx, isScrollControlled: true, backgroundColor: Colors.transparent,
         builder: (bCtx) => StatefulBuilder(builder: (_, setS) {
           final available = allBrands.where((b) => !currentNames.contains(b.brandName)).toList();

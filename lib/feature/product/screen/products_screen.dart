@@ -30,6 +30,10 @@ const _kRedBd   = Color(0xFFFECACA);
 const _kAmber   = Color(0xFFB45309);
 const _kAmberBg = Color(0xFFFFFBEB);
 const _kAmberBd = Color(0xFFFCD28A);
+const _kPurple  = Color(0xFF7C3AED);
+const _kTeal    = Color(0xFF0D6E6E);
+const _kTealBg  = Color(0xFFECFCFC);
+const _kTealBd  = Color(0xFF99E6E6);
 
 // ── Filter tabs ───────────────────────────────────────────────────────────────
 class _FilterTab {
@@ -44,8 +48,15 @@ const _kTabs = [
   _FilterTab(label: 'Inactive', apiValue: 'inactive'),
 ];
 
+// ── Category options ──────────────────────────────────────────────────────────
+const _kCategories = ['All Categories', 'BATTERY', 'INVERTER'];
+
 Color _dotColor(String? v) {
-  switch (v) { case 'active': return _kGreen; case 'inactive': return _kRed; default: return _kT3; }
+  switch (v) {
+    case 'active': return _kGreen;
+    case 'inactive': return _kRed;
+    default: return _kT3;
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -55,19 +66,29 @@ class ProductsScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductsScreenState extends ConsumerState<ProductsScreen> {
+
   int _tabIdx = 0;
   List<String> _brands = [];
+  String _selectedCategory = 'All Categories'; // NEW
   String _query = '';
   bool _showSearch = false;
   final _searchCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   final _chipCtrl = ScrollController();
-
+  bool _fetchingAll = false;
   @override void initState() { super.initState(); _scrollCtrl.addListener(_onScroll); }
   @override void dispose() { _searchCtrl.dispose(); _scrollCtrl.dispose(); _chipCtrl.dispose(); super.dispose(); }
 
+  Future<void> _onCategoryChanged(String cat) async {
+    setState(() { _selectedCategory = cat; _fetchingAll = true; });
+    if (cat != 'All Categories') {
+      await ref.read(productControllerProvider.notifier).fetchAllProducts();
+    }
+    if (mounted) setState(() => _fetchingAll = false);
+  }
+
   void _onScroll() {
-    if (_brands.isNotEmpty) return;
+    if (_brands.isNotEmpty || _hasCategory) return;
     final pos = _scrollCtrl.position;
     if (pos.pixels >= pos.maxScrollExtent - 300) {
       ref.read(productControllerProvider.notifier).fetchMoreProducts();
@@ -76,11 +97,13 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
 
   String get _brandKey => (List<String>.from(_brands)..sort()).join(',');
   String? get _status => _kTabs[_tabIdx].apiValue;
+  bool get _hasCategory => _selectedCategory != 'All Categories';
 
   void _scrollChip(int i) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_chipCtrl.hasClients) return;
-      _chipCtrl.animateTo((i * 100.0 - 60).clamp(0.0, _chipCtrl.position.maxScrollExtent),
+      _chipCtrl.animateTo(
+          (i * 100.0 - 60).clamp(0.0, _chipCtrl.position.maxScrollExtent),
           duration: const Duration(milliseconds: 280), curve: Curves.easeOut);
     });
   }
@@ -93,11 +116,9 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     final productState = _brands.isEmpty
         ? ref.watch(productControllerProvider)
         : ref.watch(productByBrandProvider(_brandKey));
-    final brandState = ref.watch(loadBrandsControllerProvider);
-    final isFetchingMore = _brands.isEmpty &&
-        ref.watch(productControllerProvider.notifier.select((_) => _.isFetchingMore));
-    final hasMore = _brands.isEmpty &&
-        ref.watch(productControllerProvider.notifier.select((_) => _.hasMore));
+    final brandState = ref.watch(brandControllerProvider);
+    final paginationState = ref.watch(productPaginationProvider);
+    final hasMore = _brands.isEmpty && !_hasCategory && paginationState.hasMore;
 
     return productState.when(
         loading: () => const Scaffold(backgroundColor: _kBg,
@@ -105,17 +126,29 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
         error: (err, _) {
           if (_brands.isNotEmpty) {
             return _body(context, sw, sh,
-              filtered: const [], allCount: 0, hasMore: false, brandState: brandState);
+                filtered: const [], allCount: 0, hasMore: false, brandState: brandState);
           }
+          // Auto-invalidate after 2 seconds so next build retries
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) ref.invalidate(productControllerProvider);
+          });
           return _errorScaffold(context, sw, sh);
         },
         data: (products) {
           final allCount = _brands.isEmpty
               ? products.length
               : (ref.read(productControllerProvider).value?.length ?? products.length);
+
           final filtered = products.where((p) {
+            // Status filter
             final statusOk = _status == null || p.status?.toLowerCase() == _status;
             if (!statusOk) return false;
+            // Category filter
+            if (_hasCategory) {
+              final cat = p.productCategory?.toUpperCase() ?? '';
+              if (cat != _selectedCategory) return false;
+            }
+            // Search filter
             if (_query.isEmpty) return true;
             final q = _query.toLowerCase();
             return (p.productName?.toLowerCase().contains(q) ?? false) ||
@@ -123,7 +156,9 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 (p.model?.toLowerCase().contains(q) ?? false) ||
                 (p.productType?.toLowerCase().contains(q) ?? false);
           }).toList();
-          return _body(context, sw, sh, filtered: filtered, allCount: allCount,
+
+          return _body(context, sw, sh,
+              filtered: filtered, allCount: allCount,
               hasMore: hasMore, brandState: brandState);
         });
   }
@@ -131,6 +166,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   Widget _body(BuildContext context, double sw, double sh, {
     required List filtered, required int allCount,
     required bool hasMore, required AsyncValue<List<BrandModel>> brandState}) {
+
     return Scaffold(backgroundColor: _kBg,
         body: SafeArea(child: Column(children: [
           // ── Header ───────────────────────────────────────────────────────
@@ -153,17 +189,21 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                               MaterialPageRoute(builder: (_) => const ProductCreateScreen())))),
                 ])),
 
-            // ── Chips ──────────────────────────────────────────────────────
+            // ── Chips row ──────────────────────────────────────────────────
             SizedBox(height: sh * 0.048,
                 child: ListView.builder(
-                    controller: _chipCtrl, scrollDirection: Axis.horizontal,
+                    controller: _chipCtrl,
+                    scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
                     padding: EdgeInsets.fromLTRB(sw * 0.04, 0, sw * 0.04, sh * 0.006),
-                    itemCount: _kTabs.length + 1,
+                    // Status tabs + Category chip + Brand chip
+                    itemCount: _kTabs.length + 2,
                     itemBuilder: (_, i) {
-                      if (i == _kTabs.length) return _brandChip(sw, brandState);
-                      return _statusChip(sw, i);
+                      if (i < _kTabs.length) return _statusChip(sw, i);
+                      if (i == _kTabs.length) return _categoryChip(sw, sh);
+                      return _brandChip(sw, brandState);
                     })),
+
             Divider(height: 1, color: _kBd),
           ])),
 
@@ -171,12 +211,19 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           Expanded(child: filtered.isEmpty
               ? _emptyView(sw, sh)
               : RefreshIndicator(color: _kP, backgroundColor: _kWhite,
-              onRefresh: () async => ref.read(productControllerProvider.notifier).fetchProducts(),
+              onRefresh: () async {
+                await ref
+                    .read(productControllerProvider.notifier)
+                    .fetchProducts();
+                if (_hasCategory) {
+                  await _onCategoryChanged(_selectedCategory);
+                }
+              },
               child: ListView.builder(
                   controller: _scrollCtrl,
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.fromLTRB(sw * 0.038, sh * 0.012, sw * 0.038, sh * 0.04),
-                  itemCount: filtered.length + (_brands.isEmpty && hasMore ? 1 : 0),
+                  itemCount: filtered.length + (_brands.isEmpty && !_hasCategory && hasMore ? 1 : 0),
                   itemBuilder: (_, i) {
                     if (i == filtered.length) {
                       return Padding(padding: EdgeInsets.symmetric(vertical: sw * 0.05),
@@ -190,7 +237,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
         ])));
   }
 
-  // ── Status chip ─────────────────────────────────────────────────────────
+  // ── Status chip ───────────────────────────────────────────────────────────
   Widget _statusChip(double sw, int i) {
     final tab = _kTabs[i];
     final sel = _tabIdx == i;
@@ -217,7 +264,180 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             ])));
   }
 
-  // ── Brand chip ──────────────────────────────────────────────────────────
+  // ── Category chip ─────────────────────────────────────────────────────────
+  Widget _categoryChip(double sw, double sh) {
+    final has = _hasCategory;
+    return GestureDetector(
+        onTap: () => _showCategorySheet(context, sw, sh),
+        child: Container(
+            margin: EdgeInsets.only(right: sw * 0.02),
+            padding: EdgeInsets.symmetric(
+                horizontal: (sw * 0.032).clamp(10.0, 16.0),
+                vertical: (sw * 0.014).clamp(5.0, 8.0)),
+            decoration: BoxDecoration(
+                color: has ? _kTealBg : _kBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: has ? _kTealBd : _kBd, width: has ? 1.0 : 0.5)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(width: (sw * 0.016).clamp(5.0, 8.0),
+                  height: (sw * 0.016).clamp(5.0, 8.0),
+                  decoration: BoxDecoration(
+                      color: has ? _kTeal : _kT4, shape: BoxShape.circle)),
+              SizedBox(width: sw * 0.015),
+              Text(has ? _selectedCategory : 'Category',
+                  style: TextStyle(
+                      fontSize: (sw * 0.03).clamp(10.0, 13.0),
+                      fontWeight: has ? FontWeight.w700 : FontWeight.w500,
+                      color: has ? _kT1 : _kT4)),
+              if (has) ...[
+                SizedBox(width: sw * 0.012),
+                GestureDetector(
+                    onTap: () => setState(() => _selectedCategory = 'All Categories'),
+                    child: Icon(Icons.close_rounded,
+                        size: (sw * 0.032).clamp(11.0, 14.0), color: _kTeal)),
+              ] else ...[
+                SizedBox(width: sw * 0.008),
+                Icon(Icons.keyboard_arrow_down_rounded,
+                    size: (sw * 0.035).clamp(12.0, 16.0), color: _kT4),
+              ],
+            ])));
+  }
+
+  // ── Category bottom sheet ─────────────────────────────────────────────────
+  void _showCategorySheet(BuildContext context, double sw, double sh) {
+    showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: _kWhite,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+                top: Radius.circular((sw * 0.05).clamp(14.0, 22.0)))),
+        builder: (_) => StatefulBuilder(
+            builder: (ctx, setModal) => Padding(
+                padding: EdgeInsets.fromLTRB(sw * 0.05, sw * 0.035, sw * 0.05, sw * 0.06),
+                child: Column(mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      // ── Drag handle ─────────────────────────────────────────
+                      Center(child: Container(
+                          width: 36, height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(color: _kBd, borderRadius: BorderRadius.circular(2)))),
+
+                      // ── Sheet header ────────────────────────────────────────
+                      Row(children: [
+                        Container(
+                            width: (sw * 0.09).clamp(32.0, 42.0),
+                            height: (sw * 0.09).clamp(32.0, 42.0),
+                            decoration: BoxDecoration(color: _kTealBg,
+                                borderRadius: BorderRadius.circular((sw * 0.025).clamp(8.0, 12.0))),
+                            child: Icon(Icons.category_outlined,
+                                size: (sw * 0.045).clamp(15.0, 20.0), color: _kTeal)),
+                        SizedBox(width: sw * 0.03),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('Filter by Category', style: TextStyle(
+                              fontSize: (sw * 0.042).clamp(14.0, 19.0),
+                              fontWeight: FontWeight.w700, color: _kT1)),
+                          Text('Select a product category', style: TextStyle(
+                              fontSize: (sw * 0.028).clamp(9.5, 12.5), color: _kT4)),
+                        ])),
+                      ]),
+
+                      SizedBox(height: sw * 0.035),
+                      Divider(height: 1, color: _kBd),
+                      SizedBox(height: sw * 0.025),
+
+                      // ── Category options ────────────────────────────────────
+                      ..._kCategories.map((cat) {
+                        final isAll = cat == 'All Categories';
+                        final sel = _selectedCategory == cat;
+
+                        // Icon per category
+                        IconData catIcon;
+                        Color catColor;
+                        Color catBg;
+                        switch (cat) {
+                          case 'BATTERY':
+                            catIcon = Icons.battery_charging_full_rounded;
+                            catColor = _kGreen;
+                            catBg = _kGreenBg;
+                            break;
+                          case 'INVERTER':
+                            catIcon = Icons.bolt_rounded;
+                            catColor = _kP;
+                            catBg = _kPBg;
+                            break;
+                          default: // All Categories
+                            catIcon = Icons.apps_rounded;
+                            catColor = _kT3;
+                            catBg = _kBg;
+                        }
+
+                        return GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                              _onCategoryChanged(cat);
+                            },
+                            child: Container(
+                                margin: EdgeInsets.only(bottom: sw * 0.025),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: sw * 0.04, vertical: sw * 0.032),
+                                decoration: BoxDecoration(
+                                    color: sel ? catBg : _kBg,
+                                    borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+                                    border: Border.all(
+                                        color: sel
+                                            ? catColor.withValues(alpha: 0.5)
+                                            : _kBd,
+                                        width: sel ? 1.5 : 0.5)),
+                                child: Row(children: [
+                                  // Category icon box
+                                  Container(
+                                      width: (sw * 0.085).clamp(30.0, 40.0),
+                                      height: (sw * 0.085).clamp(30.0, 40.0),
+                                      decoration: BoxDecoration(
+                                          color: sel ? catColor.withValues(alpha: 0.15) : _kWhite,
+                                          borderRadius: BorderRadius.circular((sw * 0.02).clamp(6.0, 10.0)),
+                                          border: Border.all(
+                                              color: sel ? catColor.withValues(alpha: 0.3) : _kBd,
+                                              width: 0.5)),
+                                      child: Icon(catIcon,
+                                          size: (sw * 0.042).clamp(14.0, 20.0),
+                                          color: sel ? catColor : _kT4)),
+                                  SizedBox(width: sw * 0.03),
+                                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Text(cat, style: TextStyle(
+                                        fontSize: (sw * 0.036).clamp(12.0, 15.5),
+                                        fontWeight: sel ? FontWeight.w700 : FontWeight.w600,
+                                        color: sel ? catColor : _kT1)),
+                                    if (!isAll)
+                                      Text('Show ${cat.toLowerCase()} products only',
+                                          style: TextStyle(
+                                              fontSize: (sw * 0.026).clamp(9.0, 11.5),
+                                              color: _kT4)),
+                                  ])),
+                                  // Radio indicator
+                                  Container(
+                                      width: (sw * 0.048).clamp(16.0, 22.0),
+                                      height: (sw * 0.048).clamp(16.0, 22.0),
+                                      decoration: BoxDecoration(
+                                          color: sel ? catColor : _kWhite,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                              color: sel ? catColor : _kBd,
+                                              width: 1.5)),
+                                      child: sel
+                                          ? Icon(Icons.check_rounded,
+                                          size: (sw * 0.03).clamp(10.0, 13.0),
+                                          color: _kWhite)
+                                          : null),
+                                ])));
+                      }),
+
+                      SizedBox(height: sw * 0.01),
+                    ]))));
+  }
+
+  // ── Brand chip ────────────────────────────────────────────────────────────
   Widget _brandChip(double sw, AsyncValue<List<BrandModel>> brandState) {
     final has = _brands.isNotEmpty;
     return GestureDetector(
@@ -242,12 +462,13 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               if (has) ...[
                 SizedBox(width: sw * 0.012),
                 GestureDetector(onTap: () => setState(() => _brands = []),
-                    child: Icon(Icons.close_rounded, size: (sw * 0.032).clamp(11.0, 14.0), color: _kAmber)),
+                    child: Icon(Icons.close_rounded,
+                        size: (sw * 0.032).clamp(11.0, 14.0), color: _kAmber)),
               ],
             ])));
   }
 
-  // ── Search bar ──────────────────────────────────────────────────────────
+  // ── Search bar ────────────────────────────────────────────────────────────
   Widget _searchBar(double sw) {
     final r = (sw * 0.028).clamp(8.0, 12.0);
     return Row(children: [
@@ -272,7 +493,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     ]);
   }
 
-  // ── Brand filter sheet ──────────────────────────────────────────────────
+  // ── Brand filter sheet ────────────────────────────────────────────────────
   void _showBrandSheet(BuildContext context, double sw, double sh,
       AsyncValue<List<BrandModel>> brandState) {
     var temp = List<String>.from(_brands);
@@ -288,7 +509,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   Center(child: Container(width: 36, height: 4,
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(color: _kBd, borderRadius: BorderRadius.circular(2)))),
-                  // Header
                   Row(children: [
                     Container(width: (sw * 0.09).clamp(32.0, 42.0),
                         height: (sw * 0.09).clamp(32.0, 42.0),
@@ -318,22 +538,32 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   ]),
                   SizedBox(height: sw * 0.035),
                   Divider(height: 1, color: _kBd),
+                  if (_fetchingAll)
+                    LinearProgressIndicator(
+                      color: _kTeal,
+                      backgroundColor: _kTealBg,
+                      minHeight: 2,
+                    ),
                   SizedBox(height: sw * 0.025),
-                  // Brand list
                   Expanded(child: brandState.when(
                       loading: () => const Center(child: CircularProgressIndicator(color: _kAmber, strokeWidth: 2.5)),
                       error: (_, __) => Center(child: Text('Failed to load brands',
                           style: TextStyle(fontSize: (sw * 0.034).clamp(11.5, 15.0), color: _kRed))),
                       data: (brands) {
-                        if (brands.isEmpty) return Center(child: Text('No brands available',
+                        if (brands.isEmpty) {
+                          return Center(child: Text('No brands available',
                             style: TextStyle(fontSize: (sw * 0.034).clamp(11.5, 15.0), color: _kT4)));
+                        }
                         return ListView.builder(controller: sc, itemCount: brands.length,
                             itemBuilder: (_, i) {
                               final b = brands[i]; final sel = temp.contains(b.brandName);
                               return GestureDetector(
                                   onTap: () => setModal(() {
-                                    if (sel) temp = temp.where((x) => x != b.brandName).toList();
-                                    else temp = [...temp, b.brandName];
+                                    if (sel) {
+                                      temp = temp.where((x) => x != b.brandName).toList();
+                                    } else {
+                                      temp = [...temp, b.brandName];
+                                    }
                                   }),
                                   child: Container(
                                       margin: EdgeInsets.only(bottom: sw * 0.02),
@@ -377,10 +607,11 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 ])))));
   }
 
-  // ── Empty view ──────────────────────────────────────────────────────────
+  // ── Empty view ────────────────────────────────────────────────────────────
   Widget _emptyView(double sw, double sh) {
     String msg, sub;
     if (_query.isNotEmpty) { msg = 'No results for "$_query"'; sub = 'Try a different search term'; }
+    else if (_hasCategory) { msg = 'No $_selectedCategory products'; sub = 'Try a different category'; }
     else if (_brands.isNotEmpty) { msg = 'No products from selected brand${_brands.length > 1 ? 's' : ''}'; sub = 'Try selecting a different brand'; }
     else if (_tabIdx != 0) { msg = 'No ${_kTabs[_tabIdx].label} products'; sub = 'Try a different filter'; }
     else { msg = 'No products found'; sub = 'Try adjusting your filters'; }
@@ -397,6 +628,26 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
       SizedBox(height: sh * 0.006),
       Text(sub, style: TextStyle(fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4),
           textAlign: TextAlign.center),
+
+      // Clear category button
+      if (_hasCategory) ...[
+        SizedBox(height: sh * 0.02),
+        GestureDetector(onTap: () => setState(() => _selectedCategory = 'All Categories'),
+            child: Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: (sw * 0.04).clamp(14.0, 20.0),
+                    vertical: (sw * 0.022).clamp(7.0, 12.0)),
+                decoration: BoxDecoration(color: _kTealBg,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _kTealBd, width: 0.5)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.close_rounded, size: (sw * 0.035).clamp(12.0, 16.0), color: _kTeal),
+                  SizedBox(width: sw * 0.015),
+                  Text('Clear category filter', style: TextStyle(
+                      fontSize: (sw * 0.03).clamp(10.0, 13.0), fontWeight: FontWeight.w700, color: _kTeal)),
+                ]))),
+      ],
+
       if (_brands.isNotEmpty) ...[
         SizedBox(height: sh * 0.02),
         GestureDetector(onTap: () => setState(() => _brands = []),
@@ -414,7 +665,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                       fontSize: (sw * 0.03).clamp(10.0, 13.0), fontWeight: FontWeight.w700, color: _kAmber)),
                 ]))),
       ],
-      if (_brands.isEmpty && _tabIdx != 0) ...[
+
+      if (_brands.isEmpty && !_hasCategory && _tabIdx != 0) ...[
         SizedBox(height: sh * 0.02),
         GestureDetector(onTap: () => setState(() => _tabIdx = 0),
             child: Container(
@@ -434,7 +686,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     ]));
   }
 
-  // ── Error scaffold ──────────────────────────────────────────────────────
+  // ── Error scaffold ────────────────────────────────────────────────────────
   Widget _errorScaffold(BuildContext context, double sw, double sh) {
     return Scaffold(backgroundColor: _kBg,
         body: SafeArea(child: Column(children: [
@@ -461,7 +713,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 style: TextStyle(fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
             SizedBox(height: sh * 0.025),
             ElevatedButton.icon(
-                onPressed: () => ref.read(productControllerProvider.notifier).fetchProducts(),
+                onPressed: () => ref.read(productControllerProvider),
                 icon: Icon(Icons.refresh_rounded, size: (sw * 0.04).clamp(14.0, 18.0)),
                 label: Text('Retry', style: TextStyle(
                     fontSize: (sw * 0.034).clamp(11.5, 15.0), fontWeight: FontWeight.w700)),
@@ -477,7 +729,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// Product Card — Zoho Books minimal
+// Product Card
 // ═════════════════════════════════════════════════════════════════════════════
 class _ProductCard extends StatelessWidget {
   const _ProductCard({required this.product, required this.sw,
@@ -497,7 +749,6 @@ class _ProductCard extends StatelessWidget {
                 border: Border.all(color: _kBd, width: 0.5)),
             child: Padding(padding: EdgeInsets.all(sw * 0.035),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  // Row 1: icon + name + status
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Container(
                         width: (sw * 0.095).clamp(34.0, 46.0),
@@ -516,9 +767,25 @@ class _ProductCard extends StatelessWidget {
                           maxLines: 2, overflow: TextOverflow.ellipsis),
                       SizedBox(height: sw * 0.006),
                       Row(children: [
-                        _Tag(sw: sw, label: product.brand ?? '-', color: _kAmber, bg: _kAmberBg),
+                        Flexible(
+                          child: _Tag(sw: sw, label: product.brand ?? '-', color: _kAmber, bg: _kAmberBg),
+                        ),
                         SizedBox(width: sw * 0.012),
-                        _Tag(sw: sw, label: product.model ?? '-', color: _kT3, bg: _kBg),
+                        Flexible(
+                          child: _Tag(sw: sw, label: product.model ?? '-', color: _kT3, bg: _kBg),
+                        ),
+                        SizedBox(width: sw * 0.008),
+                        Flexible(
+                          child: Text(
+                            product.productCategory ?? '-',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: (sw * 0.028).clamp(9.5, 12.5),
+                              color: _kPurple,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                       ]),
                     ])),
                     SizedBox(width: sw * 0.015),
@@ -539,8 +806,6 @@ class _ProductCard extends StatelessWidget {
                               fontWeight: FontWeight.w700, color: active ? _kGreen : _kRed)),
                         ])),
                   ]),
-
-                  // Type
                   SizedBox(height: sw * 0.02),
                   Row(children: [
                     Icon(Icons.category_outlined, size: (sw * 0.03).clamp(10.0, 14.0), color: _kT4),
@@ -548,12 +813,9 @@ class _ProductCard extends StatelessWidget {
                     Text(product.productType ?? '-', style: TextStyle(
                         fontSize: (sw * 0.028).clamp(9.5, 12.5), color: _kT4, fontWeight: FontWeight.w500)),
                   ]),
-
                   SizedBox(height: sw * 0.02),
                   Divider(height: 1, color: _kBd),
                   SizedBox(height: sw * 0.02),
-
-                  // Stock + Price
                   Row(children: [
                     RoleGuard(feature: AppFeature.viewStock,
                         child: Row(children: [

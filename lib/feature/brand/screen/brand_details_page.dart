@@ -73,7 +73,9 @@ class _DetailViewState extends ConsumerState<_DetailView> {
               padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.015, sw * 0.04, sh * 0.015),
               child: Row(children: [
                 CircularIconButton(icon: Icons.arrow_back_ios_rounded,
-                    onTap: () { ref.invalidate(loadBrandsControllerProvider); Navigator.pop(context); }),
+                    onTap: () {
+                  Navigator.pop(context);
+                }),
                 const Spacer(),
                 Text('Brand Details', style: TextStyle(
                     fontSize: (sw * 0.042).clamp(14.0, 20.0), fontWeight: FontWeight.w700,

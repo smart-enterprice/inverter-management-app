@@ -78,21 +78,27 @@ class OrderRepository {
 
   /// ✅ Get orders by date filter
   Future<List<OrderModel>> getOrdersByDateFilter({
-    required String startDate,
-    required String endDate,
+    String? startDate,
+    String? endDate,
+    String? deliveryStartDate,
+    String? deliveryEndDate,
+    int page = 1,
+    int limit = 20,
   }) async {
     try {
-      final start = DateTime.parse(startDate);
-
       final queryParameters = <String, dynamic>{
-        // 'year': start.year,
-        // 'month': start.month,
-        'start_date': startDate,
-        'end_date': endDate,
+        'page': page,
+        'limit': limit,
+        if (startDate != null && startDate.isNotEmpty) 'startDate': startDate,
+        if (endDate != null && endDate.isNotEmpty) 'endDate': endDate,
+        if (deliveryStartDate != null && deliveryStartDate.isNotEmpty)
+          'deliveryStartDate': deliveryStartDate,
+        if (deliveryEndDate != null && deliveryEndDate.isNotEmpty)
+          'deliveryEndDate': deliveryEndDate,
       };
 
       final response = await _dio.get(
-        '/order-details/date-filter',
+        '/order-details?',
         queryParameters: queryParameters,
       );
 

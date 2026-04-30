@@ -2,27 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/media_query/media_query.dart';
 import '../../../model/order_model.dart';
+import '../../../widgets/circle_button.dart';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const _kBlue        = Color(0xFF1B4FD8);
-const _kBlueBg      = Color(0xFFEEF2FF);
-const _kBlueBorder  = Color(0xFFC7D4FF);
-const _kBg          = Color(0xFFF2F4F8);
-const _kCard        = Colors.white;
-const _kBorder      = Color(0xFFE5E7EB);
-const _kDark        = Color(0xFF111827);
-const _kMid         = Color(0xFF374151);
-const _kMuted       = Color(0xFF9CA3AF);
-const _kGreen       = Color(0xFF0A8A5C);
-const _kGreenBg     = Color(0xFFEDFAF4);
-const _kGreenBorder = Color(0xFF9FE0C5);
-const _kAmber       = Color(0xFFB45309);
-const _kAmberBg     = Color(0xFFFFFBEB);
-const _kAmberBorder = Color(0xFFFCD28A);
+// ── Zoho Books design tokens (unified with the rest of the app) ───────────────
+const _kP        = Color(0xFF185FA5);
+const _kPBg      = Color(0xFFEBF4FF);
+const _kPBd      = Color(0xFFBFD9F5);
+const _kBg       = Color(0xFFF7F8FA);
+const _kWhite    = Colors.white;
+const _kBd       = Color(0xFFE5E7EB);
+const _kT1       = Color(0xFF111827);
+const _kT2       = Color(0xFF374151);
+const _kT4       = Color(0xFF9CA3AF);
+const _kGreen    = Color(0xFF0F6E56);
+const _kGreenBg  = Color(0xFFEDFAF5);
+const _kGreenBd  = Color(0xFF9FE0C5);
+const _kAmber    = Color(0xFFB45309);
+const _kAmberBg  = Color(0xFFFFFBEB);
+const _kAmberBd  = Color(0xFFFCD28A);
 
-// ─── Parsed payment entry ─────────────────────────────────────────────────────
+// ── Parsed payment entry ──────────────────────────────────────────────────────
 class _PaymentEntry {
-  final num amount;
+  final num    amount;
   final String method;
   final String rawDate;
   final String raw;
@@ -36,43 +37,48 @@ class _PaymentEntry {
 
   static _PaymentEntry? tryParse(String note) {
     try {
-      final amountMatch = RegExp(r'[\d,]+').firstMatch(note.replaceAll('💰', '').trim());
+      final amountMatch = RegExp(r'[\d,]+')
+          .firstMatch(note.replaceAll('💰', '').trim());
       if (amountMatch == null) return null;
-      final amount = num.tryParse(amountMatch.group(0)!.replaceAll(',', ''));
+      final amount =
+      num.tryParse(amountMatch.group(0)!.replaceAll(',', ''));
       if (amount == null) return null;
-      final viaMatch = RegExp(r'via\s+(\w+)', caseSensitive: false).firstMatch(note);
+      final viaMatch =
+      RegExp(r'via\s+(\w+)', caseSensitive: false).firstMatch(note);
       final method = viaMatch?.group(1)?.toUpperCase() ?? 'N/A';
-      final onMatch = RegExp(r'on\s+(.+)$', caseSensitive: false).firstMatch(note);
+      final onMatch =
+      RegExp(r'on\s+(.+)$', caseSensitive: false).firstMatch(note);
       final rawDate = onMatch?.group(1)?.trim() ?? '';
-      return _PaymentEntry(amount: amount, method: method, rawDate: rawDate, raw: note);
+      return _PaymentEntry(
+          amount: amount, method: method, rawDate: rawDate, raw: note);
     } catch (_) {
       return null;
     }
   }
 
-  Color get methodColor  => method == 'BANK' ? _kBlue  : _kGreen;
-  Color get methodBg     => method == 'BANK' ? _kBlueBg  : _kGreenBg;
-  Color get methodBorder => method == 'BANK' ? _kBlueBorder : _kGreenBorder;
-  IconData get methodIcon =>
-      method == 'BANK' ? Icons.account_balance_outlined : Icons.payments_outlined;
+  Color    get methodColor => method == 'BANK' ? _kP      : _kGreen;
+  Color    get methodBg    => method == 'BANK' ? _kPBg    : _kGreenBg;
+  Color    get methodBd    => method == 'BANK' ? _kPBd    : _kGreenBd;
+  IconData get methodIcon  => method == 'BANK'
+      ? Icons.account_balance_outlined
+      : Icons.payments_outlined;
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 class PaymentHistoryPage extends StatelessWidget {
   final OrderModel order;
   const PaymentHistoryPage({super.key, required this.order});
 
-  // ── Payment status helpers ──────────────────────────────────────────────
-  Color _paymentStatusColor(String? s) {
+  Color _statusColor(String? s) {
     switch (s?.toUpperCase()) {
       case 'PAID':    return _kGreen;
       case 'PARTIAL':
       case 'PENDING': return _kAmber;
-      default:        return _kMuted;
+      default:        return _kT4;
     }
   }
 
-  Color _paymentStatusBg(String? s) {
+  Color _statusBg(String? s) {
     switch (s?.toUpperCase()) {
       case 'PAID':    return _kGreenBg;
       case 'PARTIAL':
@@ -81,12 +87,12 @@ class PaymentHistoryPage extends StatelessWidget {
     }
   }
 
-  Color _paymentStatusBorder(String? s) {
+  Color _statusBd(String? s) {
     switch (s?.toUpperCase()) {
-      case 'PAID':    return _kGreenBorder;
+      case 'PAID':    return _kGreenBd;
       case 'PARTIAL':
-      case 'PENDING': return _kAmberBorder;
-      default:        return _kBorder;
+      case 'PENDING': return _kAmberBd;
+      default:        return _kBd;
     }
   }
 
@@ -102,8 +108,8 @@ class PaymentHistoryPage extends StatelessWidget {
         .reversed
         .toList();
 
-    final totalPaid = order.amountPaid;
-    final totalDue  = order.amountDue ?? 0;
+    final totalPaid = order.amountPaid ?? 0;
+    final totalDue  = order.amountDue  ?? 0;
     final cashTotal = entries
         .where((e) => e.method == 'CASH')
         .fold<num>(0, (s, e) => s + e.amount);
@@ -113,302 +119,283 @@ class PaymentHistoryPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: _kBg,
-      body: SafeArea(
-        child: Column(children: [
+      body: SafeArea(child: Column(children: [
 
-          // ── Top nav ───────────────────────────────────────────────────────
-          Container(
-            color: _kCard,
-            padding: EdgeInsets.fromLTRB(
-                sw * 0.04, sh * 0.015, sw * 0.04, sh * 0.015),
-            child: Row(children: [
-              // Back button
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width:  (sw * 0.1).clamp(36.0, 48.0),
-                  height: (sw * 0.1).clamp(36.0, 48.0),
-                  decoration: BoxDecoration(
-                    color: _kCard,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: _kBorder),
-                    boxShadow: [BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 6, offset: const Offset(0, 2))],
-                  ),
-                  child: Icon(Icons.arrow_back_ios_rounded,
-                      size: (sw * 0.04).clamp(14.0, 20.0), color: _kDark),
-                ),
-              ),
-              SizedBox(width: sw * 0.03),
-
-              // Title + order number
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Payment History', style: TextStyle(
-                      fontSize: (sw * 0.042).clamp(14.0, 20.0),
-                      fontWeight: FontWeight.w700,
-                      color: _kDark,
+        // ── App Bar ──────────────────────────────────────────────────
+        Container(
+          color:   _kWhite,
+          padding: EdgeInsets.fromLTRB(
+              sw * 0.04, sh * 0.015, sw * 0.04, sh * 0.015),
+          child: Row(children: [
+            CircularIconButton(
+                icon: Icons.arrow_back_ios_rounded,
+                onTap: () => Navigator.pop(context)),
+            const Spacer(),
+            Column(children: [
+              Text('Payment History',
+                  style: TextStyle(
+                      fontSize:     (sw * 0.042).clamp(14.0, 20.0),
+                      fontWeight:   FontWeight.w700,
+                      color:        _kT1,
                       letterSpacing: -0.2)),
-                  Text(order.orderNumber ?? '', style: TextStyle(
-                      fontSize: (sw * 0.028).clamp(9.5, 13.0),
-                      color: _kMuted,
-                      fontWeight: FontWeight.w500)),
-                ],
-              )),
-
-              // Payment status badge
-              Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: (sw * 0.03).clamp(10.0, 14.0),
-                    vertical:   (sw * 0.012).clamp(4.0, 7.0)),
-                decoration: BoxDecoration(
-                  color: _paymentStatusBg(order.paymentStatus),
+              if ((order.orderNumber ?? '').isNotEmpty)
+                Text(order.orderNumber!,
+                    style: TextStyle(
+                        fontSize:   (sw * 0.028).clamp(9.5, 12.5),
+                        color:      _kT4,
+                        fontWeight: FontWeight.w500)),
+            ]),
+            const Spacer(),
+            // Status pill
+            Container(
+              padding: EdgeInsets.symmetric(
+                  horizontal: (sw * 0.025).clamp(8.0, 12.0),
+                  vertical:   (sw * 0.008).clamp(3.0, 5.0)),
+              decoration: BoxDecoration(
+                  color:        _statusBg(order.paymentStatus),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                      color: _paymentStatusBorder(order.paymentStatus),
-                      width: 1.5),
+                      color: _statusBd(order.paymentStatus), width: 0.5)),
+              child: Text(order.paymentStatus ?? 'N/A',
+                  style: TextStyle(
+                      fontSize:   (sw * 0.026).clamp(9.0, 11.5),
+                      fontWeight: FontWeight.w700,
+                      color:      _statusColor(order.paymentStatus))),
+            ),
+          ]),
+        ),
+
+        // ── Scrollable body ──────────────────────────────────────────
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+                sw * 0.038, sh * 0.012, sw * 0.038, sh * 0.04),
+            child: Column(children: [
+
+              // ── Summary ──────────────────────────────────────────
+              Row(children: [
+                Expanded(
+                  child: _SummaryCard(
+                    sw: sw, label: 'Total Paid', amount: totalPaid,
+                    color: _kGreen, bg: _kGreenBg, bd: _kGreenBd,
+                    icon: Icons.check_circle_outline_rounded,
+                  ),
                 ),
-                child: Text(order.paymentStatus ?? 'N/A', style: TextStyle(
-                    fontSize: (sw * 0.028).clamp(9.5, 13.0),
-                    fontWeight: FontWeight.w700,
-                    color: _paymentStatusColor(order.paymentStatus))),
+                SizedBox(width: sw * 0.03),
+                Expanded(
+                  child: _SummaryCard(
+                    sw: sw, label: 'Amount Due', amount: totalDue,
+                    color: totalDue > 0 ? _kAmber : _kGreen,
+                    bg:    totalDue > 0 ? _kAmberBg : _kGreenBg,
+                    bd:    totalDue > 0 ? _kAmberBd : _kGreenBd,
+                    icon:  totalDue > 0
+                        ? Icons.pending_outlined
+                        : Icons.task_alt_rounded,
+                  ),
+                ),
+              ]),
+              SizedBox(height: sh * 0.012),
+
+              // ── Method breakdown ────────────────────────────────
+              if (cashTotal > 0 || bankTotal > 0) ...[
+                _Sec(
+                  sw: sw,
+                  icon: Icons.bar_chart_rounded,
+                  iconBg: _kBg, iconColor: _kT1,
+                  title: 'Breakdown by Method',
+                  child: Row(children: [
+                    if (cashTotal > 0)
+                      Expanded(
+                        child: _MethodBreakdown(
+                          sw: sw, label: 'Cash', amount: cashTotal,
+                          icon: Icons.payments_outlined,
+                          color: _kGreen, bg: _kGreenBg, bd: _kGreenBd,
+                        ),
+                      ),
+                    if (cashTotal > 0 && bankTotal > 0)
+                      Container(
+                          width: 1, height: sw * 0.14, color: _kBd,
+                          margin: EdgeInsets.symmetric(
+                              horizontal: sw * 0.03)),
+                    if (bankTotal > 0)
+                      Expanded(
+                        child: _MethodBreakdown(
+                          sw: sw, label: 'Bank', amount: bankTotal,
+                          icon: Icons.account_balance_outlined,
+                          color: _kP, bg: _kPBg, bd: _kPBd,
+                        ),
+                      ),
+                  ]),
+                ),
+                SizedBox(height: sh * 0.012),
+              ],
+
+              // ── Transactions ────────────────────────────────────
+              _Sec(
+                sw: sw,
+                icon: Icons.receipt_long_rounded,
+                iconBg: _kPBg, iconColor: _kP,
+                title: 'Transactions',
+                trailing: Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: (sw * 0.025).clamp(8.0, 12.0),
+                      vertical:   (sw * 0.008).clamp(3.0, 5.0)),
+                  decoration: BoxDecoration(
+                      color:        _kPBg,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _kPBd, width: 0.5)),
+                  child: Text('${entries.length}',
+                      style: TextStyle(
+                          fontSize:   (sw * 0.026).clamp(9.0, 11.5),
+                          fontWeight: FontWeight.w700,
+                          color:      _kP)),
+                ),
+                child: entries.isEmpty
+                    ? _EmptyTransactions(sw: sw, sh: sh)
+                    : Column(
+                  children: entries.asMap().entries.map((e) {
+                    final isLast =
+                        e.key == entries.length - 1;
+                    return Column(children: [
+                      _TransactionRow(
+                        sw:    sw,
+                        sh:    sh,
+                        entry: e.value,
+                        index: e.key,
+                        total: entries.length,
+                      ),
+                      if (!isLast) Divider(height: 1, color: _kBd),
+                    ]);
+                  }).toList(),
+                ),
               ),
             ]),
           ),
-
-          // ── Scrollable body ───────────────────────────────────────────────
-          Expanded(child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: sw * 0.038),
-            child: Column(children: [
-              SizedBox(height: sh * 0.012),
-
-              // ── Summary cards ──────────────────────────────────────────
-              Row(children: [
-                Expanded(child: _SummaryCard(
-                  sw: sw,
-                  label: 'Total Paid',
-                  amount: totalPaid,
-                  color: _kGreen,
-                  bg: _kGreenBg,
-                  border: _kGreenBorder,
-                  icon: Icons.check_circle_outline_rounded,
-                )),
-                SizedBox(width: sw * 0.03),
-                Expanded(child: _SummaryCard(
-                  sw: sw,
-                  label: 'Amount Due',
-                  amount: totalDue,
-                  color:  totalDue > 0 ? _kAmber : _kGreen,
-                  bg:     totalDue > 0 ? _kAmberBg : _kGreenBg,
-                  border: totalDue > 0 ? _kAmberBorder : _kGreenBorder,
-                  icon:   totalDue > 0
-                      ? Icons.pending_outlined
-                      : Icons.task_alt_rounded,
-                )),
-              ]),
-              SizedBox(height: sh * 0.015),
-
-              // ── Method breakdown ───────────────────────────────────────
-              if (cashTotal > 0 || bankTotal > 0) ...[
-                Container(
-                  padding: EdgeInsets.all((sw * 0.04).clamp(12.0, 20.0)),
-                  decoration: BoxDecoration(
-                    color: _kCard,
-                    borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
-                    border: Border.all(color: _kBorder, width: 0.5),
-                    boxShadow: [BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 6, offset: const Offset(0, 2))],
-                  ),
-                  child: Row(children: [
-                    if (cashTotal > 0)
-                      Expanded(child: _MethodBreakdown(
-                        sw: sw,
-                        label: 'Cash',
-                        amount: cashTotal,
-                        icon: Icons.payments_outlined,
-                        color: _kGreen,
-                        bg: _kGreenBg,
-                        border: _kGreenBorder,
-                      )),
-                    if (cashTotal > 0 && bankTotal > 0)
-                      Container(
-                          width: 1,
-                          height: (sw * 0.12).clamp(40.0, 60.0),
-                          color: _kBorder,
-                          margin: EdgeInsets.symmetric(
-                              horizontal: (sw * 0.03).clamp(10.0, 16.0))),
-                    if (bankTotal > 0)
-                      Expanded(child: _MethodBreakdown(
-                        sw: sw,
-                        label: 'Bank',
-                        amount: bankTotal,
-                        icon: Icons.account_balance_outlined,
-                        color: _kBlue,
-                        bg: _kBlueBg,
-                        border: _kBlueBorder,
-                      )),
-                  ]),
-                ),
-                SizedBox(height: sh * 0.015),
-              ],
-
-              // ── Transactions list ──────────────────────────────────────
-              Container(
-                decoration: BoxDecoration(
-                  color: _kCard,
-                  borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
-                  border: Border.all(color: _kBorder, width: 0.5),
-                  boxShadow: [BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 6, offset: const Offset(0, 2))],
-                ),
-                child: Column(children: [
-                  // Section header
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: sw * 0.04,
-                        vertical:   sw * 0.035),
-                    child: Row(children: [
-                      Container(
-                        width:  (sw * 0.075).clamp(26.0, 36.0),
-                        height: (sw * 0.075).clamp(26.0, 36.0),
-                        decoration: BoxDecoration(
-                          color: _kBlueBg,
-                          borderRadius: BorderRadius.circular(
-                              (sw * 0.022).clamp(6.0, 10.0)),
-                          border: Border.all(color: _kBlueBorder, width: 0.5),
-                        ),
-                        child: Icon(Icons.receipt_long_rounded,
-                            size: (sw * 0.04).clamp(14.0, 20.0), color: _kBlue),
-                      ),
-                      SizedBox(width: sw * 0.025),
-                      Expanded(child: Text('Transactions', style: TextStyle(
-                          fontSize: (sw * 0.035).clamp(12.0, 16.0),
-                          fontWeight: FontWeight.w700,
-                          color: _kDark))),
-                      // Count badge
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: (sw * 0.025).clamp(8.0, 12.0),
-                            vertical:   (sw * 0.008).clamp(3.0, 5.0)),
-                        decoration: BoxDecoration(
-                          color: _kBlueBg,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _kBlueBorder, width: 0.5),
-                        ),
-                        child: Text('${entries.length}', style: TextStyle(
-                            fontSize: (sw * 0.026).clamp(9.0, 12.0),
-                            fontWeight: FontWeight.w700,
-                            color: _kBlue)),
-                      ),
-                    ]),
-                  ),
-                  const Divider(height: 1, color: _kBorder),
-
-                  // Empty state
-                  if (entries.isEmpty)
-                    Padding(
-                      padding: EdgeInsets.all((sw * 0.08).clamp(24.0, 48.0)),
-                      child: Column(children: [
-                        Icon(Icons.receipt_outlined,
-                            size: (sw * 0.12).clamp(40.0, 60.0), color: _kMuted),
-                        SizedBox(height: sw * 0.03),
-                        Text('No payment records', style: TextStyle(
-                            fontSize: (sw * 0.035).clamp(12.0, 16.0),
-                            color: _kMuted,
-                            fontWeight: FontWeight.w500)),
-                      ]),
-                    ),
-
-                  // Entry rows
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: entries.length,
-                    separatorBuilder: (_, __) =>
-                    const Divider(height: 1, color: _kBorder),
-                    itemBuilder: (_, i) => _TransactionRow(
-                      sw: sw, sh: sh,
-                      entry: entries[i],
-                      index: i,
-                      total: entries.length,
-                    ),
-                  ),
-                ]),
-              ),
-
-              SizedBox(height: sh * 0.04),
-            ]),
-          )),
-        ]),
-      ),
+        ),
+      ])),
     );
   }
 }
 
-// ─── Summary card ─────────────────────────────────────────────────────────────
-class _SummaryCard extends StatelessWidget {
-  final double sw;
-  final String label;
-  final num amount;
-  final Color color, bg, border;
+// ═════════════════════════════════════════════════════════════════════════════
+// _Sec — section card identical to the rest of the app
+// ═════════════════════════════════════════════════════════════════════════════
+class _Sec extends StatelessWidget {
+  const _Sec({
+    required this.sw,
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.title,
+    required this.child,
+    this.trailing,
+  });
+  final double   sw;
   final IconData icon;
+  final Color    iconBg, iconColor;
+  final String   title;
+  final Widget   child;
+  final Widget?  trailing;
 
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+        color:        _kWhite,
+        borderRadius: BorderRadius.circular(
+            (sw * 0.04).clamp(10.0, 18.0)),
+        border: Border.all(color: _kBd, width: 0.5)),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: sw * 0.04, vertical: sw * 0.035),
+          child: Row(children: [
+            Container(
+              width:  (sw * 0.075).clamp(26.0, 36.0),
+              height: (sw * 0.075).clamp(26.0, 36.0),
+              decoration: BoxDecoration(
+                  color:        iconBg,
+                  borderRadius: BorderRadius.circular(
+                      (sw * 0.022).clamp(6.0, 10.0)),
+                  border: Border.all(color: _kBd, width: 0.5)),
+              child: Icon(icon,
+                  size:  (sw * 0.04).clamp(14.0, 20.0),
+                  color: iconColor),
+            ),
+            SizedBox(width: sw * 0.025),
+            Expanded(
+              child: Text(title,
+                  style: TextStyle(
+                      fontSize:   (sw * 0.035).clamp(12.0, 16.0),
+                      fontWeight: FontWeight.w700,
+                      color:      _kT1)),
+            ),
+            if (trailing != null) trailing!,
+          ]),
+        ),
+        Divider(height: 1, color: _kBd),
+        Padding(
+            padding: EdgeInsets.all(sw * 0.04), child: child),
+      ],
+    ),
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// _SummaryCard
+// ═════════════════════════════════════════════════════════════════════════════
+class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.sw,
     required this.label,
     required this.amount,
     required this.color,
     required this.bg,
-    required this.border,
+    required this.bd,
     required this.icon,
   });
+  final double sw; final String label; final num amount;
+  final Color color, bg, bd; final IconData icon;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all((sw * 0.04).clamp(12.0, 20.0)),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
-        border: Border.all(color: border, width: 0.5),
-        boxShadow: [BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6, offset: const Offset(0, 2))],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(icon, size: (sw * 0.04).clamp(14.0, 20.0), color: color),
-          SizedBox(width: sw * 0.015),
-          Flexible(child: Text(label, style: TextStyle(
-              fontSize: (sw * 0.028).clamp(9.5, 13.0),
-              color: color,
-              fontWeight: FontWeight.w600))),
-        ]),
-        SizedBox(height: sw * 0.02),
-        Text(
-          '₹${NumberFormat('#,##,###').format(amount)}',
-          style: TextStyle(
-              fontSize: (sw * 0.044).clamp(15.0, 22.0),
-              fontWeight: FontWeight.w800,
-              color: color),
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.all(sw * 0.04),
+    decoration: BoxDecoration(
+        color:        bg,
+        borderRadius: BorderRadius.circular(
+            (sw * 0.04).clamp(10.0, 18.0)),
+        border: Border.all(color: bd, width: 0.5)),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Icon(icon,
+            size:  (sw * 0.034).clamp(11.5, 15.0), color: color),
+        SizedBox(width: sw * 0.012),
+        Expanded(
+          child: Text(label,
+              style: TextStyle(
+                  fontSize:   (sw * 0.028).clamp(9.5, 12.5),
+                  color:      color,
+                  fontWeight: FontWeight.w600)),
         ),
       ]),
-    );
-  }
+      SizedBox(height: sw * 0.018),
+      Text(
+        '₹${NumberFormat('#,##,###').format(amount)}',
+        style: TextStyle(
+            fontSize:   (sw * 0.042).clamp(14.0, 20.0),
+            fontWeight: FontWeight.w900,
+            color:      color),
+      ),
+    ]),
+  );
 }
 
-// ─── Method breakdown ─────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// _MethodBreakdown
+// ═════════════════════════════════════════════════════════════════════════════
 class _MethodBreakdown extends StatelessWidget {
-  final double sw;
-  final String label;
-  final num amount;
-  final IconData icon;
-  final Color color, bg, border;
-
   const _MethodBreakdown({
     required this.sw,
     required this.label,
@@ -416,42 +403,72 @@ class _MethodBreakdown extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.bg,
-    required this.border,
+    required this.bd,
   });
+  final double sw; final String label; final num amount;
+  final IconData icon; final Color color, bg, bd;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(children: [
-      Container(
-        padding: EdgeInsets.all((sw * 0.03).clamp(10.0, 16.0)),
-        decoration: BoxDecoration(
-            color: bg,
-            shape: BoxShape.circle,
-            border: Border.all(color: border, width: 0.5)),
-        child: Icon(icon,
-            size: (sw * 0.05).clamp(18.0, 26.0), color: color),
-      ),
-      SizedBox(height: sw * 0.015),
-      Text(label, style: TextStyle(
-          fontSize: (sw * 0.028).clamp(9.5, 13.0),
-          color: _kMuted,
-          fontWeight: FontWeight.w500)),
-      SizedBox(height: sw * 0.005),
-      Text('₹${NumberFormat('#,##,###').format(amount)}',
-          style: TextStyle(
-              fontSize: (sw * 0.036).clamp(12.0, 18.0),
-              fontWeight: FontWeight.w800,
-              color: color)),
-    ]);
-  }
+  Widget build(BuildContext context) => Column(children: [
+    Container(
+      padding: EdgeInsets.all((sw * 0.03).clamp(10.0, 16.0)),
+      decoration: BoxDecoration(
+          color:  bg, shape: BoxShape.circle,
+          border: Border.all(color: bd, width: 0.5)),
+      child: Icon(icon,
+          size:  (sw * 0.048).clamp(16.0, 22.0), color: color),
+    ),
+    SizedBox(height: sw * 0.015),
+    Text(label,
+        style: TextStyle(
+            fontSize:   (sw * 0.028).clamp(9.5, 12.5),
+            color:      _kT4,
+            fontWeight: FontWeight.w500)),
+    SizedBox(height: sw * 0.006),
+    Text('₹${NumberFormat('#,##,###').format(amount)}',
+        style: TextStyle(
+            fontSize:   (sw * 0.036).clamp(12.0, 16.0),
+            fontWeight: FontWeight.w800,
+            color:      color)),
+  ]);
 }
 
-// ─── Transaction row ──────────────────────────────────────────────────────────
-class _TransactionRow extends StatelessWidget {
+// ═════════════════════════════════════════════════════════════════════════════
+// _EmptyTransactions
+// ═════════════════════════════════════════════════════════════════════════════
+class _EmptyTransactions extends StatelessWidget {
+  const _EmptyTransactions({required this.sw, required this.sh});
   final double sw, sh;
-  final _PaymentEntry entry;
-  final int index, total;
 
+  @override
+  Widget build(BuildContext context) => Column(children: [
+    Container(
+      width:  (sw * 0.18).clamp(60.0, 90.0),
+      height: (sw * 0.18).clamp(60.0, 90.0),
+      decoration: BoxDecoration(
+          color:  _kBg, shape: BoxShape.circle,
+          border: Border.all(color: _kBd, width: 0.5)),
+      child: Icon(Icons.receipt_outlined,
+          size:  (sw * 0.09).clamp(30.0, 44.0), color: _kT4),
+    ),
+    SizedBox(height: sh * 0.02),
+    Text('No payment records',
+        style: TextStyle(
+            fontSize:   (sw * 0.034).clamp(11.5, 15.0),
+            fontWeight: FontWeight.w600,
+            color:      _kT2)),
+    SizedBox(height: sh * 0.006),
+    Text('Payments will appear here once recorded',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+            fontSize: (sw * 0.029).clamp(10.0, 13.0), color: _kT4)),
+  ]);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// _TransactionRow
+// ═════════════════════════════════════════════════════════════════════════════
+class _TransactionRow extends StatelessWidget {
   const _TransactionRow({
     required this.sw,
     required this.sh,
@@ -459,90 +476,98 @@ class _TransactionRow extends StatelessWidget {
     required this.index,
     required this.total,
   });
+  final double sw, sh; final _PaymentEntry entry;
+  final int index, total;
 
   @override
-  Widget build(BuildContext context) {
-    final isLast = index == total - 1;
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.all(sw * 0.04),
+    child: Row(children: [
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          sw * 0.04,
-          sw * 0.035,
-          sw * 0.04,
-          isLast ? sw * 0.035 : sw * 0.02),
-      child: Row(children: [
-        // Method icon badge
-        Container(
-          width:  (sw * 0.11).clamp(38.0, 52.0),
-          height: (sw * 0.11).clamp(38.0, 52.0),
-          decoration: BoxDecoration(
-            color: entry.methodBg,
-            borderRadius: BorderRadius.circular((sw * 0.03).clamp(8.0, 14.0)),
-            border: Border.all(color: entry.methodBorder, width: 0.5),
-          ),
-          child: Icon(entry.methodIcon,
-              size: (sw * 0.05).clamp(18.0, 26.0), color: entry.methodColor),
-        ),
-        SizedBox(width: sw * 0.03),
+      // Method icon badge
+      Container(
+        width:  (sw * 0.1).clamp(36.0, 48.0),
+        height: (sw * 0.1).clamp(36.0, 48.0),
+        decoration: BoxDecoration(
+            color:        entry.methodBg,
+            borderRadius: BorderRadius.circular(
+                (sw * 0.028).clamp(8.0, 12.0)),
+            border: Border.all(color: entry.methodBd, width: 0.5)),
+        child: Icon(entry.methodIcon,
+            size:  (sw * 0.048).clamp(16.0, 22.0),
+            color: entry.methodColor),
+      ),
+      SizedBox(width: sw * 0.03),
 
-        // Details
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              // Method chip
-              Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: (sw * 0.02).clamp(6.0, 10.0),
-                    vertical:   (sw * 0.006).clamp(2.0, 4.0)),
-                decoration: BoxDecoration(
-                  color: entry.methodBg,
+      // Details
+      Expanded(
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            // Method pill
+            Container(
+              padding: EdgeInsets.symmetric(
+                  horizontal: (sw * 0.02).clamp(6.0, 10.0),
+                  vertical:   (sw * 0.006).clamp(2.0, 4.5)),
+              decoration: BoxDecoration(
+                  color:        entry.methodBg,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: entry.methodBorder, width: 0.5),
-                ),
-                child: Text(entry.method, style: TextStyle(
-                    fontSize: (sw * 0.024).clamp(8.5, 11.5),
-                    fontWeight: FontWeight.w700,
-                    color: entry.methodColor)),
-              ),
-              SizedBox(width: sw * 0.015),
-              Text('#${total - index}', style: TextStyle(
-                  fontSize: (sw * 0.026).clamp(9.0, 12.0),
-                  color: _kMuted,
-                  fontWeight: FontWeight.w500)),
-            ]),
-            SizedBox(height: sw * 0.01),
-            // Date
-            Row(children: [
-              Icon(Icons.access_time_rounded,
-                  size: (sw * 0.028).clamp(9.5, 13.0), color: _kMuted),
-              SizedBox(width: sw * 0.008),
-              Expanded(child: Text(entry.rawDate,
-                  overflow: TextOverflow.ellipsis,
+                  border: Border.all(color: entry.methodBd, width: 0.5)),
+              child: Text(entry.method,
                   style: TextStyle(
-                      fontSize: (sw * 0.027).clamp(9.0, 12.5),
-                      color: _kMuted,
-                      fontWeight: FontWeight.w500))),
-            ]),
-          ],
-        )),
-
-        // Amount
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(
-            '₹${NumberFormat('#,##,###').format(entry.amount)}',
-            style: TextStyle(
-                fontSize: (sw * 0.038).clamp(13.0, 19.0),
-                fontWeight: FontWeight.w800,
-                color: _kDark),
-          ),
-          SizedBox(height: sw * 0.005),
-          Text('received', style: TextStyle(
-              fontSize: (sw * 0.025).clamp(8.5, 11.5),
-              color: _kGreen,
-              fontWeight: FontWeight.w500)),
+                      fontSize:   (sw * 0.024).clamp(8.5, 11.0),
+                      fontWeight: FontWeight.w700,
+                      color:      entry.methodColor)),
+            ),
+            SizedBox(width: sw * 0.015),
+            Text('#${total - index}',
+                style: TextStyle(
+                    fontSize:   (sw * 0.026).clamp(9.0, 11.5),
+                    color:      _kT4,
+                    fontWeight: FontWeight.w500)),
+          ]),
+          SizedBox(height: sw * 0.01),
+          Row(children: [
+            Icon(Icons.access_time_rounded,
+                size:  (sw * 0.028).clamp(9.5, 12.5), color: _kT4),
+            SizedBox(width: sw * 0.008),
+            Expanded(
+              child: Text(entry.rawDate,
+                  style: TextStyle(
+                      fontSize:   (sw * 0.027).clamp(9.0, 12.0),
+                      color:      _kT4,
+                      fontWeight: FontWeight.w500),
+                  overflow: TextOverflow.ellipsis),
+            ),
+          ]),
         ]),
+      ),
+
+      // Amount
+      Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        Text(
+          '₹${NumberFormat('#,##,###').format(entry.amount)}',
+          style: TextStyle(
+              fontSize:   (sw * 0.038).clamp(13.0, 17.0),
+              fontWeight: FontWeight.w900,
+              color:      _kT1),
+        ),
+        SizedBox(height: sw * 0.005),
+        Container(
+          padding: EdgeInsets.symmetric(
+              horizontal: (sw * 0.016).clamp(5.0, 8.0),
+              vertical:   (sw * 0.004).clamp(1.5, 3.5)),
+          decoration: BoxDecoration(
+              color:        _kGreenBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _kGreenBd, width: 0.5)),
+          child: Text('received',
+              style: TextStyle(
+                  fontSize:   (sw * 0.022).clamp(7.5, 10.0),
+                  color:      _kGreen,
+                  fontWeight: FontWeight.w600)),
+        ),
       ]),
-    );
-  }
+    ]),
+  );
 }

@@ -36,13 +36,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (mounted) setState(() { _hasError = false; _errorMsg = ''; });
     try {
       final results = await Future.wait([
-        ref.read(loginControllerProvider).isTokenActive(),
+        ref.read(loginControllerProvider.notifier).isTokenActive(),
         Future.delayed(const Duration(milliseconds: 2200)),
       ]);
       final isActive = results[0] as bool;
       if (!mounted) return;
       if (!isActive) {
-        await ref.read(loginControllerProvider).forceLogout();
+        await ref.read(loginControllerProvider.notifier).forceLogout();
         _goTo(const LoginMobileView());
         return;
       }

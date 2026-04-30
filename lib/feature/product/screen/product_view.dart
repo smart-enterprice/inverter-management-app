@@ -144,6 +144,9 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                 style: TextStyle(fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
             SizedBox(height: sw * 0.012),
             _Pill(sw: sw, label: p.productType ?? 'N/A', fg: _kPurple, bg: _kPurpleBg, bd: _kPurpleBd),
+            // After the productType pill,
+            SizedBox(height: sw * 0.006),
+            _Pill(sw: sw, label: p.productCategory ?? 'N/A', fg: _kGreen, bg: _kGreenBg, bd: _kGreenBd),
           ])),
           RoleGuard(feature: AppFeature.updateProduct,
               child: GestureDetector(
@@ -195,6 +198,8 @@ class _DetailViewState extends ConsumerState<_DetailView> {
 
   // ── Stock ───────────────────────────────────────────────────────────────
   Widget _stockCard(double sw, double sh, ProductModel p, bool active) {
+    final isBattery = (p.productCategory ?? '').toUpperCase() == 'BATTERY';
+
     return _Section(sw: sw, icon: Icons.inventory_outlined, iconBg: _kAmberBg,
         iconColor: _kAmber, title: 'Stock Information',
         trailing: active ? RoleGuard(feature: AppFeature.updateStock,
@@ -203,9 +208,11 @@ class _DetailViewState extends ConsumerState<_DetailView> {
         child: Row(children: [
           Expanded(child: _StockTile(sw: sw, label: 'Packed', value: p.packedStock ?? 0,
               icon: Icons.check_box_outlined, color: _kP)),
-          SizedBox(width: sw * 0.03),
-          Expanded(child: _StockTile(sw: sw, label: 'Unpacked', value: p.unpackedStock ?? 0,
-              icon: Icons.indeterminate_check_box_outlined, color: _kAmber)),
+          if (!isBattery) ...[
+            SizedBox(width: sw * 0.03),
+            Expanded(child: _StockTile(sw: sw, label: 'Unpacked', value: p.unpackedStock ?? 0,
+                icon: Icons.indeterminate_check_box_outlined, color: _kAmber)),
+          ],
           SizedBox(width: sw * 0.03),
           Expanded(child: _StockTile(sw: sw, label: 'Total', value: p.availableStock ?? 0,
               icon: Icons.all_inbox_rounded, color: _kGreen)),
@@ -214,41 +221,48 @@ class _DetailViewState extends ConsumerState<_DetailView> {
 
   // ── Pricing ─────────────────────────────────────────────────────────────
   Widget _priceCard(double sw, double sh, ProductModel p) {
-    return _Section(sw: sw, icon: Icons.payments_outlined, iconBg: _kGreenBg,
-        iconColor: _kGreen, title: 'Pricing',
-        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          RoleGuard(feature: AppFeature.updatePrice,
-              child: GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => ProductPriceHistory(history: p.priceHistory ?? []))),
-                  child: Container(
-                      padding: EdgeInsets.all((sw * 0.02).clamp(6.0, 10.0)),
-                      decoration: BoxDecoration(color: _kBg,
-                          borderRadius: BorderRadius.circular((sw * 0.02).clamp(6.0, 10.0)),
-                          border: Border.all(color: _kBd, width: 0.5)),
-                      child: Icon(Icons.history_rounded, size: (sw * 0.038).clamp(13.0, 17.0), color: _kT4)))),
-          SizedBox(width: sw * 0.015),
-          RoleGuard(feature: AppFeature.updatePrice,
-              child: GestureDetector(
-                  onTap: () => _showPriceSheet(context, sw, p),
-                  child: Container(
-                      padding: EdgeInsets.all((sw * 0.02).clamp(6.0, 10.0)),
-                      decoration: BoxDecoration(color: _kPBg,
-                          borderRadius: BorderRadius.circular((sw * 0.02).clamp(6.0, 10.0)),
-                          border: Border.all(color: _kPBd, width: 0.5)),
-                      child: Icon(Icons.edit_outlined, size: (sw * 0.038).clamp(13.0, 17.0), color: _kP)))),
-        ]),
-        child: Container(
-            padding: EdgeInsets.all(sw * 0.04),
-            decoration: BoxDecoration(color: _kGreenBg,
-                borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
-                border: Border.all(color: _kGreenBd, width: 0.5)),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('Current Price', style: TextStyle(
-                  fontSize: (sw * 0.034).clamp(11.5, 15.0), fontWeight: FontWeight.w600, color: _kT2)),
-              Text('₹${p.price ?? '0.00'}', style: TextStyle(
-                  fontSize: (sw * 0.048).clamp(16.0, 22.0), fontWeight: FontWeight.w900, color: _kGreen)),
-            ])));
+    return _Section(
+      sw: sw, icon: Icons.payments_outlined, iconBg: _kGreenBg,
+      iconColor: _kGreen, title: 'Pricing',
+      trailing: RoleGuard(
+        feature: AppFeature.updatePrice,
+        child: GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(
+              builder: (_) => ProductPriceHistory(history: p.priceHistory ?? []))),
+          child: Container(
+              padding: EdgeInsets.all((sw * 0.02).clamp(6.0, 10.0)),
+              decoration: BoxDecoration(color: _kBg,
+                  borderRadius: BorderRadius.circular((sw * 0.02).clamp(6.0, 10.0)),
+                  border: Border.all(color: _kBd, width: 0.5)),
+              child: Icon(Icons.history_rounded, size: (sw * 0.038).clamp(13.0, 17.0), color: _kT4)),
+        ),
+      ),
+      child: _PricingTiles(
+        key: ValueKey('${p.productId}_${p.updatedAt}'),
+        sw: sw, p: p,
+        onEditPrice: () => _showPriceSheet(context, sw, p),
+        onEditCost: () => _showCostSheet(context, sw, p),
+      ),
+    );
+  }
+
+  void _showCostSheet(BuildContext ctx, double sw, ProductModel p) {
+    showModalBottomSheet(
+      context: ctx, isScrollControlled: true, backgroundColor: _kWhite,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular((sw * 0.05).clamp(14.0, 22.0)))),
+      builder: (_) => _EditCostSheet(
+        product: p,
+        onSave: (cost) async {
+          try {
+            await ref.read(productControllerProvider.notifier)
+                .updateProduct(widget.productId, p.copyWith(cost: cost));
+            ref.invalidate(productByIdProvider(widget.productId));
+            _snack('Cost updated', _kGreen);
+          } catch (e) { _snack('Failed: $e', _kRed); }
+        },
+      ),
+    );
   }
 
   // ── Creator ─────────────────────────────────────────────────────────────
@@ -289,17 +303,22 @@ class _DetailViewState extends ConsumerState<_DetailView> {
 
   // ── Sheets ──────────────────────────────────────────────────────────────
   void _showEditSheet(BuildContext ctx, double sw, ProductModel p) {
-    showModalBottomSheet(context: ctx, isScrollControlled: true, backgroundColor: _kWhite,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular((sw * 0.05).clamp(14.0, 22.0)))),
-        builder: (_) => _EditProductSheet(product: p, onSave: (name) async {
+    showModalBottomSheet(
+      context: ctx, isScrollControlled: true, backgroundColor: _kWhite,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular((sw * 0.05).clamp(14.0, 22.0)))),
+      builder: (_) => _EditProductSheet(
+        product: p,
+        onSave: (name, category) async {  // ← now receives category too
           try {
             await ref.read(productControllerProvider.notifier)
-                .updateProduct(widget.productId, p.copyWith(productName: name));
+                .updateProduct(widget.productId, p.copyWith(productName: name, productCategory: category));
             ref.invalidate(productByIdProvider(widget.productId));
             _snack('Product updated', _kGreen);
           } catch (e) { _snack('Failed: $e', _kRed); }
-        }));
+        },
+      ),
+    );
   }
 
   void _showPriceSheet(BuildContext ctx, double sw, ProductModel p) {
@@ -317,30 +336,211 @@ class _DetailViewState extends ConsumerState<_DetailView> {
   }
 
   void _showStockSheet(BuildContext ctx, double sw, double sh, ProductModel p) {
-    showModalBottomSheet(context: ctx, isScrollControlled: true, backgroundColor: _kWhite,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular((sw * 0.05).clamp(14.0, 22.0)))),
-        builder: (_) => _UpdateStockSheet(product: p,
-            onSave: (packed, unpacked, notes) async {
-              try {
-                List<StockItem> items = [];
-                if (unpacked > 0) items.add(StockItem(stock: unpacked, stockType: "UNPACKED",
-                    type: "ADD", stockNotes: notes.isEmpty ? null : notes));
-                if (packed > 0) items.add(StockItem(stock: packed, stockType: "PACKED",
-                    type: "ADD", stockNotes: notes.isEmpty ? null : notes));
-                await ref.read(productControllerProvider.notifier)
-                    .updateStock(StockUpdate(stockMap: {widget.productId: items}));
-                ref.invalidate(productByIdProvider(widget.productId));
-                _snack('Stock updated', _kGreen);
-              } catch (e) { _snack('Failed: $e', _kRed); }
-            }));
+    showModalBottomSheet(
+      context: ctx, isScrollControlled: true, backgroundColor: _kWhite,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular((sw * 0.05).clamp(14.0, 22.0)))),
+      builder: (_) => _UpdateStockSheet(
+        product: p,
+        onSave: (packed, unpacked, notes) async {
+          try {
+            List<StockItem> items = [];
+            if (unpacked > 0) {
+              items.add(StockItem(stock: unpacked, stockType: "UNPACKED",
+                type: "ADD", stockNotes: notes.isEmpty ? null : notes));
+            }
+            if (packed > 0) {
+              items.add(StockItem(stock: packed, stockType: "PACKED",
+                type: "ADD", stockNotes: notes.isEmpty ? null : notes));
+            }
+            await ref.read(productControllerProvider.notifier)
+                .updateStock(StockUpdate(stockMap: {widget.productId: items}));
+            ref.invalidate(productByIdProvider(widget.productId));
+            _snack('Stock updated', _kGreen);
+          } catch (e) { _snack('Failed: $e', _kRed); }
+        },
+      ),
+    );
   }
 }
+class _PricingTiles extends StatefulWidget {
+  final double sw;
+  final ProductModel p;
+  final VoidCallback onEditPrice;
+  final VoidCallback onEditCost;
 
+  const _PricingTiles({
+    super.key,
+    required this.sw, required this.p,
+    required this.onEditPrice, required this.onEditCost,
+  });
+
+  @override State<_PricingTiles> createState() => _PricingTilesState();
+}
+
+class _PricingTilesState extends State<_PricingTiles> {
+  bool _costVisible = false;
+
+  @override Widget build(BuildContext context) {
+    final sw = widget.sw;
+    final p = widget.p;
+
+    return Column(children: [
+      // ── Selling Price ────────────────────────────────────────────────
+      Container(
+        padding: EdgeInsets.all(sw * 0.04),
+        decoration: BoxDecoration(color: _kGreenBg,
+            borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+            border: Border.all(color: _kGreenBd, width: 0.5)),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Selling Price', style: TextStyle(
+                fontSize: (sw * 0.028).clamp(9.5, 12.5), fontWeight: FontWeight.w600, color: _kGreen)),
+            Text('₹${p.price ?? '0.00'}', style: TextStyle(
+                fontSize: (sw * 0.048).clamp(16.0, 22.0), fontWeight: FontWeight.w900, color: _kGreen)),
+          ]),
+          RoleGuard(
+            feature: AppFeature.updatePrice,
+            child: GestureDetector(
+              onTap: widget.onEditPrice,
+              child: Container(
+                padding: EdgeInsets.all((sw * 0.022).clamp(7.0, 11.0)),
+                decoration: BoxDecoration(
+                    color: _kGreen.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular((sw * 0.022).clamp(6.0, 10.0))),
+                child: Icon(Icons.edit_outlined, color: _kGreen,
+                    size: (sw * 0.045).clamp(15.0, 20.0)),
+              ),
+            ),
+          ),
+        ]),
+      ),
+      SizedBox(height: sw * 0.03),
+
+      // ── Cost Price ───────────────────────────────────────────────────
+      Container(
+        padding: EdgeInsets.all(sw * 0.04),
+        decoration: BoxDecoration(color: _kAmberBg,
+            borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+            border: Border.all(color: _kAmberBd, width: 0.5)),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Cost Price', style: TextStyle(
+                fontSize: (sw * 0.028).clamp(9.5, 12.5), fontWeight: FontWeight.w600, color: _kAmber)),
+            // ── Masked or real value ──────────────────────────────────
+            _costVisible
+                ? Text('₹${p.cost ?? '0.00'}', style: TextStyle(
+                fontSize: (sw * 0.048).clamp(16.0, 22.0), fontWeight: FontWeight.w900, color: _kAmber))
+                : Text('₹ ••••••', style: TextStyle(
+                fontSize: (sw * 0.048).clamp(16.0, 22.0), fontWeight: FontWeight.w900, color: _kAmber,
+                letterSpacing: 2)),
+          ]),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            // ── Eye toggle ────────────────────────────────────────────
+            GestureDetector(
+              onTap: () => setState(() => _costVisible = !_costVisible),
+              child: Container(
+                padding: EdgeInsets.all((sw * 0.022).clamp(7.0, 11.0)),
+                decoration: BoxDecoration(
+                    color: _kAmber.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular((sw * 0.022).clamp(6.0, 10.0))),
+                child: Icon(
+                    _costVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    color: _kAmber, size: (sw * 0.045).clamp(15.0, 20.0)),
+              ),
+            ),
+            SizedBox(width: sw * 0.02),
+            // ── Edit ──────────────────────────────────────────────────
+            RoleGuard(
+              feature: AppFeature.updatePrice,
+              child: GestureDetector(
+                onTap: widget.onEditCost,
+                child: Container(
+                  padding: EdgeInsets.all((sw * 0.022).clamp(7.0, 11.0)),
+                  decoration: BoxDecoration(
+                      color: _kAmber.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular((sw * 0.022).clamp(6.0, 10.0))),
+                  child: Icon(Icons.edit_outlined, color: _kAmber,
+                      size: (sw * 0.045).clamp(15.0, 20.0)),
+                ),
+              ),
+            ),
+          ]),
+        ]),
+      ),
+    ]);
+  }
+}
 // ═════════════════════════════════════════════════════════════════════════════
 // Shared widgets
 // ═════════════════════════════════════════════════════════════════════════════
+class _EditCostSheet extends StatefulWidget {
+  final ProductModel product;
+  final Future<void> Function(double cost) onSave;
+  const _EditCostSheet({required this.product, required this.onSave});
+  @override State<_EditCostSheet> createState() => _EditCostSheetState();
+}
 
+class _EditCostSheetState extends State<_EditCostSheet> {
+  late final TextEditingController _ctrl;
+  final _key = GlobalKey<FormState>();
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.product.cost?.toString() ?? '');
+  }
+  @override void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override Widget build(BuildContext context) {
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(sw * 0.05, sw * 0.04, sw * 0.05, sw * 0.06),
+        child: Form(key: _key, child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _Handle(),
+            Text('Edit Cost Price', style: TextStyle(
+                fontSize: (sw * 0.045).clamp(15.0, 21.0), fontWeight: FontWeight.w800, color: _kT1)),
+            Text(widget.product.productName ?? '', style: TextStyle(
+                fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
+            SizedBox(height: sw * 0.05),
+            _sheetLabel(sw, 'Cost Price (₹)'),
+            SizedBox(height: sh * 0.006),
+            TextFormField(
+              controller: _ctrl,
+              keyboardType: TextInputType.number,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'Required';
+                if (double.tryParse(v) == null) return 'Enter valid number';
+                if (double.parse(v) < 0) return 'Cannot be negative';
+                return null;
+              },
+              decoration: _sheetDeco(sw, 'Enter cost price', Icons.currency_rupee),
+            ),
+            SizedBox(height: sh * 0.025),
+            _sheetActions(sw, sh, saving: _saving,
+              onCancel: () => Navigator.pop(context),
+              onSave: () async {
+                if (!_key.currentState!.validate()) return;
+                setState(() => _saving = true);
+                Navigator.pop(context);
+                await widget.onSave(double.parse(_ctrl.text.trim()));
+              },
+            ),
+          ],
+        )),
+      ),
+    );
+  }
+}
 class _Card extends StatelessWidget {
   const _Card({required this.sw, required this.child});
   final double sw; final Widget child;
@@ -521,49 +721,151 @@ Widget _sheetActions(double sw, double sh, {required bool saving,
 // ── Edit product sheet ────────────────────────────────────────────────────
 class _EditProductSheet extends StatefulWidget {
   final ProductModel product;
-  final Future<void> Function(String name) onSave;
+  final Future<void> Function(String name, String category) onSave; // ← updated signature
   const _EditProductSheet({required this.product, required this.onSave});
   @override State<_EditProductSheet> createState() => _EditProductSheetState();
 }
 
 class _EditProductSheetState extends State<_EditProductSheet> {
   late final TextEditingController _ctrl;
+  late String _selectedCategory;
   final _key = GlobalKey<FormState>();
   bool _saving = false;
 
-  @override void initState() { super.initState(); _ctrl = TextEditingController(text: widget.product.productName); }
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.product.productName);
+    // Default to existing category, fallback to INVERTER
+    _selectedCategory = widget.product.productCategory ?? 'INVERTER';
+  }
+
   @override void dispose() { _ctrl.dispose(); super.dispose(); }
 
   @override Widget build(BuildContext context) {
     final sw = MediaQuery.sizeOf(context).width;
     final sh = MediaQuery.sizeOf(context).height;
-    return Padding(padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-        child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(sw * 0.05, sw * 0.04, sw * 0.05, sw * 0.06),
-            child: Form(key: _key, child: Column(mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const _Handle(),
-                  Text('Edit Product', style: TextStyle(
-                      fontSize: (sw * 0.045).clamp(15.0, 21.0), fontWeight: FontWeight.w800, color: _kT1)),
-                  Text(widget.product.productName ?? '', style: TextStyle(
-                      fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
-                  SizedBox(height: sw * 0.05),
-                  _sheetLabel(sw, 'Product Name'),
-                  SizedBox(height: sh * 0.006),
-                  TextFormField(controller: _ctrl, autovalidateMode: AutovalidateMode.onUserInteraction,
-                      style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                      decoration: _sheetDeco(sw, 'Enter product name', Icons.label_outline_rounded)),
-                  SizedBox(height: sh * 0.025),
-                  _sheetActions(sw, sh, saving: _saving,
-                      onCancel: () => Navigator.pop(context),
-                      onSave: () async {
-                        if (!_key.currentState!.validate()) return;
-                        setState(() => _saving = true);
-                        Navigator.pop(context);
-                        await widget.onSave(_ctrl.text.trim());
-                      }),
-                ]))));
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(sw * 0.05, sw * 0.04, sw * 0.05, sw * 0.06),
+        child: Form(key: _key, child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _Handle(),
+            Text('Edit Product', style: TextStyle(
+                fontSize: (sw * 0.045).clamp(15.0, 21.0), fontWeight: FontWeight.w800, color: _kT1)),
+            Text(widget.product.productName ?? '', style: TextStyle(
+                fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
+            SizedBox(height: sw * 0.05),
+
+            // ── Product Name ────────────────────────────────────────────
+            _sheetLabel(sw, 'Product Name'),
+            SizedBox(height: sh * 0.006),
+            TextFormField(
+              controller: _ctrl,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
+              validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+              decoration: _sheetDeco(sw, 'Enter product name', Icons.label_outline_rounded),
+            ),
+            SizedBox(height: sh * 0.022),
+
+            // ── Category Radio ──────────────────────────────────────────
+            _sheetLabel(sw, 'Product Category'),
+            SizedBox(height: sh * 0.008),
+            Container(
+              decoration: BoxDecoration(
+                color: _kBg,
+                borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+                border: Border.all(color: _kBd, width: 0.5),
+              ),
+              child: Row(children: [
+                _CategoryRadioOption(
+                  sw: sw,
+                  label: 'INVERTER',
+                  icon: Icons.bolt_outlined,
+                  selected: _selectedCategory == 'INVERTER',
+                  onTap: () => setState(() => _selectedCategory = 'INVERTER'),
+                ),
+                Container(width: 0.5, height: 52, color: _kBd),
+                _CategoryRadioOption(
+                  sw: sw,
+                  label: 'BATTERY',
+                  icon: Icons.battery_charging_full_outlined,
+                  selected: _selectedCategory == 'BATTERY',
+                  onTap: () => setState(() => _selectedCategory = 'BATTERY'),
+                ),
+              ]),
+            ),
+            SizedBox(height: sh * 0.025),
+
+            _sheetActions(sw, sh, saving: _saving,
+              onCancel: () => Navigator.pop(context),
+              onSave: () async {
+                if (!_key.currentState!.validate()) return;
+                setState(() => _saving = true);
+                Navigator.pop(context);
+                await widget.onSave(_ctrl.text.trim(), _selectedCategory);
+              },
+            ),
+          ],
+        )),
+      ),
+    );
+  }
+}
+
+// ── Radio option tile ─────────────────────────────────────────────────────
+class _CategoryRadioOption extends StatelessWidget {
+  final double sw;
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CategoryRadioOption({
+    required this.sw, required this.label, required this.icon,
+    required this.selected, required this.onTap,
+  });
+
+  @override Widget build(BuildContext context) {
+    return Expanded(child: GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(vertical: (sw * 0.032).clamp(10.0, 14.0)),
+        decoration: BoxDecoration(
+          color: selected ? _kPBg : Colors.transparent,
+          borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+          border: Border.all(color: selected ? _kP : Colors.transparent, width: 1.5),
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, size: (sw * 0.042).clamp(14.0, 18.0), color: selected ? _kP : _kT4),
+          SizedBox(width: sw * 0.02),
+          Text(label, style: TextStyle(
+            fontSize: (sw * 0.032).clamp(11.0, 14.0),
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+            color: selected ? _kP : _kT4,
+          )),
+          SizedBox(width: sw * 0.015),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: (sw * 0.038).clamp(13.0, 17.0),
+            height: (sw * 0.038).clamp(13.0, 17.0),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: selected ? _kP : Colors.transparent,
+              border: Border.all(color: selected ? _kP : _kT4, width: 1.5),
+            ),
+            child: selected
+                ? Icon(Icons.check_rounded, size: (sw * 0.024).clamp(8.0, 11.0), color: _kWhite)
+                : null,
+          ),
+        ]),
+      ),
+    ));
   }
 }
 
@@ -631,62 +933,82 @@ class _UpdateStockSheet extends StatefulWidget {
 }
 
 class _UpdateStockSheetState extends State<_UpdateStockSheet> {
-  final _packedCtrl = TextEditingController();
+  final _packedCtrl   = TextEditingController();
   final _unpackedCtrl = TextEditingController();
-  final _notesCtrl = TextEditingController();
+  final _notesCtrl    = TextEditingController();
   bool _saving = false;
 
-  @override void dispose() { _packedCtrl.dispose(); _unpackedCtrl.dispose(); _notesCtrl.dispose(); super.dispose(); }
+  // ← Derive from product category
+  bool get _isBattery =>
+      (widget.product.productCategory ?? '').toUpperCase() == 'BATTERY';
+
+  @override void dispose() {
+    _packedCtrl.dispose(); _unpackedCtrl.dispose(); _notesCtrl.dispose();
+    super.dispose();
+  }
 
   @override Widget build(BuildContext context) {
     final sw = MediaQuery.sizeOf(context).width;
     final sh = MediaQuery.sizeOf(context).height;
-    return Padding(padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-        child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(sw * 0.05, sw * 0.04, sw * 0.05, sw * 0.06),
-            child: Column(mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const _Handle(),
-                  Text('Update Stock', style: TextStyle(
-                      fontSize: (sw * 0.045).clamp(15.0, 21.0), fontWeight: FontWeight.w800, color: _kT1)),
-                  Text(widget.product.productName ?? '', style: TextStyle(
-                      fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
-                  SizedBox(height: sw * 0.05),
-                  _sheetLabel(sw, 'Packed Stock to Add'),
-                  SizedBox(height: sh * 0.006),
-                  RoleGuard(feature: AppFeature.updatePackedStock,
-                      child: TextFormField(controller: _packedCtrl, keyboardType: TextInputType.number,
-                          style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
-                          decoration: _sheetDeco(sw, 'Enter quantity', Icons.check_box_outlined))),
-                  SizedBox(height: sh * 0.015),
-                  _sheetLabel(sw, 'Unpacked Stock to Add'),
-                  SizedBox(height: sh * 0.006),
-                  RoleGuard(feature: AppFeature.updateUnpackedStock,
-                      child: TextFormField(controller: _unpackedCtrl, keyboardType: TextInputType.number,
-                          style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
-                          decoration: _sheetDeco(sw, 'Enter quantity', Icons.indeterminate_check_box_outlined))),
-                  SizedBox(height: sh * 0.015),
-                  _sheetLabel(sw, 'Notes (Optional)'),
-                  SizedBox(height: sh * 0.006),
-                  TextFormField(controller: _notesCtrl, maxLines: 3,
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(sw * 0.05, sw * 0.04, sw * 0.05, sw * 0.06),
+        child: Column(mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const _Handle(),
+              Text('Update Stock', style: TextStyle(
+                  fontSize: (sw * 0.045).clamp(15.0, 21.0), fontWeight: FontWeight.w800, color: _kT1)),
+              Text(widget.product.productName ?? '', style: TextStyle(
+                  fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
+              SizedBox(height: sw * 0.05),
+
+              // ── Packed stock (always shown) ─────────────────────────────
+              _sheetLabel(sw, 'Packed Stock to Add'),
+              SizedBox(height: sh * 0.006),
+              RoleGuard(feature: AppFeature.updatePackedStock,
+                  child: TextFormField(controller: _packedCtrl, keyboardType: TextInputType.number,
                       style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
-                      decoration: _sheetDeco(sw, 'Add notes', Icons.note_outlined, maxLines: 3)),
-                  SizedBox(height: sh * 0.025),
-                  _sheetActions(sw, sh, saving: _saving,
-                      onCancel: () => Navigator.pop(context),
-                      onSave: () async {
-                        final packed = int.tryParse(_packedCtrl.text) ?? 0;
-                        final unpacked = int.tryParse(_unpackedCtrl.text) ?? 0;
-                        if (packed == 0 && unpacked == 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                              content: Text('Enter at least one stock value'), backgroundColor: _kRed));
-                          return;
-                        }
-                        setState(() => _saving = true);
-                        Navigator.pop(context);
-                        await widget.onSave(packed, unpacked, _notesCtrl.text.trim());
-                      }),
-                ])));
+                      decoration: _sheetDeco(sw, 'Enter quantity', Icons.check_box_outlined))),
+
+              // ── Unpacked stock (hidden for BATTERY) ─────────────────────
+              if (!_isBattery) ...[
+                SizedBox(height: sh * 0.015),
+                _sheetLabel(sw, 'Unpacked Stock to Add'),
+                SizedBox(height: sh * 0.006),
+                RoleGuard(feature: AppFeature.updateUnpackedStock,
+                    child: TextFormField(controller: _unpackedCtrl, keyboardType: TextInputType.number,
+                        style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
+                        decoration: _sheetDeco(sw, 'Enter quantity', Icons.indeterminate_check_box_outlined))),
+              ],
+
+              SizedBox(height: sh * 0.015),
+              _sheetLabel(sw, 'Notes (Optional)'),
+              SizedBox(height: sh * 0.006),
+              TextFormField(controller: _notesCtrl, maxLines: 3,
+                  style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
+                  decoration: _sheetDeco(sw, 'Add notes', Icons.note_outlined, maxLines: 3)),
+              SizedBox(height: sh * 0.025),
+
+              _sheetActions(sw, sh, saving: _saving,
+                onCancel: () => Navigator.pop(context),
+                onSave: () async {
+                  final packed   = int.tryParse(_packedCtrl.text) ?? 0;
+                  // If BATTERY, unpacked is always 0
+                  final unpacked = _isBattery ? 0 : (int.tryParse(_unpackedCtrl.text) ?? 0);
+                  if (packed == 0 && unpacked == 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Enter at least one stock value'), backgroundColor: _kRed));
+                    return;
+                  }
+                  setState(() => _saving = true);
+                  Navigator.pop(context);
+                  await widget.onSave(packed, unpacked, _notesCtrl.text.trim());
+                },
+              ),
+            ]),
+      ),
+    );
   }
 }
 

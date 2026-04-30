@@ -5,10 +5,12 @@ import 'package:inverter_management_app/core/theme/theme.dart';
 import 'package:inverter_management_app/screen/splash_screen.dart';
 
 import 'core/utils/Navigation_service.dart';
+import 'feature/notification/service/local_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  await LocalNotificationService().initialize();
   runApp(const ProviderScope(child: MyApp()));
 }
 

@@ -1,10 +1,13 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:curl_logger_dio_interceptor/curl_logger_dio_interceptor.dart';
 import 'package:flutter/foundation.dart';
 import '../core/utils/Navigation_service.dart';
 import '../feature/authentication/screen/login_mobile_view.dart';
 
+
+final dioClientProvider = Provider<Dio>((ref) => DioClient.instance);
 class DioClient {
   static final Dio _dio = Dio(
     BaseOptions(

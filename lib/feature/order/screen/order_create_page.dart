@@ -555,8 +555,10 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                           final shop = (d.shopName ?? '').toLowerCase();
                           return name.contains(q) || shop.contains(q);
                         }).toList();
-                        if (filtered.isEmpty) return Center(child: Text('No dealers found',
+                        if (filtered.isEmpty) {
+                          return Center(child: Text('No dealers found',
                             style: TextStyle(color: _kT4, fontSize: (sw * 0.034).clamp(11.5, 15.0))));
+                        }
                         return ListView.builder(itemCount: filtered.length, itemBuilder: (_, i) {
                           final d = filtered[i];
                           return _dialogListItem(ctx, title: d.employeeName,
@@ -581,41 +583,88 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     final searchController = TextEditingController();
     final sw = MediaQuery.sizeOf(context).width;
     final sh = MediaQuery.sizeOf(context).height;
-    final brandFuture = ref.watch(brandControllerProvider.notifier).getBrandsByDealer(dealerId);
-    showDialog(context: context, builder: (ctx) => FutureBuilder<List<BrandModel>>(
-        future: brandFuture,
-        builder: (_, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const AlertDialog(backgroundColor: _kWhite,
-                content: Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5)));
-          }
-          if (snap.hasError) return AlertDialog(title: const Text('Brands'), content: Text(snap.error.toString()));
-          final brands = snap.data ?? [];
-          final query = ValueNotifier('');
-          return AlertDialog(backgroundColor: _kWhite,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0))),
-              title: Text('Select Brand', style: TextStyle(
-                  fontSize: (sw * 0.042).clamp(14.0, 20.0), fontWeight: FontWeight.w700, color: _kT1)),
-              content: SizedBox(width: double.maxFinite, child: Column(mainAxisSize: MainAxisSize.min, children: [
-                _dialogSearchField(ctx, searchController, 'Search brand name', query),
-                SizedBox(height: sh * 0.02),
-                Expanded(child: ValueListenableBuilder<String>(valueListenable: query, builder: (_, q, __) {
-                  final filtered = brands.where((b) => b.brandName.toLowerCase().contains(q)).toList();
-                  if (filtered.isEmpty) return Center(child: Text('No brands found',
-                      style: TextStyle(color: _kT4, fontSize: (sw * 0.034).clamp(11.5, 15.0))));
-                  return ListView.builder(itemCount: filtered.length, itemBuilder: (_, i) {
-                    final b = filtered[i];
-                    return _dialogListItem(ctx, title: b.brandName,
-                        leading: SvgPicture.asset(AppIcons.brand, width: sw * 0.06),
-                        onTap: () {
-                          setState(() { selectedBrand = b; selectedModelFilter = null;
-                          selectedProduct = null; _allFetchedProducts.clear(); _availableModels.clear(); });
-                          Navigator.pop(ctx);
-                        });
-                  });
-                })),
-              ])));
-        }));
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Consumer(          // ← Consumer here, not inside content
+        builder: (_, ref, __) {
+          final brandAsync = ref.watch(dealerBrandsProvider(dealerId));
+          return brandAsync.when(
+            loading: () => const AlertDialog(
+              backgroundColor: _kWhite,
+              content: SizedBox(
+                height: 100,
+                child: Center(
+                  child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5),
+                ),
+              ),
+            ),
+            error: (e, _) => AlertDialog(
+              title: const Text('Brands'),
+              content: Text(e.toString()),
+            ),
+            data: (brands) {
+              final query = ValueNotifier('');
+              return AlertDialog(
+                backgroundColor: _kWhite,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+                ),
+                title: Text('Select Brand',
+                    style: TextStyle(
+                        fontSize: (sw * 0.042).clamp(14.0, 20.0),
+                        fontWeight: FontWeight.w700,
+                        color: _kT1)),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    _dialogSearchField(ctx, searchController, 'Search brand name', query),
+                    SizedBox(height: sh * 0.02),
+                    Expanded(
+                      child: ValueListenableBuilder<String>(
+                        valueListenable: query,
+                        builder: (_, q, __) {
+                          final filtered = brands
+                              .where((b) => b.brandName.toLowerCase().contains(q))
+                              .toList();
+                          if (filtered.isEmpty) {
+                            return Center(
+                              child: Text('No brands found',
+                                  style: TextStyle(
+                                      color: _kT4,
+                                      fontSize: (sw * 0.034).clamp(11.5, 15.0))),
+                            );
+                          }
+                          return ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (_, i) {
+                              final b = filtered[i];
+                              return _dialogListItem(ctx,
+                                  title: b.brandName,
+                                  leading: SvgPicture.asset(AppIcons.brand, width: sw * 0.06),
+                                  onTap: () {
+                                    setState(() {
+                                      selectedBrand = b;
+                                      selectedModelFilter = null;
+                                      selectedProduct = null;
+                                      _allFetchedProducts.clear();
+                                      _availableModels.clear();
+                                    });
+                                    Navigator.pop(ctx);
+                                  });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ]),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _showSalesmanDialog(BuildContext context) async {

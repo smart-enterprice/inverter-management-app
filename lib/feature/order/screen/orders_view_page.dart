@@ -96,11 +96,7 @@ String _groupLabel(DateTime d) {
 
 /// Parse the order's created date. Falls back to epoch on failure.
 DateTime _orderDate(OrderModel o) {
-  try {
-    return DateTime.parse(o.createdAt.toString() ?? '').toLocal();
-  } catch (_) {
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
+  return o.createdAt?.toLocal() ?? DateTime.fromMillisecondsSinceEpoch(0);
 }
 
 // ── Group orders by date ──────────────────────────────────────────────────────
