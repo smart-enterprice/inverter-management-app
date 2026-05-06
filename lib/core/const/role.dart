@@ -5,4 +5,5 @@ final List<String> roles = [
   'ROLE_PACKING',
   'ROLE_ACCOUNTS',
   'ROLE_DELIVERY',
+  'ROLE_MANAGER',
 ];

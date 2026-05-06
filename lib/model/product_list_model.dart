@@ -3,15 +3,15 @@ import 'dealer_discount_model.dart';
 
 class SelectedProduct {
   final ProductModel product;
-  int quantity;
-  bool isScheme;
-  num? discountAmount;
-  String? dealerDiscountId;
-  bool useDealerDiscount;
+  final int quantity;
+  final bool isScheme;
+  final num? discountAmount;
+  final String? dealerDiscountId;
+  final bool useDealerDiscount;
   final DealerDiscountModel? dealerDiscount;
-  DateTime? deliveryDate;
+  final DateTime? deliveryDate;
 
-  SelectedProduct({
+  const SelectedProduct({
     required this.product,
     this.quantity = 1,
     this.isScheme = false,
@@ -23,6 +23,7 @@ class SelectedProduct {
   });
 
   SelectedProduct copyWith({
+    ProductModel? product,
     int? quantity,
     bool? isScheme,
     num? discountAmount,
@@ -32,7 +33,7 @@ class SelectedProduct {
     DateTime? deliveryDate,
   }) {
     return SelectedProduct(
-      product: product,
+      product: product ?? this.product,
       quantity: quantity ?? this.quantity,
       isScheme: isScheme ?? this.isScheme,
       discountAmount: discountAmount ?? this.discountAmount,

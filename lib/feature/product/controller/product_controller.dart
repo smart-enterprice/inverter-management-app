@@ -1,92 +1,165 @@
-import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/product_model.dart';
 import '../repository/product_repository.dart';
 
-final productControllerProvider =
-StateNotifierProvider<ProductController, AsyncValue<List<ProductModel>>>(
-      (ref) => ProductController(ref),
+// ─────────────────────────────────────────────
+// Pagination state — separate notifier
+// ─────────────────────────────────────────────
+
+class ProductPaginationState {
+  final bool hasMore;
+  final bool isFetchingMore;
+  final int currentPage;
+
+  const ProductPaginationState({
+    this.hasMore = true,
+    this.isFetchingMore = false,
+    this.currentPage = 1,
+  });
+
+  ProductPaginationState copyWith({
+    bool? hasMore,
+    bool? isFetchingMore,
+    int? currentPage,
+  }) =>
+      ProductPaginationState(
+        hasMore: hasMore ?? this.hasMore,
+        isFetchingMore: isFetchingMore ?? this.isFetchingMore,
+        currentPage: currentPage ?? this.currentPage,
+      );
+}
+
+final productPaginationProvider =
+NotifierProvider<ProductPaginationNotifier, ProductPaginationState>(
+  ProductPaginationNotifier.new,
 );
+
+class ProductPaginationNotifier extends Notifier<ProductPaginationState> {
+  @override
+  ProductPaginationState build() => const ProductPaginationState();
+
+  void reset() => state = const ProductPaginationState();
+
+  void setFetchingMore(bool value) =>
+      state = state.copyWith(isFetchingMore: value);
+
+  void nextPage() =>
+      state = state.copyWith(currentPage: state.currentPage + 1);
+
+  void rollbackPage() =>
+      state = state.copyWith(currentPage: state.currentPage - 1);
+
+  void setHasMore(bool value) => state = state.copyWith(hasMore: value);
+}
+
+// ─────────────────────────────────────────────
+// FutureProvider families — unchanged
+// ─────────────────────────────────────────────
 
 final productByIdProvider =
 FutureProvider.family<ProductModel?, String>((ref, id) {
   return ref.read(productControllerProvider.notifier).getProductById(id);
 });
 
-// ✅ String-keyed brand provider (comma-joined brand names)
 final productByBrandProvider =
 FutureProvider.family<List<ProductModel>, String>((ref, brandKey) async {
   final brands = brandKey.split(',');
-  final controller = ref.read(productControllerProvider.notifier);
-  return await controller.fetchProductsByBrand(brands);
+  return ref
+      .read(productControllerProvider.notifier)
+      .fetchProductsByBrand(brands);
 });
 
 final lowStockProvider =
 FutureProvider.family<List<ProductModel>, int>((ref, threshold) async {
-  return await ref
+  return ref
       .read(productControllerProvider.notifier)
       .fetchLowStockProducts(threshold);
 });
 
-class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
-  final Ref _ref;
-  Timer? _timer;
+// ─────────────────────────────────────────────
+// ProductController — AsyncNotifier
+// ─────────────────────────────────────────────
 
-  // ── Pagination state ──────────────────────────────────────────────────────
-  int _currentPage = 1;
+final productControllerProvider =
+AsyncNotifierProvider<ProductController, List<ProductModel>>(
+  ProductController.new,
+);
+
+class ProductController extends AsyncNotifier<List<ProductModel>> {
   static const int _pageSize = 20;
-  bool _hasMore = true;
-  bool _isFetchingMore = false;
 
-  bool get hasMore => _hasMore;
-  bool get isFetchingMore => _isFetchingMore;
+  late final ProductRepository _repo;
 
-  ProductController(this._ref) : super(const AsyncLoading()) {
-    fetchProducts();
-    _startAutoRefresh();
+  ProductPaginationNotifier get _pagination =>
+      ref.read(productPaginationProvider.notifier);
+
+  ProductPaginationState get _paginationState =>
+      ref.read(productPaginationProvider);
+
+  @override
+  @override
+  Future<List<ProductModel>> build() async {
+    _repo = ref.watch(productRepositoryProvider);
+    for (int attempt = 1; attempt <= 3; attempt++) {
+      try {
+        return await _fetchPage1();
+      } catch (e) {
+        if (attempt == 3) rethrow;
+        await Future.delayed(Duration(seconds: attempt));
+      }
+    }
+    throw Exception('Failed to load products');
   }
 
-  /// Initial / refresh fetch (page 1)
+  // ── Internal helpers ───────────────────────────────────────────────────
+
+  Future<List<ProductModel>> _fetchPage1() async {
+    _pagination.reset();
+    final products = await _repo.getProducts(page: 1, limit: _pageSize);
+    if (products.length < _pageSize) _pagination.setHasMore(false);
+    return products;
+  }
+
+  // ── Public API ─────────────────────────────────────────────────────────
+
+  /// Initial / pull-to-refresh fetch
   Future<void> fetchProducts() async {
+    state = const AsyncValue.loading();
     try {
-      _currentPage = 1;
-      _hasMore = true;
-      final products = await _ref
-          .read(productRepositoryProvider)
-          .getProducts(page: _currentPage, limit: _pageSize);
-      if (products.length < _pageSize) _hasMore = false;
+      final products = await _fetchPage1();
       state = AsyncValue.data(products);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
   }
 
-  /// Load next page and append to existing list (infinite scroll)
+  /// Infinite scroll — append next page
   Future<void> fetchMoreProducts() async {
-    if (_isFetchingMore || !_hasMore) return;
-    final current = state.value;
+    if (_paginationState.isFetchingMore || !_paginationState.hasMore) return;
+    final current = state.valueOrNull;
     if (current == null) return;
 
-    _isFetchingMore = true;
+    _pagination.setFetchingMore(true);
     try {
-      _currentPage++;
-      final more = await _ref
-          .read(productRepositoryProvider)
-          .getProducts(page: _currentPage, limit: _pageSize);
-      if (more.length < _pageSize) _hasMore = false;
+      _pagination.nextPage();
+      final more = await _repo.getProducts(
+        page: _paginationState.currentPage,
+        limit: _pageSize,
+      );
+      if (more.length < _pageSize) _pagination.setHasMore(false);
       state = AsyncValue.data([...current, ...more]);
     } catch (_) {
-      _currentPage--; // roll back on failure
+      _pagination.rollbackPage();
+      rethrow;
     } finally {
-      _isFetchingMore = false;
+      _pagination.setFetchingMore(false);
     }
   }
 
-  /// Create Product
   Future<void> createProduct(ProductModel product) async {
     try {
-      await _ref.read(productRepositoryProvider).createProduct(product);
+      await _repo.createProduct(product);
       await fetchProducts();
     } on DioException catch (e) {
       final errorMessage =
@@ -95,73 +168,51 @@ class ProductController extends StateNotifier<AsyncValue<List<ProductModel>>> {
     }
   }
 
-  /// Fetch Products by Brand (no pagination — brand filter returns full list)
   Future<List<ProductModel>> fetchProductsByBrand(List<String> brands) async {
     try {
-      return await _ref
-          .read(productRepositoryProvider)
-          .getProductsByBrand(brands);
-    } on DioException {
-      rethrow;
-    } catch (e) {
+      return await _repo.getProductsByBrand(brands);
+    } catch (_) {
       rethrow;
     }
   }
 
-  /// Update Product
   Future<void> updateProduct(
       String productId, ProductModel updatedProduct) async {
     try {
-      await _ref
-          .read(productRepositoryProvider)
-          .updateProduct(productId, updatedProduct);
+      await _repo.updateProduct(productId, updatedProduct);
       await fetchProducts();
-    } on DioException catch (e) {
-      print("DIO ERROR: ${e.response?.data}");
-      rethrow;
-    } catch (e) {
+    } catch (_) {
       rethrow;
     }
   }
 
-  /// Update Stock
   Future<void> updateStock(StockUpdate updatedStock) async {
     try {
-      await _ref.read(productRepositoryProvider).updateStock(updatedStock);
-    } catch (e) {
+      await _repo.updateStock(updatedStock);
+      await fetchProducts();
+    } catch (_) {
       rethrow;
     }
   }
 
-  /// Get Product by ID
   Future<ProductModel?> getProductById(String id) async {
     try {
-      return await _ref.read(productRepositoryProvider).getProductById(id);
+      return await _repo.getProductById(id);
     } catch (_) {
       return null;
     }
   }
 
-  /// Fetch Low Stock Products
   Future<List<ProductModel>> fetchLowStockProducts(int threshold) async {
     try {
-      return await _ref
-          .read(productRepositoryProvider)
-          .getLowStockProducts(threshold: threshold);
-    } catch (e) {
+      return await _repo.getLowStockProducts(threshold: threshold);
+    } catch (_) {
       rethrow;
     }
   }
-
-  void _startAutoRefresh() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) => fetchProducts());
-    _ref.onDispose(() => _timer?.cancel());
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  Future<void> fetchAllProducts() async {
+    while (_paginationState.hasMore && !_paginationState.isFetchingMore) {
+      await fetchMoreProducts();
+    }
   }
 }

@@ -1,164 +1,155 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:inverter_management_app/feature/authentication/controller/login_controller.dart';
+import 'package:inverter_management_app/feature/authentication/screen/login_mobile_view.dart';
 import 'package:inverter_management_app/screen/rolebasescreen/AccountantMobileView.dart';
 import 'package:inverter_management_app/screen/rolebasescreen/deliveryMobileView.dart';
 import 'package:inverter_management_app/screen/rolebasescreen/managerMobileView.dart';
 import 'package:inverter_management_app/screen/rolebasescreen/packingMobileView.dart';
 import 'package:inverter_management_app/screen/rolebasescreen/productionMobileView.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:inverter_management_app/core/media_query/media_query.dart';
-import 'package:inverter_management_app/feature/authentication/controller/login_controller.dart';
-import 'package:inverter_management_app/feature/authentication/screen/login_page.dart';
 import 'package:inverter_management_app/screen/rolebasescreen/salesmanmobileview.dart';
 import 'package:inverter_management_app/screen/superAdmin_home_screen.dart';
-
 import '../core/role/app_role.dart';
-import '../feature/authentication/screen/login_mobile_view.dart';
-import 'Dashboard/accountantDashboard.dart';
+
+const _kP    = Color(0xFF185FA5);
+const _kT1   = Color(0xFF111827);
+const _kT4   = Color(0xFF9CA3AF);
+const _kBd   = Color(0xFFE5E7EB);
+const _kBg   = Color(0xFFF7F8FA);
+const _kWhite = Colors.white;
+const _kRed  = Color(0xFFDC2626);
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
-
-  @override
-  ConsumerState<SplashScreen> createState() => _SplashScreenState();
+  @override ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen>
-    with SingleTickerProviderStateMixin {
-
-  static const Color splashBlue = Color(0xFF4A90E2);
-
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
+class _SplashScreenState extends ConsumerState<SplashScreen> {
+  bool _hasError = false;
+  String _errorMsg = '';
 
   @override
-  void initState() {
-    super.initState();
+  void initState() { super.initState(); _init(); }
 
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-
-    _controller.forward();
-    _initApp();
+  Future<void> _init() async {
+    if (mounted) setState(() { _hasError = false; _errorMsg = ''; });
+    try {
+      final results = await Future.wait([
+        ref.read(loginControllerProvider.notifier).isTokenActive(),
+        Future.delayed(const Duration(milliseconds: 2200)),
+      ]);
+      final isActive = results[0] as bool;
+      if (!mounted) return;
+      if (!isActive) {
+        await ref.read(loginControllerProvider.notifier).forceLogout();
+        _goTo(const LoginMobileView());
+        return;
+      }
+      final prefs = await SharedPreferences.getInstance();
+      final role = prefs.getString('user_role');
+      ref.read(roleNotifierProvider.notifier).setRole(role);
+      if (!mounted) return;
+      _navigateByRole(role);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+        _hasError = true;
+        _errorMsg = 'Could not connect. Please check your internet connection.';
+      });
+      }
+    }
   }
 
-  Future<void> _initApp() async {
-    final results = await Future.wait([
-      ref.read(loginControllerProvider).isTokenActive(),
-      Future.delayed(const Duration(milliseconds: 2500)),
-    ]);
-
-    final isActive = results[0] as bool;
-    if (!context.mounted) return;
-
-    if (!isActive) {
-      await ref.read(loginControllerProvider).forceLogout();
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginMobileView()),
-      );
-      return;
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    final role = prefs.getString('user_role');
-    ref.read(roleNotifierProvider.notifier).setRole(role);
-    if (!context.mounted) return;
-
+  void _navigateByRole(String? role) {
+    Widget target;
     switch (role) {
       case 'ROLE_SUPER_ADMIN':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const SuperAdminHomePage()));
-        break;
-      case 'ROLE_ADMIN':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const SuperAdminHomePage()));
-        break;
-      case 'ROLE_SALESMAN':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const SalesmanMobileView()));
-        break;
-      case 'ROLE_PRODUCTION':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const ProductionMobileView()));
-        break;
-      case 'ROLE_PACKING':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const PackingMobileView()));
-        break;
-
-    case 'ROLE_MANAGER':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const ManagerMobileView()));
-        break;
-      case 'ROLE_ACCOUNTS':
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AccountantMobileView()));
-        break;
-      case 'ROLE_DELIVERY':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const DeliveryMobileView()));
-        break;
-      default:
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const LoginMobileView()));
+      case 'ROLE_ADMIN':      target = const SuperAdminHomePage(); break;
+      case 'ROLE_SALESMAN':   target = const SalesmanMobileView(); break;
+      case 'ROLE_PRODUCTION': target = const ProductionMobileView(); break;
+      case 'ROLE_PACKING':    target = const PackingMobileView(); break;
+      case 'ROLE_MANAGER':    target = const ManagerMobileView(); break;
+      case 'ROLE_ACCOUNTS':   target = const AccountantMobileView(); break;
+      case 'ROLE_DELIVERY':   target = const DeliveryMobileView(); break;
+      default:                target = const LoginMobileView();
     }
+    _goTo(target);
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void _goTo(Widget page) {
+    if (!mounted) return;
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => page));
   }
 
-  @override
   @override
   Widget build(BuildContext context) {
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ white background
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: ScaleTransition(
-          scale: _scaleAnimation,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+      backgroundColor: _kWhite,
+      body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        // Logo
+        Container(
+            width: (sw * 0.22).clamp(72.0, 100.0),
+            height: (sw * 0.22).clamp(72.0, 100.0),
+            decoration: BoxDecoration(
+                color: _kBg,
+                borderRadius: BorderRadius.circular((sw * 0.06).clamp(18.0, 28.0)),
+                border: Border.all(color: _kBd, width: 0.5)),
+            padding: EdgeInsets.all((sw * 0.04).clamp(12.0, 20.0)),
+            child: Image.asset('assets/logo/smart_icon.png', fit: BoxFit.contain)),
 
-                // 🔹 Your app icon (from assets)
-                Image.asset(
-                  "assets/logo/smart_icon.png",
-                  width: Screen.w(context)*0.4,
-                  height: Screen.h(context)*0.2,
-                ),
+        SizedBox(height: sh * 0.025),
 
-                 SizedBox(height: Screen.h(context)*0.02), // Spacing between icon and text
+        // Brand name
+        Text('Smart Enterprises', style: TextStyle(
+            fontSize: (sw * 0.055).clamp(20.0, 28.0),
+            fontWeight: FontWeight.w800, color: _kT1, letterSpacing: -0.5)),
 
-                // 🔹 Company name
-                Text(
-                  'Smart Enterprises',
-                  style: GoogleFonts.nunito(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+        SizedBox(height: sh * 0.008),
+
+        Text('Inverter Management', style: TextStyle(
+            fontSize: (sw * 0.032).clamp(11.0, 14.0),
+            color: _kT4, fontWeight: FontWeight.w500, letterSpacing: 0.5)),
+
+        SizedBox(height: sh * 0.06),
+
+        // Error or loading
+        if (_hasError) ...[
+          Padding(padding: EdgeInsets.symmetric(horizontal: sw * 0.1),
+              child: Container(
+                  padding: EdgeInsets.all(sw * 0.04),
+                  decoration: BoxDecoration(color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFECACA), width: 0.5)),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Icon(Icons.wifi_off_rounded, size: (sw * 0.045).clamp(15.0, 20.0), color: _kRed),
+                    SizedBox(width: sw * 0.03),
+                    Expanded(child: Text(_errorMsg, style: TextStyle(
+                        fontSize: (sw * 0.032).clamp(11.0, 14.0), color: _kRed, height: 1.5))),
+                  ]))),
+          SizedBox(height: sh * 0.025),
+          ElevatedButton.icon(
+              onPressed: _init,
+              icon: Icon(Icons.refresh_rounded, size: (sw * 0.045).clamp(15.0, 20.0)),
+              label: Text('Try Again', style: TextStyle(
+                  fontSize: (sw * 0.036).clamp(12.0, 15.0), fontWeight: FontWeight.w700)),
+              style: ElevatedButton.styleFrom(backgroundColor: _kP, foregroundColor: _kWhite,
+                  padding: EdgeInsets.symmetric(
+                      horizontal: (sw * 0.07).clamp(24.0, 32.0),
+                      vertical: (sw * 0.03).clamp(10.0, 14.0)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0)),
+          SizedBox(height: sh * 0.015),
+          GestureDetector(onTap: () => _goTo(const LoginMobileView()),
+              child: Text('Go to Login', style: TextStyle(
+                  fontSize: (sw * 0.032).clamp(11.0, 14.0), color: _kT4, fontWeight: FontWeight.w500))),
+        ] else
+          SizedBox(width: 22, height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.5, color: _kBd)),
+      ])),
     );
   }
 }

@@ -57,7 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginTabletView> {
       });
 
       try {
-        final controller = ref.read(loginControllerProvider);
+        final controller = ref.read(loginControllerProvider.notifier);
         final result = await controller.login(
           _emailController.text.trim(),
           _passwordController.text.trim(),

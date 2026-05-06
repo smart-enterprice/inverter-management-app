@@ -1,906 +1,953 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
-import 'package:inverter_management_app/core/theme/theme.dart';
 import '../../../core/const/icons.dart';
 import '../../../core/media_query/media_query.dart';
-import '../../../screen/loadingScreen.dart';
 import '../controller/order_controller.dart';
 import '../../../model/order_model.dart';
 import 'order_view_page.dart';
 
-// ─── Status colour map ────────────────────────────────────────────────────────
-_StatusStyle _statusStyle(String? status) {
-  switch (status?.toUpperCase()) {
-    case 'PENDING':
-      return _StatusStyle(const Color(0xFFB45309), const Color(0xFFFFFBEB), const Color(0xFFFCD28A));
-    case 'CONFIRMED':
-      return _StatusStyle(const Color(0xFF1B4FD8), const Color(0xFFEEF2FF), const Color(0xFFC7D2FE));
-    case 'PRODUCTION':
-      return _StatusStyle(const Color(0xFFEA580C), const Color(0xFFFFF7ED), const Color(0xFFFED7AA));
-    case 'PACKED':
-      return _StatusStyle(const Color(0xFF7C3AED), const Color(0xFFF5F3FF), const Color(0xFFDDD6FE));
-    case 'INVOICE':
-      return _StatusStyle(const Color(0xFF4338CA), const Color(0xFFEEF2FF), const Color(0xFFC7D2FE));
-    case 'SHIPPED':
-      return _StatusStyle(const Color(0xFF0369A1), const Color(0xFFE0F2FE), const Color(0xFFBAE6FD));
+// ── Tokens ────────────────────────────────────────────────────────────────────
+const _kP        = Color(0xFF185FA5); // primary blue
+const _kPBg      = Color(0xFFEBF4FF);
+const _kPBd      = Color(0xFFBFD9F5);
+const _kBg       = Color(0xFFF7F8FA);
+const _kWhite    = Color(0xFFFFFFFF);
+const _kBd       = Color(0xFFE5E7EB);
+const _kT1       = Color(0xFF111827);
+const _kT2       = Color(0xFF374151);
+const _kT3       = Color(0xFF6B7280);
+const _kT4       = Color(0xFF9CA3AF);
+const _kRed      = Color(0xFFDC2626);
+const _kRedBg    = Color(0xFFFEF2F2);
+const _kRedBd    = Color(0xFFFECACA);
+const _kGreen    = Color(0xFF0F6E56);
+const _kGreenBg  = Color(0xFFEDFAF5);
+
+// ── Status helpers ────────────────────────────────────────────────────────────
+class _S { final Color fg, bg, bd; const _S(this.fg, this.bg, this.bd); }
+
+_S _ss(String? s) {
+  switch (s?.toUpperCase()) {
+    case 'PENDING':    return const _S(Color(0xFFB45309), Color(0xFFFFFBEB), Color(0xFFFCD28A));
+    case 'CONFIRMED':  return const _S(_kP, _kPBg, _kPBd);
+    case 'PRODUCTION': return const _S(Color(0xFFEA580C), Color(0xFFFFF7ED), Color(0xFFFED7AA));
+    case 'PACKED':     return const _S(Color(0xFF7C3AED), Color(0xFFF5F3FF), Color(0xFFDDD6FE));
+    case 'INVOICE':    return const _S(Color(0xFF4338CA), Color(0xFFEEF2FF), Color(0xFFC7D2FE));
+    case 'SHIPPED':    return const _S(Color(0xFF0369A1), Color(0xFFE0F2FE), Color(0xFFBAE6FD));
     case 'DELIVERED':
-    case 'COMPLETED':
-      return _StatusStyle(const Color(0xFF0A8A5C), const Color(0xFFEDFAF4), const Color(0xFF9FE0C5));
-    case 'CANCELLED':
-      return _StatusStyle(const Color(0xFFDC2626), const Color(0xFFFEF2F2), const Color(0xFFFECACA));
-    default:
-      return _StatusStyle(const Color(0xFF6B7280), const Color(0xFFF3F4F6), const Color(0xFFE5E7EB));
+    case 'COMPLETED':  return const _S(_kGreen, _kGreenBg, Color(0xFF9FE0C5));
+    case 'CANCELLED':  return const _S(_kRed, _kRedBg, _kRedBd);
+    default:           return const _S(_kT3, Color(0xFFF3F4F6), _kBd);
   }
 }
 
-class _StatusStyle {
-  final Color fg, bg, border;
-  const _StatusStyle(this.fg, this.bg, this.border);
+Color _dotColor(String? v) {
+  switch (v?.toUpperCase()) {
+    case 'PENDING':    return const Color(0xFFB45309);
+    case 'CONFIRMED':  return _kP;
+    case 'PRODUCTION': return const Color(0xFFEA580C);
+    case 'PACKED':     return const Color(0xFF7C3AED);
+    case 'INVOICE':    return const Color(0xFF4338CA);
+    case 'SHIPPED':    return const Color(0xFF0369A1);
+    case 'DELIVERED':
+    case 'COMPLETED':  return _kGreen;
+    case 'CANCELLED':  return _kRed;
+    default:           return _kT3;
+  }
 }
 
-// ─── Status tab data ──────────────────────────────────────────────────────────
-class _StatusTab {
-  final String label;
-  final String? apiValue; // null = ALL
-  final IconData icon;
-
-  const _StatusTab({required this.label, this.apiValue, required this.icon});
+Color _priColor(String p) {
+  switch (p.toUpperCase()) {
+    case 'HIGH':   return _kRed;
+    case 'MEDIUM': return const Color(0xFFB45309);
+    default:       return _kGreen;
+  }
 }
 
-const List<_StatusTab> _kTabs = [
-  _StatusTab(label: 'All',        apiValue: null,          icon: Icons.grid_view_rounded),
-  _StatusTab(label: 'Pending',    apiValue: 'PENDING',     icon: Icons.pending_actions_rounded),
-  _StatusTab(label: 'Confirmed',  apiValue: 'CONFIRMED',   icon: Icons.verified_rounded),
-  _StatusTab(label: 'Production', apiValue: 'PRODUCTION',  icon: Icons.precision_manufacturing_rounded),
-  _StatusTab(label: 'Packed',     apiValue: 'PACKED',      icon: Icons.inventory_2_outlined),
-  _StatusTab(label: 'Invoice',    apiValue: 'INVOICE',     icon: Icons.receipt_long_rounded),
-  _StatusTab(label: 'Shipped',    apiValue: 'SHIPPED',     icon: Icons.local_shipping_outlined),
-  _StatusTab(label: 'Delivered',  apiValue: 'DELIVERED',   icon: Icons.check_circle_outline_rounded),
-  _StatusTab(label: 'Completed',  apiValue: 'COMPLETED',   icon: Icons.task_alt_rounded),
-  _StatusTab(label: 'Cancelled',  apiValue: 'CANCELLED',   icon: Icons.cancel_outlined),
+// ── Status filter tabs ────────────────────────────────────────────────────────
+class _Tab { final String label; final String? api;
+const _Tab(this.label, [this.api]); }
+
+final _tabs = <_Tab>[
+  _Tab('All'), _Tab('Pending','PENDING'), _Tab('Confirmed','CONFIRMED'),
+  _Tab('Production','PRODUCTION'), _Tab('Packed','PACKED'),
+  _Tab('Invoice','INVOICE'), _Tab('Shipped','SHIPPED'),
+  _Tab('Delivered','DELIVERED'), _Tab('Completed','COMPLETED'),
+  _Tab('Cancelled','CANCELLED'),
 ];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-class OrdersViewPage extends ConsumerStatefulWidget {
-  const OrdersViewPage({super.key});
+// ── Helpers ───────────────────────────────────────────────────────────────────
+String _fmt(num? n) => n == null ? '0' : NumberFormat('#,##,###').format(n);
+String _apiDate(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}';
 
-  @override
-  ConsumerState<OrdersViewPage> createState() => _OrdersViewPageState();
+/// Label shown above grouped cards: "Today", "Yesterday", or "24 Apr 2026"
+String _groupLabel(DateTime d) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day   = DateTime(d.year, d.month, d.day);
+  if (day == today) return 'Today';
+  if (day == today.subtract(const Duration(days: 1))) return 'Yesterday';
+  return DateFormat('d MMM yyyy').format(d);
 }
 
-class _OrdersViewPageState extends ConsumerState<OrdersViewPage> {
-  final TextEditingController _searchController = TextEditingController();
-  final ScrollController _tabScrollController = ScrollController();
-  final ScrollController _listScrollController = ScrollController();
+/// Parse the order's created date. Falls back to epoch on failure.
+DateTime _orderDate(OrderModel o) {
+  return o.createdAt?.toLocal() ?? DateTime.fromMillisecondsSinceEpoch(0);
+}
 
-  String _searchQuery = '';
-  bool _isSearching = false;
-  int _selectedTabIndex = 0; // index into _kTabs
+// ── Group orders by date ──────────────────────────────────────────────────────
+/// Returns a flat list of items: either a String (date header) or OrderModel.
+List<dynamic> _groupByDate(List<OrderModel> orders) {
+  final result = <dynamic>[];
+  String? lastLabel;
+  for (final o in orders) {
+    final label = _groupLabel(_orderDate(o));
+    if (label != lastLabel) {
+      result.add(label); // date header
+      lastLabel = label;
+    }
+    result.add(o);
+  }
+  return result;
+}
 
-  DateTimeRange? _selectedDateRange;
-  bool _isDateFilterActive = false;
+// ─────────────────────────────────────────────────────────────────────────────
+// OrdersViewPage
+// ─────────────────────────────────────────────────────────────────────────────
+class OrdersViewPage extends ConsumerStatefulWidget {
+  const OrdersViewPage({super.key});
+  @override
+  ConsumerState<OrdersViewPage> createState() => _State();
+}
 
-  // Pagination state
-  List<OrderModel> _allOrders = [];
-  int _currentPage = 1;
-  bool _isLoadingMore = false;
-  bool _hasMoreData = true;
-  final int _pageSize = 20;
+class _State extends ConsumerState<OrdersViewPage> {
+  final _searchCtrl    = TextEditingController();
+  final _tabScroll     = ScrollController();
+  final _listScroll    = ScrollController();
+
+  String _q            = '';
+  bool   _searching    = false;
+  int    _tab          = 0;
+
+  DateTime? _from;
+  DateTime? _to;
+  bool      _dateActive = false;
+
+  List<OrderModel> _all  = [];
+  int  _page    = 1;
+  bool _loading = false;
+  bool _hasMore = true;
+  static const _limit = 20;
 
   @override
   void initState() {
     super.initState();
-    _listScrollController.addListener(_scrollListener);
+    _listScroll.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
-    _tabScrollController.dispose();
-    _listScrollController.dispose();
+    _searchCtrl.dispose();
+    _tabScroll.dispose();
+    _listScroll.dispose();
     super.dispose();
   }
 
-  void _scrollListener() {
-    if (_listScrollController.position.pixels >=
-        _listScrollController.position.maxScrollExtent - 200) {
-      // Load more when user is 200px from bottom
-      if (!_isLoadingMore && _hasMoreData && !_isDateFilterActive) {
-        _loadMoreOrders();
-      }
+  // ── Pagination ─────────────────────────────────────────────────────────────
+  void _onScroll() {
+    if (_listScroll.position.pixels >=
+        _listScroll.position.maxScrollExtent - 200) {
+      if (!_loading && _hasMore && !_dateActive) _loadMore();
     }
   }
 
-  Future<void> _loadMoreOrders() async {
-    if (_isLoadingMore || !_hasMoreData) return;
-
-    setState(() {
-      _isLoadingMore = true;
-    });
-
+  Future<void> _loadMore() async {
+    if (_loading || !_hasMore) return;
+    setState(() => _loading = true);
     try {
-      final selectedTab = _kTabs[_selectedTabIndex];
-      final params = PaginatedOrderParams(
-        status: selectedTab.apiValue,
-        page: _currentPage + 1,
-        limit: _pageSize,
-      );
-
-      final newOrders = await ref.read(paginatedOrdersProvider(params).future);
-
+      final more = await ref.read(paginatedOrdersProvider(PaginatedOrderParams(
+        status: _tabs[_tab].api, page: _page + 1, limit: _limit,
+      )).future);
       setState(() {
-        if (newOrders.isEmpty) {
-          _hasMoreData = false;
-        } else {
-          _allOrders.addAll(newOrders);
-          _currentPage++;
+        if (more.isEmpty) { _hasMore = false; }
+        else {
+          final seen = _all.map((o) => o.orderNumber).toSet();
+          _all.addAll(more.where((o) => !seen.contains(o.orderNumber)));
+          _page++;
         }
-        _isLoadingMore = false;
+        _loading = false;
       });
-    } catch (e) {
-      setState(() {
-        _isLoadingMore = false;
-      });
-    }
+    } catch (_) { setState(() => _loading = false); }
   }
 
-  void _resetPagination() {
-    setState(() {
-      _allOrders = [];
-      _currentPage = 1;
-      _hasMoreData = true;
-    });
-  }
+  void _reset() => setState(() { _all = []; _page = 1; _hasMore = true; });
 
-  void _toggleSearch() {
-    setState(() {
-      _isSearching = !_isSearching;
-      if (!_isSearching) {
-        _searchController.clear();
-        _searchQuery = '';
-      }
-    });
-  }
-
-  void _clearDateFilter() => setState(() {
-    _selectedDateRange = null;
-    _isDateFilterActive = false;
-    _resetPagination();
+  // ── Search ─────────────────────────────────────────────────────────────────
+  void _toggleSearch() => setState(() {
+    _searching = !_searching;
+    if (!_searching) { _searchCtrl.clear(); _q = ''; }
   });
 
-  String _formatSheetDate(DateTime d) {
-    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return '${d.day} ${m[d.month - 1]} ${d.year}';
-  }
-
-  String _toApiDate(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}';
-
-  String _fmt(num? n) => n == null ? '0' : NumberFormat('#,##,###').format(n);
-
-  // Dot colour per status for Option C chips
-  Color _tabDotColor(String? apiValue) {
-    switch (apiValue?.toUpperCase()) {
-      case 'PENDING':    return const Color(0xFFB45309);
-      case 'CONFIRMED':  return const Color(0xFF1B4FD8);
-      case 'PRODUCTION': return const Color(0xFFEA580C);
-      case 'PACKED':     return const Color(0xFF7C3AED);
-      case 'INVOICE':    return const Color(0xFF4338CA);
-      case 'SHIPPED':    return const Color(0xFF0369A1);
-      case 'DELIVERED':  return const Color(0xFF0A8A5C);
-      case 'COMPLETED':  return const Color(0xFF0A8A5C);
-      case 'CANCELLED':  return const Color(0xFFDC2626);
-      default:           return const Color(0xFF6B7280);
-    }
-  }
-
-  // Scroll tab into view when selected
-  void _scrollTabIntoView(int index) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_tabScrollController.hasClients) return;
-      const itemW = 95.0;
-      final target = (index * itemW) - 80.0;
-      _tabScrollController.animateTo(
-        target.clamp(0.0, _tabScrollController.position.maxScrollExtent),
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
-  // ── Option Y: open separate date pickers for From and To ─────────────────
-  Future<void> _pickFromDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDateRange?.start ?? DateTime.now().subtract(const Duration(days: 30)),
-      firstDate: DateTime(2023),
-      lastDate: _selectedDateRange?.end ?? DateTime.now(),
-      builder: (c, child) => Theme(
-        data: Theme.of(c).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xFF1B4FD8), onPrimary: Colors.white,
-            surface: Colors.white, onSurface: Color(0xFF111827),
-          ),
-          dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked == null) return;
-    setState(() {
-      final end = _selectedDateRange?.end ?? DateTime.now();
-      _selectedDateRange = DateTimeRange(
-        start: picked,
-        end: picked.isAfter(end) ? picked : end,
-      );
-      // _isDateFilterActive = true;
-      // _resetPagination();
-    });
-  }
-
-  Future<void> _pickToDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDateRange?.end ?? DateTime.now(),
-      firstDate: _selectedDateRange?.start ?? DateTime(2023),
-      lastDate: DateTime.now(),
-      builder: (c, child) => Theme(
-        data: Theme.of(c).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xFF1B4FD8), onPrimary: Colors.white,
-            surface: Colors.white, onSurface: Color(0xFF111827),
-          ),
-          dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked == null) return;
-    setState(() {
-      final start = _selectedDateRange?.start ?? DateTime(2023);
-      _selectedDateRange = DateTimeRange(
-        start: picked.isBefore(start) ? picked : start,
-        end: picked,
-      );
-      // _isDateFilterActive = true;
-      // _resetPagination();
-    });
-  }
-
-  List<OrderModel> _applySearchFilter(List<OrderModel> orders) {
-    if (_searchQuery.isEmpty) return orders;
-    final q = _searchQuery.toLowerCase();
+  List<OrderModel> _filter(List<OrderModel> orders) {
+    if (_q.isEmpty) return orders;
+    final q = _q.toLowerCase();
     return orders.where((o) =>
     (o.dealer?.employeeName.toLowerCase() ?? '').contains(q) ||
         (o.dealer?.shopName.toLowerCase() ?? '').contains(q) ||
         (o.orderNumber?.toLowerCase() ?? '').contains(q) ||
         (o.dealer?.employeePhone.toString() ?? '').contains(q)).toList();
   }
-  void _showDateFilterSheet() {
+
+  // ── Date filter ────────────────────────────────────────────────────────────
+  void _clearDate() => setState(() {
+    _from = null; _to = null; _dateActive = false; _reset();
+  });
+
+  void _applyDate() {
+    if (_from == null || _to == null) return;
+    setState(() { _dateActive = true; _reset(); });
+  }
+
+  Future<void> _pickDate(bool isFrom) async {
+    final now = DateTime.now();
+    final p = await showDatePicker(
+      context: context,
+      initialDate: isFrom
+          ? (_from ?? now.subtract(const Duration(days: 30)))
+          : (_to ?? now),
+      firstDate: DateTime(2023),
+      lastDate: now,
+      builder: (c, child) => Theme(
+        data: Theme.of(c).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: _kP, onPrimary: _kWhite,
+            surface: _kWhite, onSurface: _kT1,
+          ),
+          dialogTheme: const DialogThemeData(backgroundColor: _kWhite),
+        ),
+        child: child!,
+      ),
+    );
+    if (p == null) return;
+    setState(() {
+      if (isFrom) { _from = p; if (_to != null && _to!.isBefore(p)) _to = p; }
+      else { _to = p; if (_from != null && _from!.isAfter(p)) _from = p; }
+    });
+  }
+
+  void _showDateSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: _kWhite,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            final sw = Screen.w(context);
-            final sh = Screen.h(context);
+      builder: (ctx) => StatefulBuilder(builder: (ctx, ss) {
+        final sw = MediaQuery.sizeOf(context).width;
+        final sh = MediaQuery.sizeOf(context).height;
+        final canApply = _from != null && _to != null;
 
-            return Padding(
-              padding: EdgeInsets.fromLTRB(sw * 0.05, sh * 0.02, sw * 0.05, sh * 0.04),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+        String _fmtD(DateTime? d) => d == null
+            ? 'Select date'
+            : DateFormat('d MMM yyyy').format(d);
 
-                  // ── Handle ──────────────────────────────────────────
-                  Center(
-                    child: Container(
-                      width: sw * 0.1,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE5E7EB),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+              sw * 0.05, sh * 0.02, sw * 0.05,
+              sh * 0.04 + MediaQuery.viewInsetsOf(ctx).bottom),
+          child: Column(mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle
+              Center(child: Container(
+                width: sw * 0.1, height: 3,
+                decoration: BoxDecoration(
+                    color: _kBd, borderRadius: BorderRadius.circular(2)),
+              )),
+              SizedBox(height: sh * 0.022),
+
+              // Title + clear
+              Row(children: [
+                Text('Date Filter', style: TextStyle(
+                  fontSize: (sw * 0.042).clamp(14.0, 19.0),
+                  fontWeight: FontWeight.w700, color: _kT1,
+                )),
+                const Spacer(),
+                if (_dateActive)
+                  GestureDetector(
+                    onTap: () { _clearDate(); Navigator.pop(ctx); },
+                    child: Text('Clear', style: TextStyle(
+                      fontSize: (sw * 0.032).clamp(11.0, 14.0),
+                      color: _kRed, fontWeight: FontWeight.w600,
+                    )),
+                  ),
+              ]),
+              SizedBox(height: sh * 0.025),
+
+              // From / To rows
+              _DateRow(
+                label: 'From',
+                value: _fmtD(_from),
+                hasValue: _from != null,
+                sw: sw, sh: sh,
+                onTap: () async {
+                  await _pickDate(true); ss(() {});
+                },
+              ),
+              SizedBox(height: sh * 0.012),
+              _DateRow(
+                label: 'To',
+                value: _fmtD(_to),
+                hasValue: _to != null,
+                sw: sw, sh: sh,
+                onTap: () async {
+                  await _pickDate(false); ss(() {});
+                },
+              ),
+              SizedBox(height: sh * 0.03),
+
+              // Apply button
+              SizedBox(
+                width: double.infinity,
+                height: sh * 0.058,
+                child: ElevatedButton(
+                  onPressed: canApply ? () {
+                    _applyDate(); Navigator.pop(ctx);
+                  } : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kP,
+                    disabledBackgroundColor: _kBd,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                          (sw * 0.03).clamp(8.0, 12.0)),
                     ),
                   ),
-                  SizedBox(height: sh * 0.02),
-
-                  // ── Title row ───────────────────────────────────────
-                  Row(children: [
-                    const Icon(Icons.date_range_rounded,
-                        size: 20, color: Color(0xFF1B4FD8)),
-                    SizedBox(width: sw * 0.025),
-                    Text('Filter by Date',
-                        style: TextStyle(
-                          fontSize: sw * 0.042,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF0F1C3F),
-                        )),
-                    const Spacer(),
-                    if (_isDateFilterActive)
-                      GestureDetector(
-                        onTap: () {
-                          _clearDateFilter();
-                          Navigator.pop(ctx);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEF2F2),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFFECACA)),
-                          ),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            const Icon(Icons.close_rounded,
-                                size: 14, color: Color(0xFFDC2626)),
-                            const SizedBox(width: 4),
-                            Text('Clear',
-                                style: TextStyle(
-                                  fontSize: sw * 0.03,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFFDC2626),
-                                )),
-                          ]),
-                        ),
-                      ),
-                  ]),
-                  SizedBox(height: sh * 0.025),
-
-                  // ── From / To pills ─────────────────────────────────
-                  Row(children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () async {
-                          await _pickFromDate();
-                          setSheetState(() {});
-                        },
-                        child: _DatePill(
-                          sw: sw,
-                          label: 'From',
-                          value: _selectedDateRange != null
-                              ? _formatSheetDate(_selectedDateRange!.start)
-                              : null,
-                          active: _isDateFilterActive,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: sw * 0.025),
-                      child: Icon(Icons.arrow_forward_rounded,
-                          size: sw * 0.04, color: const Color(0xFF9CA3AF)),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () async {
-                          await _pickToDate();
-                          setSheetState(() {});
-                        },
-                        child: _DatePill(
-                          sw: sw,
-                          label: 'To',
-                          value: _selectedDateRange != null
-                              ? _formatSheetDate(_selectedDateRange!.end)
-                              : null,
-                          active: _isDateFilterActive,
-                        ),
-                      ),
-                    ),
-                  ]),
-                  SizedBox(height: sh * 0.03),
-
-                  // ── Apply button ────────────────────────────────────
-                  SizedBox(
-                    width: double.infinity,
-                    child: GestureDetector(
-                      onTap: _selectedDateRange != null
-                          ? () {
-                        setState(() {
-                          _isDateFilterActive = true;
-                          _resetPagination();
-                        });
-                        Navigator.pop(ctx);
-                      } : null,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: _selectedDateRange != null
-                              ? const Color(0xFF1B4FD8)
-                              : const Color(0xFFE5E7EB),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Center(
-                          child: Text('Apply Filter',
-                              style: TextStyle(
-                                fontSize: sw * 0.038,
-                                fontWeight: FontWeight.w700,
-                                color: _selectedDateRange != null
-                                    ? Colors.white
-                                    : const Color(0xFF9CA3AF),
-                              )),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-  @override
-
-  Widget build(BuildContext context) {
-    final sw = Screen.w(context);
-    final sh = Screen.h(context);
-    final selectedTab = _kTabs[_selectedTabIndex];
-
-    final AsyncValue<List<OrderModel>> ordersAsync;
-
-    if (_isDateFilterActive && _selectedDateRange != null) {
-      ordersAsync = ref.watch(filteredOrdersProvider(DateFilterParams(
-        startDate: _toApiDate(_selectedDateRange!.start),
-        endDate: _toApiDate(_selectedDateRange!.end),
-      )));
-    } else {
-      ordersAsync = ref.watch(paginatedOrdersProvider(PaginatedOrderParams(
-        status: selectedTab.apiValue,
-        page: _currentPage,
-        limit: _pageSize,
-      )));
-    }
-
-    return Column(children: [
-
-      // ── Header (always visible) ──────────────────────────────────────────
-      Container(
-        color: Colors.white,
-        child: Column(children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(sw * 0.045, sh * 0.018, sw * 0.04, sh * 0.012),
-            child: Row(children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Orders',
-                      style: TextStyle(fontSize: sw * 0.055, fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F1C3F), letterSpacing: -0.5)),
-                  // Show count only when data is available
-                  // if (ordersAsync.hasValue && ordersAsync.value!.isNotEmpty)
-                  //   Text('${_applySearchFilter(ordersAsync.value!).length} order${_applySearchFilter(ordersAsync.value!).length != 1 ? 's' : ''}',
-                  //       style: TextStyle(fontSize: sw * 0.03, color: const Color(0xFF9CA3AF),
-                  //           fontWeight: FontWeight.w500)),
-                ]),
-              ),
-              _HeaderBtn(
-                active: _isSearching,
-                icon: _isSearching ? Icons.close_rounded : Icons.search_rounded,
-                activeColor: const Color(0xFFDC2626),
-                onTap: _toggleSearch,
-              ),
-              SizedBox(width: sw * 0.02),
-              _HeaderBtn(
-                active: _isDateFilterActive,
-                icon: Icons.date_range_rounded,
-                activeColor: const Color(0xFF1B4FD8),
-                onTap: _showDateFilterSheet,
-              ),
-            ]),
-          ),
-
-          // ── Search bar ───────────────────────────────────────────────────
-          AnimatedSize(
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeInOut,
-            child: _isSearching
-                ? Padding(
-              padding: EdgeInsets.fromLTRB(sw * 0.045, 0, sw * 0.045, sh * 0.012),
-              child: TextField(
-                controller: _searchController,
-                autofocus: true,
-                onChanged: (v) => setState(() => _searchQuery = v),
-                style: TextStyle(fontSize: sw * 0.035, color: const Color(0xFF111827)),
-                decoration: InputDecoration(
-                  hintText: 'Search orders, dealers, phone...',
-                  hintStyle: TextStyle(color: const Color(0xFF9CA3AF), fontSize: sw * 0.033),
-                  prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF1B4FD8), size: 20),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                    icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF6B7280)),
-                    onPressed: () => setState(() { _searchController.clear(); _searchQuery = ''; }),
-                  )
-                      : null,
-                  filled: true,
-                  fillColor: const Color(0xFFF9FAFB),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF1B4FD8), width: 1.5)),
+                  child: Text('Apply', style: TextStyle(
+                    fontSize: (sw * 0.038).clamp(13.0, 16.0),
+                    fontWeight: FontWeight.w700,
+                    color: canApply ? _kWhite : _kT4,
+                  )),
                 ),
               ),
-            )
-                : const SizedBox.shrink(),
+            ],
           ),
+        );
+      }),
+    );
+  }
 
-          // ── Status chips (always visible) ────────────────────────────────
-          SizedBox(
-            height: sh * 0.055,
-            child: ListView.builder(
-              controller: _tabScrollController,
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(sw * 0.045, 0, sw * 0.045, sh * 0.008),
-              itemCount: _kTabs.length,
-              itemBuilder: (_, i) {
-                final tab = _kTabs[i];
-                final isSelected = _selectedTabIndex == i;
-                final isDisabled = _isDateFilterActive;
-                final dotColor = _tabDotColor(tab.apiValue);
+  // ── Tab scroll ─────────────────────────────────────────────────────────────
+  void _scrollTab(int i) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_tabScroll.hasClients) return;
+      _tabScroll.animateTo(
+        ((i * 90.0) - 60.0).clamp(0.0, _tabScroll.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 250), curve: Curves.easeOut,
+      );
+    });
+  }
 
-                return GestureDetector(
-                  onTap: isDisabled ? null : () {
-                    setState(() {
-                      _selectedTabIndex = i;
-                      _resetPagination();
-                    });
-                    _scrollTabIntoView(i);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOut,
-                    margin: EdgeInsets.only(right: sw * 0.022),
-                    padding: EdgeInsets.symmetric(
-                        horizontal: sw * 0.032, vertical: sw * 0.016),
-                    decoration: BoxDecoration(
-                      color: isDisabled
-                          ? const Color(0xFFF9FAFB)
-                          : isSelected
-                          ? Colors.white
-                          : const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isDisabled
-                            ? const Color(0xFFE5E7EB)
-                            : isSelected
-                            ? dotColor
-                            : const Color(0xFFE5E7EB),
-                        width: isSelected ? 1.5 : 1,
-                      ),
-                      boxShadow: isSelected && !isDisabled
-                          ? [BoxShadow(
-                          color: dotColor.withValues(alpha: 0.18),
-                          blurRadius: 8, offset: const Offset(0, 2))]
-                          : [],
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Container(
-                        width: sw * 0.018,
-                        height: sw * 0.018,
-                        decoration: BoxDecoration(
-                          color: isDisabled ? const Color(0xFFD1D5DB) : dotColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: sw * 0.018),
-                      Text(
-                        tab.label,
-                        style: TextStyle(
-                          fontSize: sw * 0.03,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isDisabled
-                              ? const Color(0xFFD1D5DB)
-                              : isSelected
-                              ? const Color(0xFF111827)
-                              : const Color(0xFF6B7280),
-                        ),
-                      ),
-                    ]),
-                  ),
-                );
+  // ── Build ──────────────────────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    final sw  = MediaQuery.sizeOf(context).width;
+    final sh  = MediaQuery.sizeOf(context).height;
+    final tab = _tabs[_tab.clamp(0, _tabs.length - 1)];
+
+    final AsyncValue<List<OrderModel>> async$ = _dateActive && _from != null && _to != null
+        ? ref.watch(filteredOrdersProvider(DateFilterParams(
+        startDate: _apiDate(_from!), endDate: _apiDate(_to!))))
+        : ref.watch(paginatedOrdersProvider(PaginatedOrderParams(
+        status: tab.api, page: _page, limit: _limit)));
+
+    return Scaffold(
+      backgroundColor: _kBg,
+      body: SafeArea(child: Column(children: [
+
+        // ── Top bar ──────────────────────────────────────────────────────────
+        Container(
+          color: _kWhite,
+          child: Column(children: [
+
+            // Title row
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                  sw * 0.045, sh * 0.018, sw * 0.04, sh * 0.014),
+              child: Row(children: [
+                Expanded(child: Text('Orders', style: TextStyle(
+                  fontSize: (sw * 0.052).clamp(17.0, 26.0),
+                  fontWeight: FontWeight.w800,
+                  color: _kT1, letterSpacing: -0.4,
+                ))),
+                // Search toggle
+                _IconBtn(
+                  icon: _searching ? Icons.close_rounded : Icons.search_rounded,
+                  active: _searching,
+                  activeColor: _kRed,
+                  sw: sw,
+                  onTap: _toggleSearch,
+                ),
+                SizedBox(width: sw * 0.02),
+                // Date filter
+                _IconBtn(
+                  icon: Icons.tune_rounded,
+                  active: _dateActive,
+                  activeColor: _kP,
+                  sw: sw,
+                  onTap: _showDateSheet,
+                ),
+              ]),
+            ),
+
+            // Search field
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              child: _searching
+                  ? Padding(
+                padding: EdgeInsets.fromLTRB(
+                    sw * 0.045, 0, sw * 0.045, sh * 0.012),
+                child: _SearchField(
+                  controller: _searchCtrl,
+                  sw: sw, sh: sh,
+                  onChanged: (v) => setState(() => _q = v),
+                  onClear: () => setState(() {
+                    _searchCtrl.clear(); _q = '';
+                  }),
+                ),
+              )
+                  : const SizedBox.shrink(),
+            ),
+
+            // Date active banner
+            if (_dateActive && _from != null && _to != null)
+              _DateBanner(from: _from!, to: _to!, sw: sw, sh: sh,
+                  onClear: _clearDate),
+
+            // Status chips
+            _StatusChips(
+              tabs: _tabs,
+              selected: _tab,
+              disabled: _dateActive,
+              scrollCtrl: _tabScroll,
+              sw: sw, sh: sh,
+              onSelect: (i) {
+                HapticFeedback.selectionClick();
+                setState(() { _tab = i; _reset(); });
+                _scrollTab(i);
               },
             ),
-          ),
 
-          Container(height: 1, color: const Color(0xFFF3F4F6)),
-        ]),
-      ),
+            // Bottom border
+            Container(height: 0.5, color: _kBd),
+          ]),
+        ),
 
-      // ── Body: loading / error / data ─────────────────────────────────────
-      Expanded(
-        child: ordersAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF1B4FD8))),
-          error: (err, _) => _buildError(context, sw, sh),
+        // ── List ─────────────────────────────────────────────────────────────
+        Expanded(child: async$.when(
+          loading: () => const Center(
+              child: CircularProgressIndicator(color: _kP, strokeWidth: 2)),
+          error: (_, __) => _ErrorView(sw: sw, sh: sh, onRetry: () {
+            _reset();
+            if (_dateActive) ref.invalidate(filteredOrdersProvider);
+            else ref.invalidate(paginatedOrdersProvider);
+          }),
           data: (orders) {
-            // Sync _allOrders when fresh page-1 data arrives
-            if (!_isDateFilterActive) {
-              if (_currentPage == 1 && orders.isNotEmpty) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) setState(() { _allOrders = List.from(orders); });
-                });
-              } else if (_currentPage > 1 && orders.isNotEmpty) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    final existing = _allOrders.map((o) => o.orderNumber).toSet();
-                    final newOnes = orders.where((o) => !existing.contains(o.orderNumber)).toList();
-                    if (newOnes.isNotEmpty) setState(() { _allOrders.addAll(newOnes); });
+            // Accumulate paginated orders
+            if (!_dateActive) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                if (_page == 1) {
+                  if (_all.length != orders.length ||
+                      (_all.isNotEmpty && orders.isNotEmpty &&
+                          _all.first.orderNumber != orders.first.orderNumber)) {
+                    setState(() => _all = List.from(orders));
                   }
-                });
-              }
+                } else {
+                  final seen = _all.map((o) => o.orderNumber).toSet();
+                  final fresh = orders.where((o) => !seen.contains(o.orderNumber)).toList();
+                  if (fresh.isNotEmpty) setState(() => _all.addAll(fresh));
+                }
+              });
             }
 
-            final displayOrders = _isDateFilterActive
-                ? orders
-                : (_allOrders.isEmpty ? orders : _allOrders);
+            final display  = _dateActive ? orders : (_all.isEmpty ? orders : _all);
+            final filtered = _filter(display);
 
-            final filtered = _applySearchFilter(displayOrders);
+            if (filtered.isEmpty) return _EmptyView(
+              sw: sw, sh: sh,
+              isSearch: _searching && _q.isNotEmpty,
+              isDate: _dateActive,
+              query: _q,
+              tabLabel: _tabs[_tab.clamp(0, _tabs.length - 1)].label,
+              onClear: _clearDate,
+              onAll: () => setState(() {
+                _tab = 0; _reset(); _scrollTab(0);
+              }),
+            );
 
-            return filtered.isEmpty
-                ? _buildEmptyState(context, sw, sh)
-                : RefreshIndicator(
-              color: const Color(0xFF1B4FD8),
-              backgroundColor: Colors.white,
+            // Build grouped list items
+            final items = _groupByDate(filtered);
+
+            return RefreshIndicator(
+              color: _kP,
+              backgroundColor: _kWhite,
               onRefresh: () async {
-                _resetPagination();
-                if (_isDateFilterActive && _selectedDateRange != null) {
-                  ref.invalidate(filteredOrdersProvider);
-                } else {
-                  ref.invalidate(paginatedOrdersProvider);
-                }
-                // Give Riverpod time to start the refetch
+                _reset();
+                if (_dateActive) ref.invalidate(filteredOrdersProvider);
+                else ref.invalidate(paginatedOrdersProvider);
                 await Future.delayed(const Duration(milliseconds: 400));
               },
               child: ListView.builder(
-                controller: _listScrollController,
-                padding: EdgeInsets.fromLTRB(sw * 0.045, sh * 0.018, sw * 0.045, sh * 0.04),
-                itemCount: filtered.length + (_isLoadingMore ? 1 : 0),
+                controller: _listScroll,
+                padding: EdgeInsets.fromLTRB(
+                    sw * 0.045, sh * 0.016, sw * 0.045, sh * 0.04),
+                itemCount: items.length + (_loading ? 1 : 0),
                 itemBuilder: (_, i) {
-                  if (i == filtered.length) {
+                  if (i == items.length) {
                     return Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: sh * 0.02),
                         child: const CircularProgressIndicator(
-                            color: Color(0xFF1B4FD8), strokeWidth: 2),
+                            color: _kP, strokeWidth: 2),
                       ),
                     );
                   }
-                  return _OrderCard(
-                    order: filtered[i],
-                    sw: sw,
-                    sh: sh,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => OrderViewPage(
-                          orderNumber: filtered[i].orderNumber.toString()),
-                    )),
+                  final item = items[i];
+
+                  // ── Date header ──────────────────────────────────────────
+                  if (item is String) {
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        top: i == 0 ? 0 : sh * 0.018,
+                        bottom: sh * 0.01,
+                      ),
+                      child: Row(children: [
+                        Text(item, style: TextStyle(
+                          fontSize: (sw * 0.03).clamp(10.0, 13.0),
+                          fontWeight: FontWeight.w600,
+                          color: _kT3,
+                          letterSpacing: 0.2,
+                        )),
+                        SizedBox(width: sw * 0.025),
+                        Expanded(child: Container(
+                            height: 0.5, color: _kBd)),
+                      ]),
+                    );
+                  }
+
+                  // ── Order card ───────────────────────────────────────────
+                  final order = item as OrderModel;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: sh * 0.012),
+                    child: _OrderCard(
+                      order: order, sw: sw, sh: sh,
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => OrderViewPage(
+                              orderNumber: order.orderNumber.toString()))),
+                    ),
                   );
                 },
               ),
             );
           },
-        ),
-      ),
-    ]);
-  }
-
-  Widget _buildEmptyState(BuildContext context, double sw, double sh) {
-    return Center(
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Container(
-          width: sw * 0.22, height: sw * 0.22,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6),
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-          ),
-          child: Icon(
-            _isDateFilterActive ? Icons.date_range_outlined : Icons.inbox_outlined,
-            size: sw * 0.1, color: const Color(0xFFD1D5DB),
-          ),
-        ),
-        SizedBox(height: sh * 0.025),
-        Text(
-          _isSearching && _searchQuery.isNotEmpty
-              ? 'No results for "$_searchQuery"'
-              : _isDateFilterActive
-              ? 'No orders in this date range'
-              : 'No ${_kTabs[_selectedTabIndex].label} orders',
-          style: TextStyle(fontSize: sw * 0.038, color: const Color(0xFF6B7280),
-              fontWeight: FontWeight.w600),
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: sh * 0.008),
-        Text(
-          _isDateFilterActive
-              ? 'Try a different date range'
-              : 'Orders will appear here',
-          style: TextStyle(fontSize: sw * 0.03, color: const Color(0xFF9CA3AF)),
-        ),
-        SizedBox(height: sh * 0.025),
-        if (_isDateFilterActive)
-          _ActionButton(label: 'Clear Date Filter', icon: Icons.close_rounded,
-              onTap: _clearDateFilter)
-        else if (_selectedTabIndex != 0)
-          _ActionButton(label: 'View All Orders', icon: Icons.arrow_back_rounded,
-              onTap: () => setState(() { _selectedTabIndex = 0; _scrollTabIntoView(0); _resetPagination(); })),
-      ]),
+        )),
+      ])),
     );
   }
+}
 
-  Widget _buildError(BuildContext context, double sw, double sh) {
-    return Center(
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Container(
-          width: sw * 0.2, height: sw * 0.2,
-          decoration: BoxDecoration(
-            color: const Color(0xFFFEF2F2), shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFFECACA)),
+// ─────────────────────────────────────────────────────────────────────────────
+// Widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Icon button ───────────────────────────────────────────────────────────────
+class _IconBtn extends StatelessWidget {
+  const _IconBtn({required this.icon, required this.active,
+    required this.activeColor, required this.sw, required this.onTap});
+  final IconData icon; final bool active;
+  final Color activeColor; final double sw; final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final sz = (sw * 0.088).clamp(32.0, 42.0);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: sz, height: sz,
+        decoration: BoxDecoration(
+          color: active
+              ? activeColor.withValues(alpha: 0.08)
+              : const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(sz / 2),
+          border: Border.all(
+            color: active
+                ? activeColor.withValues(alpha: 0.35)
+                : Colors.transparent,
+            width: 0.5,
           ),
-          child: const Icon(Icons.wifi_off_rounded, size: 40, color: Color(0xFFDC2626)),
         ),
-        SizedBox(height: sh * 0.02),
-        Text('No Internet Connection',
-            style: TextStyle(fontSize: sw * 0.04, fontWeight: FontWeight.w600, color: const Color(0xFF374151))),
-        SizedBox(height: sh * 0.008),
-        Text('Check your connection and try again',
-            style: TextStyle(fontSize: sw * 0.03, color: const Color(0xFF9CA3AF))),
-        SizedBox(height: sh * 0.025),
-        _ActionButton(
-          label: 'Retry',
-          icon: Icons.refresh_rounded,
-          onTap: () {
-            _resetPagination();
-            if (_isDateFilterActive && _selectedDateRange != null) {
-              ref.invalidate(filteredOrdersProvider);
-            } else {
-              ref.invalidate(paginatedOrdersProvider);
-            }
-          },
+        child: Icon(icon,
+            size: (sw * 0.048).clamp(16.0, 22.0),
+            color: active ? activeColor : _kT3),
+      ),
+    );
+  }
+}
+
+// ── Search field ──────────────────────────────────────────────────────────────
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.controller, required this.sw,
+    required this.sh, required this.onChanged, required this.onClear});
+  final TextEditingController controller;
+  final double sw, sh;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = (sw * 0.025).clamp(8.0, 12.0);
+    return TextField(
+      controller: controller,
+      autofocus: true,
+      onChanged: onChanged,
+      style: TextStyle(
+          fontSize: (sw * 0.035).clamp(12.0, 15.0), color: _kT1),
+      decoration: InputDecoration(
+        hintText: 'Search orders, dealers...',
+        hintStyle: TextStyle(
+            fontSize: (sw * 0.033).clamp(11.0, 14.0), color: _kT4),
+        prefixIcon: Icon(Icons.search_rounded,
+            color: _kP, size: (sw * 0.045).clamp(16.0, 20.0)),
+        suffixIcon: controller.text.isNotEmpty
+            ? IconButton(
+            icon: Icon(Icons.close_rounded,
+                size: (sw * 0.04).clamp(14.0, 18.0), color: _kT3),
+            onPressed: onClear)
+            : null,
+        filled: true,
+        fillColor: const Color(0xFFF9FAFB),
+        contentPadding: EdgeInsets.symmetric(vertical: sh * 0.012),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kBd, width: 0.5)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kBd, width: 0.5)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kP, width: 1.5)),
+      ),
+    );
+  }
+}
+
+// ── Date active banner ────────────────────────────────────────────────────────
+class _DateBanner extends StatelessWidget {
+  const _DateBanner({required this.from, required this.to,
+    required this.sw, required this.sh, required this.onClear});
+  final DateTime from, to;
+  final double sw, sh;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('d MMM yyyy');
+    return Container(
+      margin: EdgeInsets.fromLTRB(sw * 0.045, 0, sw * 0.045, sh * 0.01),
+      padding: EdgeInsets.symmetric(
+          horizontal: sw * 0.035, vertical: sh * 0.008),
+      decoration: BoxDecoration(
+        color: _kPBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _kPBd, width: 0.5),
+      ),
+      child: Row(children: [
+        Icon(Icons.date_range_rounded,
+            size: (sw * 0.038).clamp(13.0, 16.0), color: _kP),
+        SizedBox(width: sw * 0.02),
+        Expanded(child: Text(
+          '${fmt.format(from)} → ${fmt.format(to)}',
+          style: TextStyle(
+            fontSize: (sw * 0.03).clamp(10.0, 13.0),
+            color: _kP, fontWeight: FontWeight.w600,
+          ),
+        )),
+        GestureDetector(
+          onTap: onClear,
+          child: Icon(Icons.close_rounded,
+              size: (sw * 0.038).clamp(13.0, 16.0), color: _kP),
         ),
       ]),
     );
   }
 }
 
-// ─── Order Card ───────────────────────────────────────────────────────────────
+// ── Status chips row ──────────────────────────────────────────────────────────
+class _StatusChips extends StatelessWidget {
+  const _StatusChips({required this.tabs, required this.selected,
+    required this.disabled, required this.scrollCtrl,
+    required this.sw, required this.sh, required this.onSelect});
+  final List<_Tab> tabs;
+  final int selected;
+  final bool disabled;
+  final ScrollController scrollCtrl;
+  final double sw, sh;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: sh * 0.052,
+      child: ListView.builder(
+        controller: scrollCtrl,
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(
+            sw * 0.045, sh * 0.006, sw * 0.045, sh * 0.008),
+        itemCount: tabs.length,
+        itemBuilder: (_, i) {
+          final t   = tabs[i];
+          final sel = selected == i && !disabled;
+          final dot = _dotColor(t.api);
+
+          return GestureDetector(
+            onTap: disabled ? null : () => onSelect(i),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              margin: EdgeInsets.only(right: sw * 0.02),
+              padding: EdgeInsets.symmetric(
+                horizontal: sw * 0.03,
+                vertical: sh * 0.004,
+              ),
+              decoration: BoxDecoration(
+                color: sel ? _kWhite : Colors.transparent,
+                borderRadius: BorderRadius.circular(
+                    (sh * 0.018).clamp(10.0, 20.0)),
+                border: Border.all(
+                  color: sel ? dot : _kBd,
+                  width: sel ? 1.0 : 0.5,
+                ),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (t.api != null) ...[
+                  Container(
+                    width: (sw * 0.016).clamp(5.0, 7.0),
+                    height: (sw * 0.016).clamp(5.0, 7.0),
+                    decoration: BoxDecoration(
+                      color: disabled ? _kBd : dot,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  SizedBox(width: sw * 0.015),
+                ],
+                Text(t.label, style: TextStyle(
+                  fontSize: (sw * 0.029).clamp(10.0, 12.5),
+                  fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                  color: disabled ? _kT4
+                      : sel ? _kT1 : _kT3,
+                  height: 1.0,
+                )),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ── Date row in bottom sheet ──────────────────────────────────────────────────
+class _DateRow extends StatelessWidget {
+  const _DateRow({required this.label, required this.value,
+    required this.hasValue, required this.sw, required this.sh,
+    required this.onTap});
+  final String label, value;
+  final bool hasValue;
+  final double sw, sh;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+            horizontal: sw * 0.04, vertical: sh * 0.016),
+        decoration: BoxDecoration(
+          color: hasValue ? _kPBg : const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular((sw * 0.025).clamp(8.0, 12.0)),
+          border: Border.all(
+              color: hasValue ? _kPBd : _kBd, width: 0.5),
+        ),
+        child: Row(children: [
+          Icon(Icons.calendar_today_outlined,
+            size: (sw * 0.04).clamp(14.0, 18.0),
+            color: hasValue ? _kP : _kT4,
+          ),
+          SizedBox(width: sw * 0.03),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: TextStyle(
+                fontSize: (sw * 0.026).clamp(9.0, 11.0),
+                color: _kT4, fontWeight: FontWeight.w500,
+              )),
+              SizedBox(height: sh * 0.002),
+              Text(value, style: TextStyle(
+                fontSize: (sw * 0.032).clamp(11.0, 14.0),
+                color: hasValue ? _kP : _kT3,
+                fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
+              )),
+            ],
+          )),
+          Icon(Icons.chevron_right_rounded,
+            size: (sw * 0.045).clamp(16.0, 20.0),
+            color: _kT4,
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Order card ────────────────────────────────────────────────────────────────
 class _OrderCard extends StatelessWidget {
+  const _OrderCard({required this.order, required this.sw,
+    required this.sh, required this.onTap});
   final OrderModel order;
   final double sw, sh;
   final VoidCallback onTap;
 
-  const _OrderCard({required this.order, required this.sw, required this.sh, required this.onTap});
-
-  String _fmt(num? n) => n == null ? '0' : NumberFormat('#,##,###').format(n);
-
-  Color _priorityColor(String p) {
-    switch (p.toUpperCase()) {
-      case 'HIGH':   return const Color(0xFFDC2626);
-      case 'MEDIUM': return const Color(0xFFB45309);
-      default:       return const Color(0xFF0A8A5C);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final st = _statusStyle(order.status);
-    final priColor = _priorityColor(order.priority);
+    final st  = _ss(order.status);
+    final pri = _priColor(order.priority);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: EdgeInsets.only(bottom: sh * 0.015),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(sw * 0.04),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-          boxShadow: [BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12, offset: const Offset(0, 3))],
+          color: _kWhite,
+          borderRadius: BorderRadius.circular((sw * 0.035).clamp(10.0, 16.0)),
+          border: Border.all(color: _kBd, width: 0.5),
         ),
         child: Column(children: [
-          // ── Top ────────────────────────────────────────────────────────
+          // ── Main row ──────────────────────────────────────────────────
           Padding(
-            padding: EdgeInsets.all(sw * 0.04),
+            padding: EdgeInsets.all(sw * 0.038),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // Icon badge
+              // Icon box
               Container(
-                width: sw * 0.115, height: sw * 0.115,
+                width: (sw * 0.105).clamp(36.0, 52.0),
+                height: (sw * 0.105).clamp(36.0, 52.0),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
-                  borderRadius: BorderRadius.circular(sw * 0.03),
-                  border: Border.all(color: const Color(0xFFC7D2FE)),
+                  color: _kPBg,
+                  borderRadius: BorderRadius.circular(
+                      (sw * 0.025).clamp(8.0, 12.0)),
+                  border: Border.all(color: _kPBd, width: 0.5),
                 ),
-                child: Center(
-                  child: SvgPicture.asset(AppIcons.box,
-                      width: sw * 0.052, height: sw * 0.052,
-                      colorFilter: const ColorFilter.mode(Color(0xFF1B4FD8), BlendMode.srcIn)),
-                ),
+                child: Center(child: SvgPicture.asset(
+                  AppIcons.box,
+                  width: (sw * 0.048).clamp(16.0, 24.0),
+                  height: (sw * 0.048).clamp(16.0, 24.0),
+                  colorFilter: const ColorFilter.mode(_kP, BlendMode.srcIn),
+                )),
               ),
-              SizedBox(width: sw * 0.035),
+              SizedBox(width: sw * 0.03),
 
-              // Order info
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(order.orderNumber ?? 'N/A',
-                    style: TextStyle(fontSize: sw * 0.036, fontWeight: FontWeight.w700,
-                        color: const Color(0xFF111827), letterSpacing: -0.2),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                SizedBox(height: sh * 0.004),
-                Row(children: [
-                  SvgPicture.asset(AppIcons.dealers, width: sw * 0.03, height: sw * 0.03,
-                      colorFilter: const ColorFilter.mode(Color(0xFF6B7280), BlendMode.srcIn)),
-                  SizedBox(width: sw * 0.015),
-                  Expanded(child: Text(order.dealer?.employeeName ?? 'N/A',
-                      style: TextStyle(fontSize: sw * 0.03, color: const Color(0xFF6B7280),
-                          fontWeight: FontWeight.w500),
-                      maxLines: 1, overflow: TextOverflow.ellipsis)),
-                ]),
-                SizedBox(height: sh * 0.003),
-                Row(children: [
-                  Icon(Icons.storefront_outlined, size: sw * 0.03, color: const Color(0xFF9CA3AF)),
-                  SizedBox(width: sw * 0.015),
-                  Expanded(child: Text(order.dealer?.shopName ?? 'N/A',
-                      style: TextStyle(fontSize: sw * 0.028, color: const Color(0xFF9CA3AF),
-                          fontWeight: FontWeight.w400),
-                      maxLines: 1, overflow: TextOverflow.ellipsis)),
-                ]),
-              ])),
+              // Info
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(order.orderNumber ?? 'N/A', style: TextStyle(
+                    fontSize: (sw * 0.036).clamp(12.0, 16.0),
+                    fontWeight: FontWeight.w700, color: _kT1,
+                    letterSpacing: -0.2,
+                  ), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  SizedBox(height: sh * 0.004),
+                  Text(order.dealer?.employeeName ?? 'N/A', style: TextStyle(
+                    fontSize: (sw * 0.03).clamp(10.0, 13.0),
+                    color: _kT3, fontWeight: FontWeight.w500,
+                  ), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  SizedBox(height: sh * 0.002),
+                  Text(order.dealer?.shopName ?? '', style: TextStyle(
+                    fontSize: (sw * 0.028).clamp(9.5, 12.0),
+                    color: _kT4,
+                  ), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
+              )),
 
-              // Status chip
+              SizedBox(width: sw * 0.02),
+              // Status pill
               Container(
-                padding: EdgeInsets.symmetric(horizontal: sw * 0.022, vertical: sw * 0.01),
+                padding: EdgeInsets.symmetric(
+                  horizontal: sw * 0.022,
+                  vertical: sh * 0.005,
+                ),
                 decoration: BoxDecoration(
                   color: st.bg,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: st.border),
+                  borderRadius: BorderRadius.circular(
+                      (sw * 0.04).clamp(10.0, 20.0)),
+                  border: Border.all(color: st.bd, width: 0.5),
                 ),
-                child: Text(order.status ?? '',
-                    style: TextStyle(fontSize: sw * 0.024, fontWeight: FontWeight.w700, color: st.fg)),
+                child: Text(order.status ?? '', style: TextStyle(
+                  fontSize: (sw * 0.024).clamp(8.5, 11.0),
+                  fontWeight: FontWeight.w700, color: st.fg,
+                  height: 1.0,
+                )),
               ),
             ]),
           ),
 
-          // ── Divider ────────────────────────────────────────────────────
-          Container(height: 1, color: const Color(0xFFF3F4F6)),
+          // ── Divider ───────────────────────────────────────────────────
+          Container(height: 0.5, color: const Color(0xFFF3F4F6)),
 
-          // ── Bottom row ─────────────────────────────────────────────────
+          // ── Footer row ────────────────────────────────────────────────
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sw * 0.03),
+            padding: EdgeInsets.symmetric(
+                horizontal: sw * 0.038, vertical: sw * 0.028),
             child: Row(children: [
-              // Items count
-              _MiniChip(
+              // Items
+              _Chip(
                 icon: Icons.inventory_2_outlined,
-                label: '${order.orderDetails.length} item${order.orderDetails.length > 1 ? 's' : ''}',
-                color: const Color(0xFF6B7280),
-                bg: const Color(0xFFF9FAFB),
+                label: '${order.orderDetails.length} item${order.orderDetails.length != 1 ? 's' : ''}',
+                color: _kT3,
+                bg: const Color(0xFFF3F4F6),
                 sw: sw,
               ),
               SizedBox(width: sw * 0.02),
-              // Total price
+              // Amount
               if (order.totalPrice != null)
-                _MiniChip(
+                _Chip(
                   icon: Icons.currency_rupee_rounded,
                   label: _fmt(order.totalPrice),
-                  color: const Color(0xFF0A8A5C),
-                  bg: const Color(0xFFEDFAF4),
+                  color: _kGreen,
+                  bg: _kGreenBg,
                   sw: sw,
                 ),
               const Spacer(),
-              // Priority dot + label
+              // Priority
               Row(children: [
-                Container(width: sw * 0.018, height: sw * 0.018,
-                    decoration: BoxDecoration(color: priColor, shape: BoxShape.circle)),
-                SizedBox(width: sw * 0.015),
-                Text(order.priority,
-                    style: TextStyle(fontSize: sw * 0.028, fontWeight: FontWeight.w700, color: priColor)),
+                Container(
+                  width: (sw * 0.016).clamp(5.0, 7.0),
+                  height: (sw * 0.016).clamp(5.0, 7.0),
+                  decoration: BoxDecoration(color: pri, shape: BoxShape.circle),
+                ),
+                SizedBox(width: sw * 0.012),
+                Text(order.priority, style: TextStyle(
+                  fontSize: (sw * 0.028).clamp(9.5, 12.0),
+                  fontWeight: FontWeight.w700, color: pri,
+                  height: 1.0,
+                )),
               ]),
             ]),
           ),
@@ -910,156 +957,128 @@ class _OrderCard extends StatelessWidget {
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-class _HeaderBtn extends StatelessWidget {
-  final bool active;
-  final IconData icon;
-  final Color activeColor;
-  final VoidCallback onTap;
-
-  const _HeaderBtn({required this.active, required this.icon,
-    required this.activeColor, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.all(9),
-      decoration: BoxDecoration(
-        color: active ? activeColor.withValues(alpha: 0.1) : const Color(0xFFF3F4F6),
-        shape: BoxShape.circle,
-        border: Border.all(
-            color: active ? activeColor.withValues(alpha: 0.4) : Colors.transparent),
-      ),
-      child: Icon(icon, size: 22,
-          color: active ? activeColor : const Color(0xFF6B7280)),
-    ),
-  );
-}
-
-class _MiniChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color, bg;
-  final double sw;
-
-  const _MiniChip({required this.icon, required this.label,
+class _Chip extends StatelessWidget {
+  const _Chip({required this.icon, required this.label,
     required this.color, required this.bg, required this.sw});
+  final IconData icon; final String label;
+  final Color color, bg; final double sw;
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.symmetric(horizontal: sw * 0.025, vertical: sw * 0.012),
-    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+    padding: EdgeInsets.symmetric(
+        horizontal: sw * 0.022, vertical: sw * 0.01),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+    ),
     child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: sw * 0.032, color: color),
+      Icon(icon, size: (sw * 0.03).clamp(10.0, 14.0), color: color),
       SizedBox(width: sw * 0.01),
-      Text(label, style: TextStyle(fontSize: sw * 0.028, color: color, fontWeight: FontWeight.w600)),
+      Text(label, style: TextStyle(
+        fontSize: (sw * 0.027).clamp(9.0, 12.0),
+        color: color, fontWeight: FontWeight.w600, height: 1.0,
+      )),
     ]),
   );
 }
 
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
+// ── Empty & Error ─────────────────────────────────────────────────────────────
+class _EmptyView extends StatelessWidget {
+  const _EmptyView({required this.sw, required this.sh,
+    required this.isSearch, required this.isDate,
+    required this.query, required this.tabLabel,
+    required this.onClear, required this.onAll});
+  final double sw, sh;
+  final bool isSearch, isDate;
+  final String query, tabLabel;
+  final VoidCallback onClear, onAll;
 
-  const _ActionButton({required this.label, required this.icon, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    final circSz = (sw * 0.2).clamp(64.0, 96.0);
+    return Center(child: Padding(
+      padding: EdgeInsets.symmetric(horizontal: sw * 0.1),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(
+          width: circSz, height: circSz,
+          decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6), shape: BoxShape.circle),
+          child: Icon(
+              isDate ? Icons.date_range_outlined : Icons.inbox_outlined,
+              size: (sw * 0.09).clamp(30.0, 44.0), color: _kBd),
+        ),
+        SizedBox(height: sh * 0.02),
+        Text(
+          isSearch ? 'No results for "$query"'
+              : isDate ? 'No orders in range'
+              : 'No $tabLabel orders',
+          style: TextStyle(fontSize: (sw * 0.038).clamp(13.0, 17.0),
+              fontWeight: FontWeight.w600, color: _kT2),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: sh * 0.008),
+        Text(
+          isDate ? 'Try a different date range'
+              : 'Orders will appear here',
+          style: TextStyle(fontSize: (sw * 0.03).clamp(10.0, 13.0),
+              color: _kT4),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: sh * 0.025),
+        if (isDate)
+          _TextBtn(label: 'Clear Filter', onTap: onClear, sw: sw, sh: sh)
+        else if (tabLabel != 'All')
+          _TextBtn(label: 'View All Orders', onTap: onAll, sw: sw, sh: sh),
+      ]),
+    ));
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.sw, required this.sh, required this.onRetry});
+  final double sw, sh; final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final circSz = (sw * 0.2).clamp(64.0, 96.0);
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Container(
+        width: circSz, height: circSz,
+        decoration: const BoxDecoration(color: _kRedBg, shape: BoxShape.circle),
+        child: Icon(Icons.wifi_off_rounded,
+            size: (sw * 0.08).clamp(28.0, 42.0), color: _kRed),
+      ),
+      SizedBox(height: sh * 0.02),
+      Text('No Connection', style: TextStyle(
+          fontSize: (sw * 0.04).clamp(13.0, 18.0),
+          fontWeight: FontWeight.w600, color: _kT2)),
+      SizedBox(height: sh * 0.025),
+      _TextBtn(label: 'Retry', onTap: onRetry, sw: sw, sh: sh),
+    ]));
+  }
+}
+
+class _TextBtn extends StatelessWidget {
+  const _TextBtn({required this.label, required this.onTap,
+    required this.sw, required this.sh});
+  final String label; final VoidCallback onTap;
+  final double sw, sh;
 
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: EdgeInsets.symmetric(
+          horizontal: sw * 0.05, vertical: sh * 0.012),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEF2FF),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFC7D2FE)),
+        color: _kPBg,
+        borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+        border: Border.all(color: _kPBd, width: 0.5),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 16, color: const Color(0xFF1B4FD8)),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
-            color: Color(0xFF1B4FD8))),
-      ]),
+      child: Text(label, style: TextStyle(
+        fontSize: (sw * 0.033).clamp(11.0, 14.0),
+        fontWeight: FontWeight.w600, color: _kP,
+      )),
     ),
   );
-}
-
-// ─── Date Pill (Option Y) ─────────────────────────────────────────────────────
-class _DatePill extends StatelessWidget {
-  final double sw;
-  final String label;
-  final String? value; // null = not set yet
-  final bool active;
-
-  const _DatePill({
-    required this.sw,
-    required this.label,
-    required this.value,
-    required this.active,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final hasValue = value != null;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: EdgeInsets.symmetric(
-          horizontal: sw * 0.032, vertical: sw * 0.022),
-      decoration: BoxDecoration(
-        color: hasValue && active
-            ? const Color(0xFFEEF2FF)
-            : const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(sw * 0.028),
-        border: Border.all(
-          color: hasValue && active
-              ? const Color(0xFF1B4FD8)
-              : const Color(0xFFE5E7EB),
-          width: hasValue && active ? 1.5 : 1,
-        ),
-      ),
-      child: Row(children: [
-        Icon(
-          Icons.calendar_today_rounded,
-          size: sw * 0.034,
-          color: hasValue && active
-              ? const Color(0xFF1B4FD8)
-              : const Color(0xFF9CA3AF),
-        ),
-        SizedBox(width: sw * 0.018),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: sw * 0.024,
-                  color: const Color(0xFF9CA3AF),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                hasValue ? value! : 'Select',
-                style: TextStyle(
-                  fontSize: sw * 0.03,
-                  fontWeight: FontWeight.w600,
-                  color: hasValue && active
-                      ? const Color(0xFF1B4FD8)
-                      : hasValue
-                      ? const Color(0xFF374151)
-                      : const Color(0xFF9CA3AF),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ]),
-    );
-  }
 }

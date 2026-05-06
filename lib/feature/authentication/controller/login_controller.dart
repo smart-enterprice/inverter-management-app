@@ -5,132 +5,151 @@ import '../../../core/role/app_role.dart';
 import '../../../model/login_model.dart';
 import '../repository/login_repository.dart';
 
-/// LoginController provider
-final loginControllerProvider = Provider(
-      (ref) => LoginController(ref.read(loginRepositoryProvider), ref),
+// ─── Provider ────────────────────────────────────────────────────────────────
+
+final loginControllerProvider =
+AsyncNotifierProvider<LoginController, LoginResult?>(
+  LoginController.new,
 );
 
-class LoginController {
-  final LoginRepository _repository;
-  final Ref _ref;
+// ─── Notifier ────────────────────────────────────────────────────────────────
 
-  LoginController(this._repository, this._ref);
-
+class LoginController extends AsyncNotifier<LoginResult?> {
   // Keys
-  static const _roleKey = 'user_role';
-  static const _tokenKey = 'token';
-  static const _userIdKey = 'user_id';
+  static const _roleKey     = 'user_role';
+  static const _tokenKey    = 'token';
+  static const _userIdKey   = 'user_id';
   static const _loggedInKey = 'is_logged_in';
 
-  /// Login
+  late final LoginRepository _repository;
+
+  @override
+  Future<LoginResult?> build() async {
+    _repository = ref.watch(loginRepositoryProvider);
+    return null; // initial state — no login action yet
+  }
+
+  // ── Public actions ──────────────────────────────────────────────────────────
+
   Future<LoginResult> login(String email, String password) async {
     if (email.trim().isEmpty || password.trim().isEmpty) {
-      return LoginResult.failure('Email and password required');
+      return _setFailure('Email and password required');
     }
+
+    state = const AsyncLoading();
+
     try {
       final response = await _repository.login(
         LoginRequest(employeeEmail: email.trim(), password: password),
       );
+
       if (response.statusCode == 200) {
         return await _saveUserData(response.data?['data']);
-      } else {
-        return LoginResult.failure('Something went wrong. Try again.');
       }
+      return _setFailure('Something went wrong. Try again.');
     } on DioException catch (e) {
-      if (e.response?.statusCode == 400) {
-        return LoginResult.failure('Password and email required');
-      }
-      return LoginResult.failure('Login error: ${e.message}');
+      final msg = e.response?.statusCode == 400
+          ? 'Password and email required'
+          : 'Login error: ${e.message}';
+      return _setFailure(msg);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      return LoginResult.failure(e.toString());
     }
   }
 
-  /// Save user data
-  Future<LoginResult> _saveUserData(dynamic data) async {
-    if (data == null) return LoginResult.failure('Invalid response');
-
-    final role = data['employee']?['role'];
-    final token = data['token'];
-    final id = data['employee']['employee_id'].toString();
-
-    if (role == null || token == null) {
-      return LoginResult.failure('Missing user data');
-    }
-
-    // ✅ Always get fresh instance
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_roleKey, role);
-    await prefs.setString(_tokenKey, token);
-    await prefs.setBool(_loggedInKey, true);
-    await prefs.setString(_userIdKey, id);
-    _ref.read(roleNotifierProvider.notifier).setRole(role);
-
-    return LoginResult.success('Login successful', role, token);
-  }
-
-  /// Logout
   Future<LogoutResult> logout() async {
     try {
       final response = await _repository.logout();
       await _clearUserData();
-      if (response.statusCode == 200) {
-        return LogoutResult.success('Logout successful');
-      } else {
-        return LogoutResult.failure('Logout failed on server, but local cleared');
-      }
+
+      return response.statusCode == 200
+          ? LogoutResult.success('Logout successful')
+          : LogoutResult.failure('Server logout failed, local data cleared');
     } catch (_) {
       await _clearUserData();
       return LogoutResult.failure('Logout error, local data cleared');
     }
   }
 
-  /// Check if token is active (for splash screen)
+  Future<void> forceLogout() => _clearUserData();
+
+  // ── Token / session helpers ─────────────────────────────────────────────────
+
   Future<bool> isTokenActive() async {
+    final loggedIn = await isLoggedIn();
+    if (!loggedIn) return false;
     try {
-      final isLogged = await isLoggedIn();
-      if (!isLogged) return false;
       return await _repository.isTokenActive();
     } catch (_) {
       return false;
     }
   }
 
-  /// ✅ Always get a fresh SharedPreferences instance — avoids stale Riverpod cache
+  Future<bool>    isLoggedIn()  => _getBool(_loggedInKey);
+  Future<String?> getUserRole() => _getString(_roleKey);
+  Future<String?> getToken()    => _getString(_tokenKey);
+
+  // ── Private helpers ─────────────────────────────────────────────────────────
+
+  Future<LoginResult> _saveUserData(dynamic data) async {
+    if (data == null) return _setFailure('Invalid response');
+
+    final role  = data['employee']?['role']  as String?;
+    final token = data['token']              as String?;
+    final id    = data['employee']?['employee_id']?.toString();
+
+    if (role == null || token == null) return _setFailure('Missing user data');
+
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.setString(_roleKey,     role),
+      prefs.setString(_tokenKey,    token),
+      prefs.setBool(_loggedInKey,   true),
+      if (id != null) prefs.setString(_userIdKey, id),
+    ]);
+
+    ref.read(roleNotifierProvider.notifier).setRole(role);
+
+    final result = LoginResult.success('Login successful', role, token);
+    state = AsyncData(result);
+    return result;
+  }
+
   Future<void> _clearUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_roleKey);
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_loggedInKey);
-    await prefs.remove(_userIdKey);
-    _ref.read(roleNotifierProvider.notifier).clearRole();
+    await Future.wait([
+      prefs.remove(_roleKey),
+      prefs.remove(_tokenKey),
+      prefs.remove(_loggedInKey),
+      prefs.remove(_userIdKey),
+    ]);
+    ref.read(roleNotifierProvider.notifier).clearRole();
+    state = const AsyncData(null);
   }
 
-  /// Force logout (without API call)
-  Future<void> forceLogout() async => await _clearUserData();
-
-  /// Getters — all use fresh instance
-  Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_loggedInKey) ?? false;
+  LoginResult _setFailure(String msg) {
+    final result = LoginResult.failure(msg);
+    state = AsyncData(result);
+    return result;
   }
 
-  Future<String?> getUserRole() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_roleKey);
-  }
+  Future<bool>    _getBool(String key)   async =>
+      (await SharedPreferences.getInstance()).getBool(key)   ?? false;
 
-  Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
-  }
+  Future<String?> _getString(String key) async =>
+      (await SharedPreferences.getInstance()).getString(key);
 }
 
-/// Result classes
-class LoginResult {
-  final bool success;
-  final String message;
-  final String? role, token;
+// ─── Result types ─────────────────────────────────────────────────────────────
 
+class LoginResult {
   const LoginResult(this.success, this.message, {this.role, this.token});
+
+  final bool    success;
+  final String  message;
+  final String? role;
+  final String? token;
 
   factory LoginResult.success(String msg, String role, String token) =>
       LoginResult(true, msg, role: role, token: token);
@@ -139,12 +158,11 @@ class LoginResult {
 }
 
 class LogoutResult {
-  final bool success;
-  final String message;
-
   const LogoutResult(this.success, this.message);
 
-  factory LogoutResult.success(String msg) => LogoutResult(true, msg);
+  final bool   success;
+  final String message;
 
+  factory LogoutResult.success(String msg) => LogoutResult(true, msg);
   factory LogoutResult.failure(String msg) => LogoutResult(false, msg);
 }

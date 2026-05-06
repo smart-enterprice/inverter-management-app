@@ -370,9 +370,8 @@ class DealerModel {
   }
 }
 
-// ─────────────────────────────────────────────
-// OrderDetailsModel
-// ─────────────────────────────────────────────
+
+
 
 class OrderDetailsModel {
   final String productId;
@@ -395,7 +394,13 @@ class OrderDetailsModel {
   final List<CancellationHistoryModel>? cancellationHistory;
   final String? notes;
 
-  // ✅ UI-only flag fields
+  // ✅ NEW — delivery notes fetched from API (list of strings)
+  final List<String> deliveryNotes;
+
+  // ✅ NEW — delivery note to send when updating delivery date (UI-only)
+  final String? deliveryNote;
+
+  // UI-only flag fields
   final bool isDeliveryDateUpdated;
   final bool isReasonUpdated;
 
@@ -458,9 +463,11 @@ class OrderDetailsModel {
     this.totalCancelledQty,
     this.reasonForCancellation,
     this.cancellationHistory,
-    this.isDeliveryDateUpdated = false, // ✅ default false
+    this.isDeliveryDateUpdated = false,
     this.isReasonUpdated = false,
-    this.notes,// ✅ default false
+    this.notes,
+    this.deliveryNotes = const [],   // ✅ NEW
+    this.deliveryNote,               // ✅ NEW
   });
 
   int get quantity => qtyOrdered ?? 1;
@@ -471,6 +478,13 @@ class OrderDetailsModel {
 
     return OrderDetailsModel(
       notes: json["notes"]?.toString(),
+
+      // ✅ NEW — parse delivery_notes array from API
+      deliveryNotes: json["delivery_notes"] != null
+          ? List<String>.from(
+          (json["delivery_notes"] as List).map((e) => e.toString()))
+          : [],
+
       productId: json["product_id"]?.toString() ?? "",
       productBrand: json["product_brand"]?.toString() ?? "",
       productName: json["product_name"]?.toString() ?? "",
@@ -521,13 +535,14 @@ class OrderDetailsModel {
           : [],
       reasonForCancellation: json["reason_for_cancellation"]?.toString(),
 
-      // ✅ UI-only fields — always reset when loading from API
+      // UI-only fields — always reset when loading from API
       hasPackedCompleted: null,
       hasProductionCompleted: null,
       nextStatus: null,
       cancelQty: null,
       isDeliveryDateUpdated: false,
       isReasonUpdated: false,
+      deliveryNote: null,   // ✅ always null on fresh fetch
     );
   }
 
@@ -540,8 +555,14 @@ class OrderDetailsModel {
       if (hasProductionCompleted != null)
         "has_production_completed": hasProductionCompleted,
       if (nextStatus != null) "status": nextStatus,
-      if (isDeliveryDateUpdated && deliveryDate != null)
+
+      // ✅ Send delivery_date AND delivery_note together
+      if (isDeliveryDateUpdated && deliveryDate != null) ...{
         "delivered_date": deliveryDate!.toIso8601String().split('T').first,
+        if (deliveryNote != null && deliveryNote!.trim().isNotEmpty)
+          "delivery_note": deliveryNote!.trim(),
+      },
+
       if (cancelQty != null && cancelQty! > 0) "cancel_qty": cancelQty,
       if (isReasonUpdated &&
           reasonForCancellation != null &&
@@ -591,6 +612,8 @@ class OrderDetailsModel {
 
   OrderDetailsModel copyWith({
     String? notes,
+    List<String>? deliveryNotes,    // ✅ NEW
+    String? deliveryNote,           // ✅ NEW
     String? productId,
     String? productBrand,
     String? productName,
@@ -629,15 +652,20 @@ class OrderDetailsModel {
     bool? isDeliveryDateUpdated,
     bool? isReasonUpdated,
 
-    // ✅ Sentinel flags to force-clear nullable fields
+    // Sentinel flags to force-clear nullable fields
     bool clearHasPackedCompleted = false,
     bool clearHasProductionCompleted = false,
     bool clearNextStatus = false,
     bool clearCancelQty = false,
     bool clearReasonForCancellation = false,
+    bool clearDeliveryNote = false,   // ✅ NEW
   }) {
     return OrderDetailsModel(
       notes: notes ?? this.notes,
+      deliveryNotes: deliveryNotes ?? this.deliveryNotes,   // ✅ NEW
+      deliveryNote: clearDeliveryNote                        // ✅ NEW
+          ? null
+          : (deliveryNote ?? this.deliveryNote),
       productId: productId ?? this.productId,
       productBrand: productBrand ?? this.productBrand,
       productName: productName ?? this.productName,
@@ -668,9 +696,10 @@ class OrderDetailsModel {
       hasProduction: hasProduction ?? this.hasProduction,
       totalCancelledQty: totalCancelledQty ?? this.totalCancelledQty,
       cancellationHistory: cancellationHistory ?? this.cancellationHistory,
-      isDeliveryDateUpdated: isDeliveryDateUpdated ?? this.isDeliveryDateUpdated,
-      isReasonUpdated: isReasonUpdated ?? this.isReasonUpdated, // ✅ fixed
-      // ✅ Sentinel-controlled fields
+      isDeliveryDateUpdated:
+      isDeliveryDateUpdated ?? this.isDeliveryDateUpdated,
+      isReasonUpdated: isReasonUpdated ?? this.isReasonUpdated,
+      // Sentinel-controlled fields
       hasPackedCompleted: clearHasPackedCompleted
           ? null
           : (hasPackedCompleted ?? this.hasPackedCompleted),
@@ -686,7 +715,7 @@ class OrderDetailsModel {
   }
 
   @override
-  String toString() {
-    return 'OrderDetailsModel(productId: $productId, productName: $productName, qtyOrdered: $qtyOrdered)';
-  }
+  String toString() =>
+      'OrderDetailsModel(productId: $productId, productName: $productName, qtyOrdered: $qtyOrdered)';
 }
+

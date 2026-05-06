@@ -28,10 +28,8 @@ class UserModel {
     this.town,
     this.brand,
   });
-
   Map<String, dynamic> toJson() {
     return {
-      'employee_id': employeeId,
       'employee_name': employeeName,
       'employee_email': employeeEmail,
       'password': password,
@@ -45,6 +43,19 @@ class UserModel {
       if (brand != null) 'brand': brand,
     };
   }
+  Map<String, dynamic> toUpdateJson() {
+    return {
+      'employee_name': employeeName,
+      'employee_email': employeeEmail,
+      'employee_phone': employeePhone,
+      'role': role,
+      'photo': photo,
+      'address': address,
+      'shop_name': shopName,
+      'district': district,
+      'town': town,
+    };
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -54,7 +65,7 @@ class UserModel {
       password: json['password']?.toString() ?? '',
       employeePhone: json['employee_phone']?.toString() ?? '',
       role: json['role']?.toString() ?? '',
-      photo: json['photo']?.toString().toString() ?? '',
+      photo: json['photo']?.toString()??'',
       address: json['address']?.toString() ?? '',
       shopName: json['shop_name']?.toString(),
       district: json['district']?.toString(),

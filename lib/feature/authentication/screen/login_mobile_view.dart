@@ -1,474 +1,208 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:inverter_management_app/screen/rolebasescreen/managerMobileView.dart';
-import '../../../core/media_query/media_query.dart';
 import '../../../screen/rolebasescreen/AccountantMobileView.dart';
 import '../../../screen/rolebasescreen/deliveryMobileView.dart';
+import '../../../screen/rolebasescreen/managerMobileView.dart';
 import '../../../screen/rolebasescreen/packingMobileView.dart';
 import '../../../screen/rolebasescreen/productionMobileView.dart';
 import '../../../screen/rolebasescreen/salesmanmobileview.dart';
 import '../../../screen/superAdmin_home_screen.dart';
 import '../controller/login_controller.dart';
 
-const _royalBlue = Color(0xFF1A3FBF);
-const _royalBlueDark = Color(0xFF162FA0);
-const _bgField = Color(0xFFF1F5F9);
-const _borderField = Color(0xFFE2E8F0);
-const _textDark = Color(0xFF1E293B);
-const _textMid = Color(0xFF334155);
-const _textMuted = Color(0xFF94A3B8);
-const _placeholder = Color(0xFFCBD5E1);
+// ── Zoho tokens ───────────────────────────────────────────────────────────────
+const _kP     = Color(0xFF185FA5);
+const _kPBg   = Color(0xFFEBF4FF);
+const _kPBd   = Color(0xFFBFD9F5);
+const _kBg    = Color(0xFFF7F8FA);
+const _kWhite = Colors.white;
+const _kBd    = Color(0xFFE5E7EB);
+const _kT1    = Color(0xFF111827);
+const _kT2    = Color(0xFF374151);
+const _kT3    = Color(0xFF6B7280);
+const _kT4    = Color(0xFF9CA3AF);
+const _kRed   = Color(0xFFDC2626);
+const _kGreen = Color(0xFF0F6E56);
 
 class LoginMobileView extends ConsumerStatefulWidget {
   const LoginMobileView({super.key});
-
-  @override
-  ConsumerState<LoginMobileView> createState() => _LoginScreenState();
+  @override ConsumerState<LoginMobileView> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends ConsumerState<LoginMobileView> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _emailController;
-  late TextEditingController _passwordController;
-  bool _obscurePassword = true;
-  bool _isLoading = false;
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  bool _obscure = true;
+  bool _loading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _emailController = TextEditingController();
-    _passwordController = TextEditingController();
+  @override void dispose() { _emailCtrl.dispose(); _passCtrl.dispose(); super.dispose(); }
+
+  void _togglePass() => setState(() => _obscure = !_obscure);
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
+    try {
+      final result = await ref.read(loginControllerProvider.notifier).login(
+          _emailCtrl.text.trim(), _passCtrl.text.trim());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: result.success ? _kGreen : _kRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          content: Text(result.message, style: const TextStyle(fontWeight: FontWeight.w600))));
+      if (result.success) _navigateByRole(result.role);
+    } finally { if (mounted) setState(() => _loading = false); }
   }
 
-  void _togglePasswordVisibility() {
-    setState(() {
-      _obscurePassword = !_obscurePassword;
-    });
-  }
-
-  Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      try {
-        final controller = ref.read(loginControllerProvider);
-        final result = await controller.login(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
-        );
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: result.success ? Colors.green : Colors.red,
-            behavior: SnackBarBehavior.floating,
-            content: Text(result.message),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        if (result.success) _navigateToRoleScreen(result.role);
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  void _navigateToRoleScreen(String? role) {
-    Widget targetScreen;
+  void _navigateByRole(String? role) {
+    Widget target;
     switch (role) {
       case 'ROLE_SUPER_ADMIN':
-      case 'ROLE_ADMIN':
-        targetScreen = const SuperAdminHomePage();
-        break;
-      case 'ROLE_SALESMAN':
-        targetScreen = const SalesmanMobileView();
-        break;
-      case 'ROLE_MANAGER':
-        targetScreen = const ManagerMobileView();
-        break;
-      case 'ROLE_PACKING':
-        targetScreen = const PackingMobileView();
-        break;
-      case 'ROLE_ACCOUNTS':
-        targetScreen = const AccountantMobileView();
-        break;
-      case 'ROLE_PRODUCTION':
-        targetScreen = const ProductionMobileView();
-        break;
-      case 'ROLE_DELIVERY':
-        targetScreen = const DeliveryMobileView();
-        break;
-      default:
-        targetScreen = const LoginMobileView();
+      case 'ROLE_ADMIN':      target = const SuperAdminHomePage(); break;
+      case 'ROLE_SALESMAN':   target = const SalesmanMobileView(); break;
+      case 'ROLE_MANAGER':    target = const ManagerMobileView(); break;
+      case 'ROLE_PACKING':    target = const PackingMobileView(); break;
+      case 'ROLE_ACCOUNTS':   target = const AccountantMobileView(); break;
+      case 'ROLE_PRODUCTION': target = const ProductionMobileView(); break;
+      case 'ROLE_DELIVERY':   target = const DeliveryMobileView(); break;
+      default:                target = const LoginMobileView();
     }
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => targetScreen),
-    );
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => target));
   }
 
   @override
   Widget build(BuildContext context) {
-    final sw = Screen.w(context);
-    final sh = Screen.h(context);
-    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+    final kb = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
-      backgroundColor: _royalBlue,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // ── Grid overlay ──────────────────────────────────────────
-            // Positioned.fill(
-            //   child: CustomPaint(painter: _GridPainter()),
-            // ),
+      backgroundColor: _kP,
+      body: SafeArea(child: Column(children: [
+        // ── Top section — logo + headline ─────────────────────────────────
+        if (!kb) ...[
+          SizedBox(height: sh * 0.06),
+          // Logo
+          Container(
+              width: (sw * 0.18).clamp(60.0, 84.0),
+              height: (sw * 0.18).clamp(60.0, 84.0),
+              decoration: BoxDecoration(
+                  color: _kWhite.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular((sw * 0.05).clamp(16.0, 24.0)),
+                  border: Border.all(color: _kWhite.withValues(alpha: 0.2), width: 0.5)),
+              padding: EdgeInsets.all((sw * 0.035).clamp(10.0, 16.0)),
+              child: Image.asset('assets/logo/smart_icon.png', fit: BoxFit.contain)),
+          SizedBox(height: sh * 0.018),
 
-            // ── Soft glow orbs ────────────────────────────────────────
-            Positioned(
-              top: -sh * 0.08,
-              left: -sw * 0.15,
-              child: _Orb(size: sw * 0.65),
-            ),
-            Positioned(
-              top: sh * 0.04,
-              right: -sw * 0.1,
-              child: _Orb(size: sw * 0.5),
-            ),
+          // Brand
+          Text('SMART ENTERPRISES', style: TextStyle(
+              fontSize: (sw * 0.028).clamp(10.0, 13.0),
+              letterSpacing: 3.0, color: _kWhite.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w600)),
+          SizedBox(height: sh * 0.012),
 
-            // ── Main content ──────────────────────────────────────────
-            Column(
-              children: [
-                // Top: logo + headline
-                if (!isKeyboardVisible) ...[
-                  SizedBox(height: sh * 0.07),
-                  _buildTopSection(sw, sh),
-                ] else ...[
-                  SizedBox(height: sh * 0.03),
-                ],
+          // Headline
+          Text('Welcome Back', style: TextStyle(
+              fontSize: (sw * 0.065).clamp(24.0, 32.0),
+              fontWeight: FontWeight.w800, color: _kWhite, height: 1.2)),
+          SizedBox(height: sh * 0.025),
+        ] else
+          SizedBox(height: sh * 0.025),
 
-                // Bottom: white card
-                Expanded(
-                  child: _buildCard(sw, sh),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+        // ── White card ───────────────────────────────────────────────────
+        Expanded(child: Container(
+            decoration: BoxDecoration(color: _kWhite,
+                borderRadius: BorderRadius.vertical(
+                    top: Radius.circular((sw * 0.08).clamp(24.0, 36.0)))),
+            padding: EdgeInsets.fromLTRB(sw * 0.06, sh * 0.035, sw * 0.06, sh * 0.03),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Sign In', style: TextStyle(
+                  fontSize: (sw * 0.052).clamp(18.0, 26.0),
+                  fontWeight: FontWeight.w800, color: _kP)),
+              SizedBox(height: sh * 0.006),
+              Text('Enter your credentials to access your account', style: TextStyle(
+                  fontSize: (sw * 0.033).clamp(11.0, 14.0), color: _kT4)),
+              SizedBox(height: sh * 0.035),
+
+              // Form
+              Expanded(child: Form(key: _formKey,
+                  child: ListView(physics: const BouncingScrollPhysics(), children: [
+                    // Email
+                    _label(sw, 'Email Address'),
+                    SizedBox(height: sh * 0.008),
+                    TextFormField(controller: _emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        style: TextStyle(fontSize: (sw * 0.038).clamp(13.0, 17.0), color: _kT1),
+                        decoration: _deco(sw, sh, 'you@company.com', Icons.email_outlined),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Email is required';
+                          if (!RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(v)) return 'Enter a valid email';
+                          return null;
+                        }),
+                    SizedBox(height: sh * 0.024),
+
+                    // Password
+                    _label(sw, 'Password'),
+                    SizedBox(height: sh * 0.008),
+                    TextFormField(controller: _passCtrl, obscureText: _obscure,
+                        style: TextStyle(fontSize: (sw * 0.038).clamp(13.0, 17.0), color: _kT1),
+                        decoration: _deco(sw, sh, '••••••••', Icons.lock_outline,
+                            suffix: IconButton(
+                                icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                    color: _kT4, size: (sw * 0.05).clamp(16.0, 22.0)),
+                                onPressed: _togglePass)),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Password is required';
+                          if (v.length < 6) return 'At least 6 characters';
+                          return null;
+                        }),
+                    SizedBox(height: sh * 0.04),
+
+                    // Button
+                    SizedBox(height: (sh * 0.065).clamp(48.0, 56.0),
+                        child: ElevatedButton(
+                            onPressed: _loading ? null : _login,
+                            style: ElevatedButton.styleFrom(backgroundColor: _kP,
+                                disabledBackgroundColor: _kP.withValues(alpha: 0.6),
+                                foregroundColor: _kWhite, elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular((sw * 0.035).clamp(10.0, 16.0)))),
+                            child: _loading
+                                ? SizedBox(width: (sw * 0.055).clamp(18.0, 24.0),
+                                height: (sw * 0.055).clamp(18.0, 24.0),
+                                child: const CircularProgressIndicator(strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(_kWhite)))
+                                : Text('Sign In', style: TextStyle(
+                                fontSize: (sw * 0.042).clamp(14.0, 19.0),
+                                fontWeight: FontWeight.w700, letterSpacing: 0.3)))),
+                  ]))),
+            ]))),
+      ])),
     );
   }
 
-  // ── Top logo + headline ─────────────────────────────────────────────────────
+  Widget _label(double sw, String text) => Text(text, style: TextStyle(
+      fontSize: (sw * 0.033).clamp(11.0, 14.0), fontWeight: FontWeight.w600, color: _kT2));
 
-  Widget _buildTopSection(double sw, double sh) {
-    return Column(
-      children: [
-        // Logo box
-        Container(
-          width: sw * 0.2,
-          height: sw * 0.2,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha:0.05),
-            borderRadius: BorderRadius.circular(sw * 0.055),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: .25),
-              width: 1.5,
-            ),
-          ),
-          padding: EdgeInsets.all(sw * 0.038),
-          child: Image.asset(
-            'assets/logo/smart_icon.png',
-            fit: BoxFit.contain,
-            // color: Colors.white,
-          ),
-        ),
-        SizedBox(height: sh * 0.018),
-
-        // Brand name
-        Text(
-          'Smart enterprises',
-          style: TextStyle(
-            fontFamily: 'Sora',
-            fontSize: sw * 0.03,
-            letterSpacing: 3.5,
-            color: Colors.white.withValues(alpha:0.6),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        SizedBox(height: sh * 0.012),
-
-        // Headline
-        Text(
-          'Welcome Back',
-          style: TextStyle(
-            fontFamily: 'Sora',
-            fontSize: sw * 0.072,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-            height: 1.2,
-          ),
-        ),
-        SizedBox(height: sh * 0.02),
-      ],
-    );
-  }
-
-  // ── White card ──────────────────────────────────────────────────────────────
-
-  Widget _buildCard(double sw, double sh) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: EdgeInsets.fromLTRB(sw * 0.064, sh * 0.038, sw * 0.064, sh * 0.03),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Sign In',
-            style: TextStyle(
-              fontFamily: 'Sora',
-              fontSize: sw * 0.055,
-              fontWeight: FontWeight.w700,
-              color: _royalBlue,
-            ),
-          ),
-          SizedBox(height: sh * 0.006),
-          Text(
-            'Enter your credentials to access your account',
-            style: TextStyle(
-              fontSize: sw * 0.033,
-              color: _textMuted,
-            ),
-          ),
-          SizedBox(height: sh * 0.036),
-
-          Expanded(
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  _buildEmailField(sw, sh),
-                  SizedBox(height: sh * 0.024),
-                  _buildPasswordField(sw, sh),
-                  SizedBox(height: sh * 0.04),
-                  _buildLoginButton(sw, sh),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Email field ─────────────────────────────────────────────────────────────
-
-  Widget _buildEmailField(double sw, double sh) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _fieldLabel('Email Address', sw),
-        SizedBox(height: sh * 0.009),
-        TextFormField(
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
-          style: TextStyle(fontSize: sw * 0.038, color: _textDark),
-          decoration: _inputDecoration(
-            sw: sw,
-            sh: sh,
-            hint: 'you@company.com',
-            prefixIcon: Icons.email_outlined,
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) return 'Email is required';
-            final valid = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(value);
-            if (!valid) return 'Enter a valid email address';
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  // ── Password field ──────────────────────────────────────────────────────────
-
-  Widget _buildPasswordField(double sw, double sh) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _fieldLabel('Password', sw),
-        SizedBox(height: sh * 0.009),
-        TextFormField(
-          controller: _passwordController,
-          obscureText: _obscurePassword,
-          style: TextStyle(fontSize: sw * 0.038, color: _textDark),
-          decoration: _inputDecoration(
-            sw: sw,
-            sh: sh,
-            hint: '••••••••',
-            prefixIcon: Icons.lock_outline,
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                color: _textMuted,
-                size: sw * 0.05,
-              ),
-              onPressed: _togglePasswordVisibility,
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) return 'Password is required';
-            if (value.length < 8) return 'Password must be at least 8 characters';
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  // ── Login button ────────────────────────────────────────────────────────────
-
-  Widget _buildLoginButton(double sw, double sh) {
-    return SizedBox(
-      height: sh * 0.065,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleLogin,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _royalBlue,
-          disabledBackgroundColor: _royalBlue.withValues(alpha:0.6),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: _isLoading
-            ? SizedBox(
-          width: sw * 0.055,
-          height: sw * 0.055,
-          child: const CircularProgressIndicator(
-            strokeWidth: 2.5,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-        )
-            : Text(
-          'Sign In',
-          style: TextStyle(
-            fontSize: sw * 0.042,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-
-  Widget _fieldLabel(String text, double sw) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: sw * 0.033,
-        fontWeight: FontWeight.w600,
-        color: _textMid,
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration({
-    required double sw,
-    required double sh,
-    required String hint,
-    required IconData prefixIcon,
-    Widget? suffixIcon,
-  }) {
+  InputDecoration _deco(double sw, double sh, String hint, IconData icon, {Widget? suffix}) {
+    final r = (sw * 0.03).clamp(10.0, 14.0);
     return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: _placeholder, fontSize: sw * 0.038),
-      prefixIcon: Icon(prefixIcon, color: _textMuted, size: sw * 0.05),
-      suffixIcon: suffixIcon,
-      filled: true,
-      fillColor: _bgField,
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: sw * 0.04,
-        vertical: sh * 0.019,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: _borderField),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: _borderField, width: 1.5),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: _royalBlue, width: 1.5),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFEF4444)),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
-      ),
-    );
-  }
-}
-
-// ── Grid background painter ──────────────────────────────────────────────────
-
-class _GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha:0.06)
-      ..strokeWidth = 1;
-    const step = 32.0;
-    for (double x = 0; x <= size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y <= size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// ── Soft glow orb widget ─────────────────────────────────────────────────────
-
-class _Orb extends StatelessWidget {
-  final double size;
-  const _Orb({required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [
-            Colors.white.withValues(alpha: .09),
-            Colors.transparent,
-          ],
-        ),
-      ),
-    );
+        hintText: hint,
+        hintStyle: TextStyle(color: _kBd, fontSize: (sw * 0.038).clamp(13.0, 17.0)),
+        prefixIcon: Icon(icon, color: _kT4, size: (sw * 0.05).clamp(16.0, 22.0)),
+        suffixIcon: suffix,
+        filled: true, fillColor: _kBg,
+        contentPadding: EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sh * 0.019),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kBd, width: 0.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kBd, width: 0.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kP, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kRed)),
+        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kRed, width: 1.5)));
   }
 }

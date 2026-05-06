@@ -1,984 +1,444 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:inverter_management_app/screen/loadingScreen.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
-
-import '../../../../core/media_query/media_query.dart';
+import '../../../../core/utils/password_generator.dart';
 import '../../../../model/user_model.dart';
 import '../../../../widgets/circle_button.dart';
 import '../../../brand/controller/brand_controller.dart';
 import '../../controller/signUp_controller.dart';
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-const _kBlue       = Color(0xFF1B4FD8);
-const _kBlueBg     = Color(0xFFEEF2FF);
-const _kBlueBorder = Color(0xFFC7D4FF);
-const _kBg         = Color(0xFFF2F4F8);
-const _kCard       = Colors.white;
-const _kBorder     = Color(0xFFE5E7EB);
-const _kDark       = Color(0xFF111827);
-const _kMid        = Color(0xFF374151);
-const _kMuted      = Color(0xFF9CA3AF);
-const _kRed        = Color(0xFFDC2626);
+// ── Zoho tokens ───────────────────────────────────────────────────────────────
+const _kP       = Color(0xFF185FA5);
+const _kPBg     = Color(0xFFEBF4FF);
+const _kPBd     = Color(0xFFBFD9F5);
+const _kBg      = Color(0xFFF7F8FA);
+const _kWhite   = Colors.white;
+const _kBd      = Color(0xFFE5E7EB);
+const _kT1      = Color(0xFF111827);
+const _kT2      = Color(0xFF374151);
+const _kT4      = Color(0xFF9CA3AF);
+const _kGreen   = Color(0xFF0F6E56);
+const _kGreenBg = Color(0xFFEDFAF5);
+const _kGreenBd = Color(0xFF9FE0C5);
+const _kRed     = Color(0xFFDC2626);
 
 const _keralaDistricts = [
-  'Kasaragod', 'Kannur', 'Wayanad', 'Kozhikode', 'Malappuram',
-  'Palakkad', 'Thrissur', 'Ernakulam', 'Idukki', 'Kottayam',
-  'Alappuzha', 'Pathanamthitta', 'Kollam', 'Thiruvananthapuram',
+  'Kasaragod','Kannur','Wayanad','Kozhikode','Malappuram','Palakkad',
+  'Thrissur','Ernakulam','Idukki','Kottayam','Alappuzha',
+  'Pathanamthitta','Kollam','Thiruvananthapuram',
 ];
 
-// ─── Screen ──────────────────────────────────────────────────────────────────
 class AddDealerScreen extends ConsumerStatefulWidget {
   const AddDealerScreen({super.key});
-
-  @override
-  ConsumerState<AddDealerScreen> createState() => _AddDealerScreenState();
+  @override ConsumerState<AddDealerScreen> createState() => _AddDealerScreenState();
 }
 
 class _AddDealerScreenState extends ConsumerState<AddDealerScreen> {
-  final _formKey        = GlobalKey<FormState>();
-  final _nameCtrl       = TextEditingController();
-  final _emailCtrl      = TextEditingController();
-  final _phoneCtrl      = TextEditingController();
-  final _shopCtrl       = TextEditingController();
-  final _townCtrl       = TextEditingController();
-  final _addressCtrl    = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _shopCtrl = TextEditingController();
+  final _townCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  String? _district; File? _photo; List<String> _brands = [];
 
-  String?      _selectedDistrict;
-  File?        _selectedImage;
-  List<String> _selectedBrands = [];   // stores brandId strings
+  @override void dispose() { _nameCtrl.dispose(); _emailCtrl.dispose();
+  _phoneCtrl.dispose(); _shopCtrl.dispose(); _townCtrl.dispose();
+  _addressCtrl.dispose(); super.dispose(); }
 
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _emailCtrl.dispose();
-    _phoneCtrl.dispose();
-    _shopCtrl.dispose();
-    _townCtrl.dispose();
-    _addressCtrl.dispose();
-    super.dispose();
-  }
-
-  // ── Image pick ─────────────────────────────────────────────────────────────
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _pickImage(ImageSource src) async {
     try {
-      final file = await ImagePicker().pickImage(
-        source: source, maxWidth: 512, maxHeight: 512, imageQuality: 85,
-      );
-      if (!mounted || file == null) return;
-      setState(() => _selectedImage = File(file.path));
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack('Error picking image: $e', _kRed);
-    }
+      final f = await ImagePicker().pickImage(source: src, maxWidth: 512, maxHeight: 512, imageQuality: 85);
+      if (!mounted || f == null) return; setState(() => _photo = File(f.path));
+    } catch (e) { if (mounted) _snack('Error: $e', _kRed); }
   }
 
   void _showPhotoPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36, height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: _kBorder, borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined, color: _kBlue),
-              title: const Text('Camera',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: _kBlue),
-              title: const Text('Gallery',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-            if (_selectedImage != null)
-              ListTile(
-                leading: const Icon(Icons.delete_outline_rounded,
-                    color: _kRed),
-                title: const Text('Remove Photo',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, color: _kRed)),
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() => _selectedImage = null);
-                },
-              ),
-          ],
-        ),
-      ),
-    );
+    final sw = MediaQuery.sizeOf(context).width;
+    showModalBottomSheet(context: context, backgroundColor: _kWhite,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular((sw * 0.05).clamp(14.0, 22.0)))),
+        builder: (_) => Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              _handle(),
+              ListTile(leading: const Icon(Icons.camera_alt_outlined, color: _kP),
+                  title: const Text('Camera', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); }),
+              ListTile(leading: const Icon(Icons.photo_library_outlined, color: _kP),
+                  title: const Text('Gallery', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); }),
+              if (_photo != null)
+                ListTile(leading: const Icon(Icons.delete_outline_rounded, color: _kRed),
+                    title: const Text('Remove Photo', style: TextStyle(fontWeight: FontWeight.w600, color: _kRed)),
+                    onTap: () { Navigator.pop(context); setState(() => _photo = null); }),
+            ])));
   }
 
-  // ── District sheet ─────────────────────────────────────────────────────────
   void _showDistrictSheet() {
-    String query = '';
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setS) {
-          final filtered = _keralaDistricts
-              .where((d) => d.toLowerCase().contains(query.toLowerCase()))
-              .toList();
-          return DraggableScrollableSheet(
-            expand: false,
-            initialChildSize: 0.6,
-            maxChildSize: 0.85,
-            builder: (_, sc) => Padding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36, height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: _kBorder,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const Text('Select District',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: _kDark)),
-                  const SizedBox(height: 2),
-                  const Text('Kerala',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: _kMuted,
-                          fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 14),
-                  // search
-                  TextField(
-                    onChanged: (v) => setS(() => query = v),
-                    style: const TextStyle(
-                        fontSize: 13,
-                        color: _kDark,
-                        fontWeight: FontWeight.w500),
-                    decoration: InputDecoration(
-                      hintText: 'Search district...',
-                      hintStyle: const TextStyle(
-                          fontSize: 13,
-                          color: _kMuted,
-                          fontWeight: FontWeight.w400),
-                      prefixIcon: const Icon(Icons.search_rounded,
-                          color: _kMuted, size: 20),
-                      filled: true,
-                      fillColor: _kBg,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 11),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: _kBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: _kBorder),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: _kBlue, width: 1.5),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: ListView.builder(
-                      controller: sc,
-                      itemCount: filtered.length,
-                      itemBuilder: (_, i) {
-                        final d = filtered[i];
-                        final selected = _selectedDistrict == d;
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() => _selectedDistrict = d);
-                            Navigator.pop(context);
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            margin: const EdgeInsets.only(bottom: 4),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 13),
-                            decoration: BoxDecoration(
-                              color: selected ? _kBlueBg : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: selected
-                                    ? _kBlueBorder
-                                    : Colors.transparent,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(d,
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: selected
-                                              ? FontWeight.w700
-                                              : FontWeight.w500,
-                                          color: selected ? _kBlue : _kMid)),
-                                ),
-                                if (selected)
-                                  const Icon(Icons.check_rounded,
-                                      color: _kBlue, size: 18),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
+    final sw = MediaQuery.sizeOf(context).width;
+    String q = '';
+    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: _kWhite,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular((sw * 0.05).clamp(14.0, 22.0)))),
+        builder: (_) => StatefulBuilder(builder: (ctx, setS) {
+          final filtered = _keralaDistricts.where((d) => d.toLowerCase().contains(q.toLowerCase())).toList();
+          return DraggableScrollableSheet(expand: false, initialChildSize: 0.6, maxChildSize: 0.85,
+              builder: (_, sc) => Padding(padding: EdgeInsets.fromLTRB(sw * 0.05, sw * 0.04, sw * 0.05, sw * 0.06),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Center(child: _handle()),
+                    Text('Select District', style: TextStyle(
+                        fontSize: (sw * 0.042).clamp(14.0, 19.0), fontWeight: FontWeight.w800, color: _kT1)),
+                    Text('Kerala', style: TextStyle(
+                        fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4)),
+                    SizedBox(height: sw * 0.035),
+                    TextField(onChanged: (v) => setS(() => q = v),
+                        style: TextStyle(fontSize: (sw * 0.034).clamp(11.5, 15.0), color: _kT1),
+                        decoration: _inputDeco(sw, 'Search district...', prefix: Icon(Icons.search_rounded,
+                            color: _kT4, size: (sw * 0.045).clamp(15.0, 20.0)))),
+                    SizedBox(height: sw * 0.03),
+                    Expanded(child: ListView.builder(controller: sc, itemCount: filtered.length,
+                        itemBuilder: (_, i) {
+                          final d = filtered[i]; final sel = _district == d;
+                          return GestureDetector(onTap: () { setState(() => _district = d); Navigator.pop(context); },
+                              child: Container(
+                                  margin: EdgeInsets.only(bottom: sw * 0.01),
+                                  padding: EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sw * 0.035),
+                                  decoration: BoxDecoration(color: sel ? _kPBg : Colors.transparent,
+                                      borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+                                      border: Border.all(color: sel ? _kPBd : Colors.transparent, width: 0.5)),
+                                  child: Row(children: [
+                                    Expanded(child: Text(d, style: TextStyle(
+                                        fontSize: (sw * 0.034).clamp(11.5, 15.0),
+                                        fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                                        color: sel ? _kP : _kT2))),
+                                    if (sel) Icon(Icons.check_rounded, color: _kP, size: (sw * 0.045).clamp(15.0, 20.0)),
+                                  ])));
+                        })),
+                  ])));
+        }));
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
   void _handleSubmit() async {
-    if (_selectedBrands.isEmpty) {
-      _showSnack('Please select at least one brand', _kRed);
-      return;
-    }
+    if (_brands.isEmpty) { _snack('Please select at least one brand', _kRed); return; }
     if (!_formKey.currentState!.validate()) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) =>
-      const Center(child: CircularProgressIndicator(color: _kBlue)),
-    );
-
+    if (_district == null) { _snack('Please select a district', _kRed); return; }
+    final pw = generateSecurePassword();
+    showDialog(context: context, barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5)));
     final error = await ref.read(signupControllerProvider.notifier).signup(
-      UserModel(
-        employeeName: _nameCtrl.text.trim(),
-        employeeEmail: _emailCtrl.text.trim(),
-        employeePhone: _phoneCtrl.text.trim(),
-        password: 'Shahulvm@123',
-        address: _addressCtrl.text.trim(),
-        role: 'ROLE_DEALER',
-        brand: _selectedBrands,
-        photo: '',
-        town: _townCtrl.text.trim(),
-        shopName: _shopCtrl.text.trim(),
-        district: _selectedDistrict,
-      ),
-      photoFile: _selectedImage,
-    );
-
+        UserModel(employeeName: _nameCtrl.text.trim(), employeeEmail: _emailCtrl.text.trim(),
+            employeePhone: _phoneCtrl.text.trim(), password: pw, address: _addressCtrl.text.trim(),
+            role: 'ROLE_DEALER', brand: _brands, photo: '', town: _townCtrl.text.trim(),
+            shopName: _shopCtrl.text.trim(), district: _district), photoFile: _photo);
     if (!mounted) return;
     Navigator.pop(context);
-
-    if (error != null) {
-      _showSnack(error, _kRed);
-    } else {
-      _showSnack('Dealer added successfully!', Colors.green);
-      ref.invalidate(dealerListProvider);
-      Navigator.pop(context);
-    }
+    if (error != null) { _snack(error, _kRed); }
+    else { ref.invalidate(dealerListProvider); _showPasswordDialog(pw); }
   }
 
-  void _showSnack(String msg, Color bg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg,
-          style: const TextStyle(fontWeight: FontWeight.w600)),
-      backgroundColor: bg,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ));
+  void _showPasswordDialog(String pw) {
+    final sw = MediaQuery.sizeOf(context).width;
+    showDialog(context: context, barrierDismissible: false,
+        builder: (_) => AlertDialog(backgroundColor: _kWhite,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular((sw * 0.05).clamp(14.0, 22.0))),
+            title: Row(children: [
+              Container(padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: _kGreenBg,
+                      borderRadius: BorderRadius.circular(10), border: Border.all(color: _kGreenBd, width: 0.5)),
+                  child: Icon(Icons.check_circle_outline_rounded, color: _kGreen,
+                      size: (sw * 0.055).clamp(18.0, 24.0))),
+              const SizedBox(width: 10),
+              Expanded(child: Text('Dealer created!', style: TextStyle(
+                  fontSize: (sw * 0.042).clamp(14.0, 18.0), fontWeight: FontWeight.w700, color: _kT1))),
+            ]),
+            content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Share this password with the dealer. They should change it after first login.',
+                  style: TextStyle(fontSize: (sw * 0.032).clamp(11.0, 14.0), color: _kT4, height: 1.5)),
+              const SizedBox(height: 14),
+              Container(width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sw * 0.03),
+                  decoration: BoxDecoration(color: _kBg, borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _kPBd, width: 0.5)),
+                  child: Row(children: [
+                    Expanded(child: Text(pw, style: TextStyle(
+                        fontSize: (sw * 0.04).clamp(14.0, 18.0), fontWeight: FontWeight.w700,
+                        color: _kP, letterSpacing: 1.5))),
+                    GestureDetector(onTap: () {
+                      Clipboard.setData(ClipboardData(text: pw));
+                      _snack('Password copied', _kP);
+                    }, child: Icon(Icons.copy_rounded, color: _kP, size: (sw * 0.05).clamp(16.0, 22.0))),
+                  ])),
+              const SizedBox(height: 10),
+              Row(children: [
+                Icon(Icons.info_outline_rounded, size: (sw * 0.035).clamp(12.0, 16.0), color: _kT4),
+                const SizedBox(width: 6),
+                Expanded(child: Text('This password will not be shown again.',
+                    style: TextStyle(fontSize: (sw * 0.03).clamp(10.0, 13.0), color: _kT4))),
+              ]),
+            ]),
+            actions: [SizedBox(width: double.infinity, child: ElevatedButton(
+                onPressed: () { Navigator.pop(context); Navigator.pop(context); },
+                style: ElevatedButton.styleFrom(backgroundColor: _kP, foregroundColor: _kWhite,
+                    elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700))))]));
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
+  void _snack(String msg, Color bg) => ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
+          backgroundColor: bg, behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+
   @override
   Widget build(BuildContext context) {
-    final sw = Screen.w(context);
-    final sh = Screen.h(context);
-    final brandState = ref.watch(loadBrandsControllerProvider);
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+    final brandState = ref.watch(brandControllerProvider);
 
-    return Scaffold(
-      backgroundColor: _kBg,
-      body: SafeArea(
-        child: brandState.when(
-          loading: () => _buildShimmer(context, sw, sh),
-          error: (e, _) => _buildError(context, sw, sh),
-          data: (brands) => Column(
-            children: [
-              // ── Top Nav ────────────────────────────────
-              Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal: sw * 0.04, vertical: sw * 0.03),
-                child: Row(
-                  children: [
-                    CircularIconButton(
-                      icon: Icons.arrow_back_ios_rounded,
-                      onTap: () => Navigator.pop(context),
-                    ),
+    return Scaffold(backgroundColor: _kBg,
+        body: SafeArea(child: brandState.when(
+            loading: () => const Scaffold(backgroundColor: _kBg,
+                body: Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5))),
+            error: (_, __) => _errorView(context, sw, sh),
+            data: (brands) => Column(children: [
+              // App bar
+              Container(color: _kWhite,
+                  padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.015, sw * 0.04, sh * 0.015),
+                  child: Row(children: [
+                    CircularIconButton(icon: Icons.arrow_back_ios_rounded, onTap: () => Navigator.pop(context)),
                     const Spacer(),
-                    Text('Add Dealer',
-                        style: TextStyle(
-                            fontSize: sw * 0.042,
-                            fontWeight: FontWeight.w700,
-                            color: _kDark,
-                            letterSpacing: -0.2)),
-                    const Spacer(),
-                    // balance space
-                    SizedBox(width: sw * 0.095),
-                  ],
-                ),
-              ),
+                    Text('Add Dealer', style: TextStyle(fontSize: (sw * 0.042).clamp(14.0, 20.0),
+                        fontWeight: FontWeight.w700, color: _kT1, letterSpacing: -0.2)),
+                    const Spacer(), SizedBox(width: (sw * 0.095).clamp(32.0, 44.0)),
+                  ])),
 
-              // ── Form ───────────────────────────────────
-              Expanded(
-                child: Form(
-                  key: _formKey,
+              // Form
+              Expanded(child: Form(key: _formKey,
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: sw * 0.038),
-                    child: Column(
-                      children: [
+                      padding: EdgeInsets.fromLTRB(sw * 0.038, sh * 0.012, sw * 0.038, sh * 0.04),
+                      child: Column(children: [
                         // Photo
-                        _buildPhotoSection(sw, sh),
+                        _photoSection(sw, sh),
                         SizedBox(height: sh * 0.012),
 
-                        // Personal Info
-                        _SectionCard(
-                          icon: Icons.person_outline_rounded,
-                          title: 'Personal Info',
-                          children: [
-                            _buildField(
-                              sw: sw, sh: sh,
-                              label: 'Full Name',
-                              hint: 'Enter full name',
-                              controller: _nameCtrl,
-                              icon: Icons.person_outline,
-                              validator: (v) => v == null || v.trim().isEmpty
-                                  ? 'Name is required'
-                                  : null,
-                            ),
-                            _buildField(
-                              sw: sw, sh: sh,
-                              label: 'Email',
-                              hint: 'Enter email address',
-                              controller: _emailCtrl,
-                              icon: Icons.email_outlined,
-                              keyboard: TextInputType.emailAddress,
-                              validator: (v) {
-                                if (v == null || v.trim().isEmpty) {
-                                  return 'Email is required';
-                                }
-                                if (!v.contains('@')) {
-                                  return 'Enter a valid email';
-                                }
-                                return null;
-                              },
-                            ),
-                            _buildField(
-                              sw: sw, sh: sh,
-                              label: 'Phone',
-                              hint: 'Enter phone number',
-                              controller: _phoneCtrl,
-                              icon: Icons.phone_outlined,
-                              keyboard: TextInputType.phone,
-                              digitsOnly: true,
-                              isLast: true,
-                              validator: (v) {
-                                if (v == null || v.trim().isEmpty) {
-                                  return 'Phone is required';
-                                }
-                                if (v.length != 10) {
-                                  return 'Enter a valid 10-digit number';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
-                        ),
+                        // Personal info
+                        _Sec(sw: sw, icon: Icons.person_outline_rounded, title: 'Personal Info',
+                            child: Column(children: [
+                              _field(sw, sh, 'Full Name', 'Enter full name', _nameCtrl, Icons.person_outline,
+                                  validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null),
+                              _field(sw, sh, 'Email', 'Enter email', _emailCtrl, Icons.email_outlined,
+                                  keyboard: TextInputType.emailAddress,
+                                  validator: (v) { if (v == null || v.trim().isEmpty) return 'Required';
+                                  if (!v.contains('@')) return 'Invalid email'; return null; }),
+                              _field(sw, sh, 'Phone', 'Enter phone', _phoneCtrl, Icons.phone_outlined,
+                                  keyboard: TextInputType.phone, digitsOnly: true, isLast: true,
+                                  validator: (v) { if (v == null || v.trim().isEmpty) return 'Required';
+                                  if (v.length != 10) return 'Enter 10 digits'; return null; }),
+                            ])),
                         SizedBox(height: sh * 0.012),
 
                         // Address
-                        _SectionCard(
-                          icon: Icons.location_on_outlined,
-                          title: 'Address',
-                          children: [
-                            // District picker
-                            _buildFieldLabel(sw, 'District'),
-                            SizedBox(height: sh * 0.006),
-                            GestureDetector(
-                              onTap: _showDistrictSheet,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: sw * 0.04,
-                                    vertical: sw * 0.035),
-                                decoration: BoxDecoration(
-                                  color: _kBg,
-                                  borderRadius:
-                                  BorderRadius.circular(sw * 0.028),
-                                  border: Border.all(color: _kBorder),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.map_outlined,
-                                        size: sw * 0.045,
-                                        color: _selectedDistrict != null
-                                            ? _kBlue
-                                            : _kMuted),
-                                    SizedBox(width: sw * 0.025),
-                                    Expanded(
-                                      child: Text(
-                                        _selectedDistrict ?? 'Select district',
-                                        style: TextStyle(
-                                            fontSize: sw * 0.036,
-                                            fontWeight: _selectedDistrict !=
-                                                null
-                                                ? FontWeight.w600
-                                                : FontWeight.w400,
-                                            color: _selectedDistrict != null
-                                                ? _kDark
-                                                : _kMuted),
-                                      ),
-                                    ),
-                                    Icon(Icons.keyboard_arrow_down_rounded,
-                                        color: _kMuted, size: sw * 0.05),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: sh * 0.015),
-
-                            // Town + Shop row
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildField(
-                                    sw: sw, sh: sh,
-                                    label: 'Town',
-                                    hint: 'Town',
-                                    controller: _townCtrl,
-                                    icon: Icons.location_city_outlined,
-                                    validator: (v) =>
-                                    v == null || v.trim().isEmpty
-                                        ? 'Required'
-                                        : null,
-                                  ),
-                                ),
+                        _Sec(sw: sw, icon: Icons.location_on_outlined, title: 'Address',
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              _lbl(sw, 'District'), SizedBox(height: sh * 0.006),
+                              GestureDetector(onTap: _showDistrictSheet,
+                                  child: Container(
+                                      padding: EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sw * 0.035),
+                                      decoration: BoxDecoration(color: _kBg,
+                                          borderRadius: BorderRadius.circular((sw * 0.028).clamp(8.0, 12.0)),
+                                          border: Border.all(color: _kBd, width: 0.5)),
+                                      child: Row(children: [
+                                        Icon(Icons.map_outlined, size: (sw * 0.045).clamp(15.0, 20.0),
+                                            color: _district != null ? _kP : _kT4),
+                                        SizedBox(width: sw * 0.025),
+                                        Expanded(child: Text(_district ?? 'Select district', style: TextStyle(
+                                            fontSize: (sw * 0.036).clamp(12.0, 16.0),
+                                            fontWeight: _district != null ? FontWeight.w600 : FontWeight.w400,
+                                            color: _district != null ? _kT1 : _kT4))),
+                                        Icon(Icons.keyboard_arrow_down_rounded, color: _kT4,
+                                            size: (sw * 0.05).clamp(16.0, 22.0)),
+                                      ]))),
+                              SizedBox(height: sh * 0.015),
+                              Row(children: [
+                                Expanded(child: _field(sw, sh, 'Town', 'Town', _townCtrl, Icons.location_city_outlined,
+                                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null)),
                                 SizedBox(width: sw * 0.025),
-                                Expanded(
-                                  child: _buildField(
-                                    sw: sw, sh: sh,
-                                    label: 'Shop',
-                                    hint: 'Shop name',
-                                    controller: _shopCtrl,
-                                    icon: Icons.storefront_outlined,
-                                    validator: (v) =>
-                                    v == null || v.trim().isEmpty
-                                        ? 'Required'
-                                        : null,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: sh * 0.002),
-
-                            _buildField(
-                              sw: sw, sh: sh,
-                              label: 'Street Address',
-                              hint: 'Enter full address',
-                              controller: _addressCtrl,
-                              icon: Icons.home_outlined,
-                              maxLines: 3,
-                              isLast: true,
-                              validator: (v) =>
-                              v == null || v.trim().isEmpty
-                                  ? 'Address is required'
-                                  : null,
-                            ),
-                          ],
-                        ),
+                                Expanded(child: _field(sw, sh, 'Shop', 'Shop name', _shopCtrl, Icons.storefront_outlined,
+                                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null)),
+                              ]),
+                              _field(sw, sh, 'Street Address', 'Enter address', _addressCtrl, Icons.home_outlined,
+                                  maxLines: 3, isLast: true,
+                                  validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
+                            ])),
                         SizedBox(height: sh * 0.012),
 
                         // Brands
-                        _SectionCard(
-                          icon: Icons.local_offer_outlined,
-                          title: 'Brands',
-                          children: [
-                            _buildFieldLabel(sw, 'Select brands'),
-                            SizedBox(height: sh * 0.01),
-                            Wrap(
-                              spacing: sw * 0.02,
-                              runSpacing: sw * 0.02,
-                              children: brands.map((brand) {
-                                final id = brand.brandId.toString();
-                                final selected =
-                                _selectedBrands.contains(id);
-                                return GestureDetector(
-                                  onTap: () => setState(() => selected
-                                      ? _selectedBrands.remove(id)
-                                      : _selectedBrands.add(id)),
-                                  child: AnimatedContainer(
-                                    duration:
-                                    const Duration(milliseconds: 180),
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: sw * 0.03,
-                                        vertical: sw * 0.018),
-                                    decoration: BoxDecoration(
-                                      color: selected
-                                          ? _kBlueBg
-                                          : _kBg,
-                                      borderRadius:
-                                      BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: selected
-                                            ? _kBlueBorder
-                                            : _kBorder,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          selected
-                                              ? Icons.check_circle_rounded
-                                              : Icons.add_circle_outline_rounded,
-                                          size: sw * 0.038,
-                                          color: selected
-                                              ? _kBlue
-                                              : _kMuted,
-                                        ),
-                                        SizedBox(width: sw * 0.015),
-                                        Text(
-                                          brand.brandName,
-                                          style: TextStyle(
-                                              fontSize: sw * 0.032,
-                                              fontWeight: FontWeight.w600,
-                                              color: selected
-                                                  ? _kBlue
-                                                  : _kMuted),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
-
+                        _Sec(sw: sw, icon: Icons.local_offer_outlined, title: 'Brands',
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              _lbl(sw, 'Select brands'), SizedBox(height: sh * 0.01),
+                              Wrap(spacing: sw * 0.02, runSpacing: sw * 0.02,
+                                  children: brands.map((b) {
+                                    final id = b.brandId.toString();
+                                    final sel = _brands.contains(id);
+                                    return GestureDetector(
+                                        onTap: () => setState(() => sel ? _brands.remove(id) : _brands.add(id)),
+                                        child: Container(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: (sw * 0.03).clamp(10.0, 14.0),
+                                                vertical: (sw * 0.016).clamp(5.0, 8.0)),
+                                            decoration: BoxDecoration(color: sel ? _kPBg : _kBg,
+                                                borderRadius: BorderRadius.circular(20),
+                                                border: Border.all(color: sel ? _kPBd : _kBd, width: sel ? 1.0 : 0.5)),
+                                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                              Icon(sel ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
+                                                  size: (sw * 0.038).clamp(13.0, 17.0), color: sel ? _kP : _kT4),
+                                              SizedBox(width: sw * 0.015),
+                                              Text(b.brandName, style: TextStyle(
+                                                  fontSize: (sw * 0.032).clamp(11.0, 14.0),
+                                                  fontWeight: FontWeight.w600, color: sel ? _kP : _kT4)),
+                                            ])));
+                                  }).toList()),
+                            ])),
                         SizedBox(height: sh * 0.025),
 
                         // Submit
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
+                        SizedBox(width: double.infinity, child: ElevatedButton(
                             onPressed: _handleSubmit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _kBlue,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(
-                                  vertical: sh * 0.018),
-                              shape: RoundedRectangleBorder(
-                                borderRadius:
-                                BorderRadius.circular(sw * 0.035),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              'Add Dealer',
-                              style: TextStyle(
-                                  fontSize: sw * 0.04,
-                                  fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        ),
-
+                            style: ElevatedButton.styleFrom(backgroundColor: _kP, foregroundColor: _kWhite,
+                                padding: EdgeInsets.symmetric(vertical: sh * 0.018),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular((sw * 0.035).clamp(10.0, 16.0))),
+                                elevation: 0),
+                            child: Text('Add Dealer', style: TextStyle(
+                                fontSize: (sw * 0.04).clamp(13.0, 18.0), fontWeight: FontWeight.w700)))),
                         SizedBox(height: sh * 0.03),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+                      ]))))]))));
   }
 
-  // ── Photo Section ──────────────────────────────────────────────────────────
-  Widget _buildPhotoSection(double sw, double sh) {
-    return Container(
+  // ── Photo section ───────────────────────────────────────────────────────
+  Widget _photoSection(double sw, double sh) => Container(
       padding: EdgeInsets.all(sw * 0.04),
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(sw * 0.04),
-        border: Border.all(color: _kBorder),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: _showPhotoPicker,
-            child: Stack(
-              children: [
-                CircleAvatar(
-                  radius: sw * 0.085,
-                  backgroundColor: _kBlueBg,
-                  backgroundImage: _selectedImage != null
-                      ? FileImage(_selectedImage!)
-                      : null,
-                  child: _selectedImage == null
-                      ? Icon(Icons.person_outline_rounded,
-                      size: sw * 0.09, color: _kBlue)
-                      : null,
-                ),
-                Positioned(
-                  bottom: 0, right: 0,
-                  child: Container(
-                    width: sw * 0.062,
-                    height: sw * 0.062,
-                    decoration: BoxDecoration(
-                      color: _kBlue,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: Icon(Icons.camera_alt_outlined,
-                        color: Colors.white, size: sw * 0.032),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: sw * 0.04),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Profile Photo',
-                    style: TextStyle(
-                        fontSize: sw * 0.038,
-                        fontWeight: FontWeight.w700,
-                        color: _kDark)),
-                SizedBox(height: sh * 0.005),
-                Text(
-                  _selectedImage != null
-                      ? 'Tap to change photo'
-                      : 'Tap to add a photo',
-                  style: TextStyle(
-                      fontSize: sw * 0.031,
-                      color: _kMuted,
-                      fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+      decoration: BoxDecoration(color: _kWhite,
+          borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+          border: Border.all(color: _kBd, width: 0.5)),
+      child: Row(children: [
+        GestureDetector(onTap: _showPhotoPicker, child: Stack(children: [
+          CircleAvatar(radius: (sw * 0.085).clamp(30.0, 40.0), backgroundColor: _kPBg,
+              backgroundImage: _photo != null ? FileImage(_photo!) : null,
+              child: _photo == null ? Icon(Icons.person_outline_rounded,
+                  size: (sw * 0.09).clamp(30.0, 42.0), color: _kP) : null),
+          Positioned(bottom: 0, right: 0, child: Container(
+              width: (sw * 0.06).clamp(20.0, 28.0), height: (sw * 0.06).clamp(20.0, 28.0),
+              decoration: BoxDecoration(color: _kP, shape: BoxShape.circle,
+                  border: Border.all(color: _kWhite, width: 2)),
+              child: Icon(Icons.camera_alt_outlined, color: _kWhite,
+                  size: (sw * 0.03).clamp(10.0, 14.0)))),
+        ])),
+        SizedBox(width: sw * 0.04),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Profile Photo', style: TextStyle(
+              fontSize: (sw * 0.038).clamp(13.0, 17.0), fontWeight: FontWeight.w700, color: _kT1)),
+          SizedBox(height: sh * 0.005),
+          Text(_photo != null ? 'Tap to change' : 'Tap to add', style: TextStyle(
+              fontSize: (sw * 0.031).clamp(10.5, 14.0), color: _kT4)),
+        ])),
+      ]));
+
+  // ── Field helpers ───────────────────────────────────────────────────────
+  Widget _lbl(double sw, String t) => Text(t.toUpperCase(), style: TextStyle(
+      fontSize: (sw * 0.028).clamp(9.5, 12.5), fontWeight: FontWeight.w700, color: _kT4, letterSpacing: 0.5));
+
+  Widget _field(double sw, double sh, String label, String hint,
+      TextEditingController ctrl, IconData icon,
+      {TextInputType keyboard = TextInputType.text, bool digitsOnly = false,
+        int maxLines = 1, bool isLast = false, String? Function(String?)? validator}) {
+    return Padding(padding: EdgeInsets.only(bottom: isLast ? 0 : sh * 0.015),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _lbl(sw, label), SizedBox(height: sh * 0.006),
+          TextFormField(controller: ctrl, keyboardType: keyboard, maxLines: maxLines,
+              inputFormatters: digitsOnly ? [FilteringTextInputFormatter.digitsOnly] : null,
+              validator: validator, autovalidateMode: AutovalidateMode.onUserInteraction,
+              style: TextStyle(fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
+              decoration: _inputDeco(sw, hint,
+                  prefix: Icon(icon, color: _kT4, size: (sw * 0.045).clamp(15.0, 20.0)),
+                  maxLines: maxLines)),
+        ]));
   }
 
-  // ── Field helpers ──────────────────────────────────────────────────────────
-  Widget _buildFieldLabel(double sw, String label) {
-    return Text(
-      label.toUpperCase(),
-      style: TextStyle(
-          fontSize: sw * 0.028,
-          fontWeight: FontWeight.w700,
-          color: _kMuted,
-          letterSpacing: 0.5),
-    );
+  InputDecoration _inputDeco(double sw, String hint, {Widget? prefix, int maxLines = 1}) {
+    final r = (sw * 0.028).clamp(8.0, 12.0);
+    return InputDecoration(hintText: hint,
+        hintStyle: TextStyle(fontSize: (sw * 0.034).clamp(11.5, 15.0), color: _kT4),
+        prefixIcon: prefix, filled: true, fillColor: _kBg,
+        contentPadding: EdgeInsets.symmetric(horizontal: sw * 0.04,
+            vertical: maxLines > 1 ? sw * 0.035 : 0),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kBd, width: 0.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kBd, width: 0.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kP, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kRed)),
+        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(r),
+            borderSide: const BorderSide(color: _kRed, width: 1.5)));
   }
 
-  Widget _buildField({
-    required double sw,
-    required double sh,
-    required String label,
-    required String hint,
-    required TextEditingController controller,
-    required IconData icon,
-    TextInputType keyboard = TextInputType.text,
-    bool digitsOnly = false,
-    int maxLines = 1,
-    bool isLast = false,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : sh * 0.015),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildFieldLabel(sw, label),
-          SizedBox(height: sh * 0.006),
-          TextFormField(
-            controller: controller,
-            keyboardType: keyboard,
-            maxLines: maxLines,
-            inputFormatters:
-            digitsOnly ? [FilteringTextInputFormatter.digitsOnly] : null,
-            validator: validator,
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            style: TextStyle(
-                fontSize: sw * 0.036,
-                color: _kDark,
-                fontWeight: FontWeight.w500),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                  fontSize: sw * 0.034,
-                  color: _kMuted,
-                  fontWeight: FontWeight.w400),
-              prefixIcon:
-              Icon(icon, color: _kMuted, size: sw * 0.045),
-              filled: true,
-              fillColor: _kBg,
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: sw * 0.04,
-                  vertical: maxLines > 1 ? sw * 0.035 : 0),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(sw * 0.028),
-                borderSide: const BorderSide(color: _kBorder),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(sw * 0.028),
-                borderSide: const BorderSide(color: _kBorder),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(sw * 0.028),
-                borderSide:
-                const BorderSide(color: _kBlue, width: 1.5),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(sw * 0.028),
-                borderSide: const BorderSide(color: _kRed),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(sw * 0.028),
-                borderSide:
-                const BorderSide(color: _kRed, width: 1.5),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _handle() => Center(child: Container(width: 36, height: 4,
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: _kBd, borderRadius: BorderRadius.circular(2))));
 
-  // ── Shimmer ────────────────────────────────────────────────────────────────
-  Widget _buildShimmer(BuildContext context, double sw, double sh) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(
-          horizontal: sw * 0.038, vertical: sw * 0.04),
-      child: Column(
-        children: [
-          // avatar shimmer
-          Shimmer.fromColors(
-            baseColor: Colors.grey.shade300,
-            highlightColor: Colors.grey.shade100,
-            child: Container(
-              height: sw * 0.22,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(sw * 0.04),
-              ),
-            ),
-          ),
-          SizedBox(height: sh * 0.015),
-          // section shimmers
-          ...List.generate(3, (i) => Padding(
-            padding: EdgeInsets.only(bottom: sh * 0.015),
-            child: Shimmer.fromColors(
-              baseColor: Colors.grey.shade300,
-              highlightColor: Colors.grey.shade100,
-              child: Container(
-                height: sh * 0.22,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(sw * 0.04),
-                ),
-              ),
-            ),
-          )),
-          // button shimmer
-          Shimmer.fromColors(
-            baseColor: Colors.grey.shade300,
-            highlightColor: Colors.grey.shade100,
-            child: Container(
-              height: sh * 0.065,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(sw * 0.035),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Error ──────────────────────────────────────────────────────────────────
-  Widget _buildError(BuildContext context, double sw, double sh) {
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(
-              horizontal: sw * 0.04, vertical: sw * 0.03),
-          child: Row(
-            children: [
-              CircularIconButton(
-                icon: Icons.arrow_back_ios_rounded,
-                onTap: () => Navigator.pop(context),
-              ),
-              const Spacer(),
-              Text('Add Dealer',
-                  style: TextStyle(
-                      fontSize: sw * 0.042,
-                      fontWeight: FontWeight.w700,
-                      color: _kDark)),
-              const Spacer(),
-              SizedBox(width: sw * 0.095),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: sw * 0.18, height: sw * 0.18,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: _kBorder),
-                  ),
-                  child: Icon(Icons.wifi_off_rounded,
-                      size: sw * 0.09, color: _kMuted),
-                ),
-                SizedBox(height: sh * 0.02),
-                Text('No Internet Connection',
-                    style: TextStyle(
-                        fontSize: sw * 0.04,
-                        fontWeight: FontWeight.w600,
-                        color: _kMid)),
-                SizedBox(height: sh * 0.025),
-                ElevatedButton(
-                  onPressed: () =>
-                      ref.invalidate(loadBrandsControllerProvider),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _kBlue,
-                    foregroundColor: Colors.white,
-                    shape: const CircleBorder(),
-                    padding: const EdgeInsets.all(16),
-                    elevation: 0,
-                  ),
-                  child: const Icon(Icons.refresh_rounded),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _errorView(BuildContext ctx, double sw, double sh) => Column(children: [
+    Container(color: _kWhite,
+        padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.015, sw * 0.04, sh * 0.015),
+        child: Row(children: [
+          CircularIconButton(icon: Icons.arrow_back_ios_rounded, onTap: () => Navigator.pop(ctx)),
+          const Spacer(),
+          Text('Add Dealer', style: TextStyle(fontSize: (sw * 0.042).clamp(14.0, 20.0),
+              fontWeight: FontWeight.w700, color: _kT1)),
+          const Spacer(), SizedBox(width: (sw * 0.095).clamp(32.0, 44.0)),
+        ])),
+    Expanded(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Container(width: (sw * 0.18).clamp(60.0, 90.0), height: (sw * 0.18).clamp(60.0, 90.0),
+          decoration: BoxDecoration(color: _kWhite, shape: BoxShape.circle,
+              border: Border.all(color: _kBd, width: 0.5)),
+          child: Icon(Icons.wifi_off_rounded, size: (sw * 0.09).clamp(30.0, 44.0), color: _kT4)),
+      SizedBox(height: sh * 0.02),
+      Text('No Connection', style: TextStyle(
+          fontSize: (sw * 0.04).clamp(13.0, 18.0), fontWeight: FontWeight.w600, color: _kT2)),
+      SizedBox(height: sh * 0.02),
+      ElevatedButton(onPressed: () => ref.invalidate(brandControllerProvider),
+          style: ElevatedButton.styleFrom(backgroundColor: _kP, foregroundColor: _kWhite,
+              shape: const CircleBorder(), padding: const EdgeInsets.all(14), elevation: 0),
+          child: const Icon(Icons.refresh_rounded)),
+    ]))),
+  ]);
 }
 
-// ─── Section Card ─────────────────────────────────────────────────────────────
-class _SectionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final List<Widget> children;
+// ── Section card ──────────────────────────────────────────────────────────────
+class _Sec extends StatelessWidget {
+  const _Sec({required this.sw, required this.icon, required this.title, required this.child});
+  final double sw; final IconData icon; final String title; final Widget child;
 
-  const _SectionCard({
-    required this.icon,
-    required this.title,
-    required this.children,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final sw = Screen.w(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(sw * 0.04),
-        border: Border.all(color: _kBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // header
-          Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: sw * 0.04, vertical: sw * 0.035),
-            child: Row(
-              children: [
-                Container(
-                  width: sw * 0.075,
-                  height: sw * 0.075,
-                  decoration: BoxDecoration(
-                    color: _kBg,
-                    borderRadius: BorderRadius.circular(sw * 0.022),
-                    border: Border.all(color: _kBorder),
-                  ),
-                  child: Icon(icon, size: sw * 0.04, color: _kDark),
-                ),
-                SizedBox(width: sw * 0.025),
-                Text(title,
-                    style: TextStyle(
-                        fontSize: sw * 0.036,
-                        fontWeight: FontWeight.w700,
-                        color: _kDark)),
-              ],
-            ),
-          ),
-          const Divider(height: 1, thickness: 1, color: _kBorder),
-          Padding(
-            padding: EdgeInsets.all(sw * 0.04),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  @override Widget build(BuildContext context) => Container(
+      decoration: BoxDecoration(color: _kWhite,
+          borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+          border: Border.all(color: _kBd, width: 0.5)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(padding: EdgeInsets.symmetric(horizontal: sw * 0.04, vertical: sw * 0.035),
+            child: Row(children: [
+              Container(width: (sw * 0.075).clamp(26.0, 36.0), height: (sw * 0.075).clamp(26.0, 36.0),
+                  decoration: BoxDecoration(color: _kBg,
+                      borderRadius: BorderRadius.circular((sw * 0.022).clamp(6.0, 10.0))),
+                  child: Icon(icon, size: (sw * 0.04).clamp(14.0, 20.0), color: _kT1)),
+              SizedBox(width: sw * 0.025),
+              Text(title, style: TextStyle(fontSize: (sw * 0.035).clamp(12.0, 16.0),
+                  fontWeight: FontWeight.w700, color: _kT1)),
+            ])),
+        Divider(height: 1, color: _kBd),
+        Padding(padding: EdgeInsets.all(sw * 0.04), child: child),
+      ]));
 }
