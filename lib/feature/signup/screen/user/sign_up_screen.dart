@@ -6,7 +6,7 @@ import 'dart:io';
 import '../../../../../../core/media_query/media_query.dart';
 import '../../../../widgets/circle_button.dart';
 import '../../controller/signUp_controller.dart';
-import '../../../../model/user_model.dart';
+import '../../model/user_model.dart';
 
 // ── Zoho Books design tokens (mirrored from AddDealerScreen) ──────────────────
 const _kP        = Color(0xFF185FA5);

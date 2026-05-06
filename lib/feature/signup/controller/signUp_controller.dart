@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../model/user_model.dart';
+import '../model/user_model.dart';
 import '../repository/signUp_repository.dart';
 
 // ─────────────────────────────────────────────
@@ -31,6 +32,12 @@ AsyncNotifierProvider<DealerListNotifier, List<UserModel>>(
   DealerListNotifier.new,
 );
 
+/// Tracks whether next page is loading (footer spinner)
+final dealerLoadingMoreProvider = StateProvider<bool>((ref) => false);
+
+/// Tracks whether a search/filter is in flight (overlay spinner)
+final dealerFilteringProvider = StateProvider<bool>((ref) => false);
+
 final usersByRoleProvider =
 FutureProvider.family<List<UserModel>, String>((ref, role) async {
   return ref.read(signupControllerProvider.notifier).getUsersByRole(role);
@@ -40,12 +47,25 @@ final currentUserProvider = FutureProvider<UserModel?>((ref) async {
   final prefs = await SharedPreferences.getInstance();
   final userId = prefs.getString('user_id');
   if (userId == null) return null;
-  print('Current user is refreshing');
   return ref.read(signupControllerProvider.notifier).getEmployeeById(userId);
 });
 
+// ── Salesman's assigned dealers (for DealerAssignmentScreen) ─────────────────
+
+/// Arg = salesmanId
+final salesmanDealersProvider =
+AsyncNotifierProviderFamily<SalesmanDealersNotifier, List<UserModel>, String>(
+  SalesmanDealersNotifier.new,
+);
+
+/// Tracks whether next page is loading (footer spinner) — assigned tab
+final salesmanDealerLoadingMoreProvider = StateProvider<bool>((ref) => false);
+
+/// Tracks whether a search is in flight (overlay spinner) — assigned tab
+final salesmanDealerFilteringProvider = StateProvider<bool>((ref) => false);
+
 // ─────────────────────────────────────────────
-// SignupController — AsyncNotifier<void>
+// SignupController
 // ─────────────────────────────────────────────
 
 class SignupController extends AsyncNotifier<void> {
@@ -56,7 +76,6 @@ class SignupController extends AsyncNotifier<void> {
     _repo = ref.watch(signupRepositoryProvider);
   }
 
-  /// Signup user
   Future<String?> signup(UserModel request, {File? photoFile}) async {
     state = const AsyncLoading();
     try {
@@ -83,36 +102,21 @@ class SignupController extends AsyncNotifier<void> {
       } else {
         msg = responseData.toString();
       }
-      print('Signup failed: $msg');
       state = AsyncError(e, st);
       return msg;
     } catch (e, st) {
-      print('Unexpected error: $e');
       state = AsyncError(e, st);
       return 'Something went wrong';
     }
   }
 
-  /// Get employee by ID
-  Future<UserModel> getEmployeeById(String id) async {
-    try {
-      return await _repo.getEmployeeById(id);
-    } catch (e) {
-      rethrow;
-    }
-  }
+  Future<UserModel> getEmployeeById(String id) async =>
+      _repo.getEmployeeById(id);
 
-  /// Get employees
-  Future<List<UserModel>> getEmployees() async {
-    return _repo.getEmployees();
-  }
+  Future<List<UserModel>> getEmployees() async => _repo.getEmployees();
 
-  /// Get dealers
-  Future<List<UserModel>> getDealers() async {
-    return _repo.getDealers();
-  }
+  Future<List<UserModel>> getDealers() async => _repo.getDealers();
 
-  /// Update user
   Future<String?> updateUser({
     required UserModel oldUser,
     String? name,
@@ -135,7 +139,6 @@ class SignupController extends AsyncNotifier<void> {
       if (photoFile != null) {
         finalPhotoUrl = await _repo.uploadFile(photoFile);
       }
-
       final updatedUser = oldUser.copyWith(
         employeeName: name,
         employeeEmail: email,
@@ -148,11 +151,9 @@ class SignupController extends AsyncNotifier<void> {
         district: district,
         brand: brand,
       );
-
       if (updatedUser.employeeId == null || updatedUser.employeeId!.isEmpty) {
         throw Exception('employeeId is required for update');
       }
-
       await _repo.updateUser(
         updatedUser.employeeId!,
         updatedUser,
@@ -167,17 +168,27 @@ class SignupController extends AsyncNotifier<void> {
     }
   }
 
-  /// Get users by role
-  Future<List<UserModel>> getUsersByRole(String role) async {
+  /// For salesperson — assign / unassign dealers
+  Future<String?> updateDealers({
+    required String employeeId,
+    List<String>? addDealers,
+    List<String>? removeDealers,
+  }) async {
     try {
-      return await _repo.getUsersByRole(role);
+      await _repo.updateDealers(
+        employeeId,
+        addDealers: addDealers,
+        removeDealers: removeDealers,
+      );
+      return null;
     } catch (e) {
-      print('Error fetching users by role: $e');
-      rethrow;
+      return e.toString();
     }
   }
 
-  /// Delete user
+  Future<List<UserModel>> getUsersByRole(String role) async =>
+      _repo.getUsersByRole(role);
+
   Future<String?> deleteUser(String employeeId, String reason) async {
     state = const AsyncLoading();
     try {
@@ -192,7 +203,9 @@ class SignupController extends AsyncNotifier<void> {
 }
 
 // ─────────────────────────────────────────────
-// DealerListNotifier — AsyncNotifier
+// DealerListNotifier — server-side search + pagination
+// Old data stays visible during search (UI watches dealerFilteringProvider
+// to show an overlay spinner instead of blanking the screen).
 // ─────────────────────────────────────────────
 
 class DealerListNotifier extends AsyncNotifier<List<UserModel>> {
@@ -200,48 +213,254 @@ class DealerListNotifier extends AsyncNotifier<List<UserModel>> {
   int _page = 1;
   static const int _limit = 20;
   bool _hasMore = true;
-  bool _isLoadingMore = false;
+  String _currentSearch = '';
+  Timer? _debounce;
+
+  // Tags each search call so late stale responses are discarded
+  int _searchRequestId = 0;
+
+  // First-page cache — restored instantly when search clears
+  List<UserModel>? _cachedFirstPage;
 
   bool get hasMore => _hasMore;
-  bool get isLoadingMore => _isLoadingMore;
+  String get currentSearch => _currentSearch;
 
   @override
   Future<List<UserModel>> build() async {
     _repo = ref.watch(signupRepositoryProvider);
+    ref.onDispose(() => _debounce?.cancel());
     _page = 1;
     _hasMore = true;
-    return _repo.getDealers(page: _page, limit: _limit);
+    _currentSearch = '';
+    final dealers = await _repo.getDealers(page: _page, limit: _limit);
+    if (dealers.length < _limit) _hasMore = false;
+    _cachedFirstPage = dealers;
+    return dealers;
+  }
+
+  void searchDealers(String query) {
+    _debounce?.cancel();
+    final trimmed = query.trim();
+
+    // Cleared search: restore cache instantly, no API call, no overlay
+    if (trimmed.isEmpty) {
+      _searchRequestId++;
+      _currentSearch = '';
+      _page = 1;
+      _hasMore = _cachedFirstPage != null
+          ? _cachedFirstPage!.length >= _limit
+          : true;
+      ref.read(dealerFilteringProvider.notifier).state = false;
+      if (_cachedFirstPage != null) {
+        state = AsyncData(_cachedFirstPage!);
+      } else {
+        refresh();
+      }
+      return;
+    }
+
+    final myRequestId = ++_searchRequestId;
+
+    // Keep old data visible. UI shows overlay spinner via dealerFilteringProvider.
+    ref.read(dealerFilteringProvider.notifier).state = true;
+
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (myRequestId != _searchRequestId) return;
+
+      _currentSearch = trimmed;
+      try {
+        _page = 1;
+        _hasMore = true;
+        final dealers = await _repo.getDealers(
+          page: _page,
+          limit: _limit,
+          search: _currentSearch,
+        );
+        if (myRequestId != _searchRequestId) return; // stale
+        if (dealers.length < _limit) _hasMore = false;
+        state = AsyncData(dealers);
+      } catch (e, st) {
+        if (myRequestId != _searchRequestId) return;
+        state = AsyncError(e, st);
+      } finally {
+        if (myRequestId == _searchRequestId) {
+          ref.read(dealerFilteringProvider.notifier).state = false;
+        }
+      }
+    });
   }
 
   Future<void> refresh() async {
-    state = const AsyncLoading();
+    _debounce?.cancel();
+    _searchRequestId++;
+    _currentSearch = '';
+    _page = 1;
+    _hasMore = true;
+    ref.read(dealerFilteringProvider.notifier).state = true;
     try {
-      _page = 1;
-      _hasMore = true;
       final dealers = await _repo.getDealers(page: _page, limit: _limit);
       if (dealers.length < _limit) _hasMore = false;
+      _cachedFirstPage = dealers;
       state = AsyncData(dealers);
     } catch (e, st) {
       state = AsyncError(e, st);
+    } finally {
+      ref.read(dealerFilteringProvider.notifier).state = false;
     }
   }
 
   Future<void> loadMore() async {
-    if (_isLoadingMore || !_hasMore) return;
+    final loadingMore = ref.read(dealerLoadingMoreProvider);
+    if (loadingMore || !_hasMore) return;
+
     final current = state.valueOrNull;
     if (current == null) return;
 
-    _isLoadingMore = true;
+    ref.read(dealerLoadingMoreProvider.notifier).state = true;
     try {
       _page++;
-      final more = await _repo.getDealers(page: _page, limit: _limit);
+      final more = await _repo.getDealers(
+        page: _page,
+        limit: _limit,
+        search: _currentSearch.isEmpty ? null : _currentSearch,
+      );
       if (more.length < _limit) _hasMore = false;
       state = AsyncData([...current, ...more]);
-    } catch (_) {
+    } catch (e) {
       _page--;
-      rethrow;
+      debugPrint('🔴 [loadMore] ERROR: $e');
     } finally {
-      _isLoadingMore = false;
+      ref.read(dealerLoadingMoreProvider.notifier).state = false;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// SalesmanDealersNotifier — assigned dealers for one salesman
+// server-side search + pagination via salesmanIds param
+// ─────────────────────────────────────────────
+
+class SalesmanDealersNotifier
+    extends FamilyAsyncNotifier<List<UserModel>, String> {
+  late final SignupRepository _repo;
+  late final String _salesmanId;
+
+  int _page = 1;
+  static const int _limit = 20;
+  bool _hasMore = true;
+  String _currentSearch = '';
+  Timer? _debounce;
+  int _requestId = 0;
+  List<UserModel>? _cache;
+
+  bool get hasMore => _hasMore;
+
+  @override
+  Future<List<UserModel>> build(String arg) async {
+    _repo = ref.watch(signupRepositoryProvider);
+    _salesmanId = arg;
+    ref.onDispose(() => _debounce?.cancel());
+    return _fetchFirstPage();
+  }
+
+  Future<List<UserModel>> _fetchFirstPage() async {
+    _page = 1;
+    _hasMore = true;
+    _currentSearch = '';
+    final list = await _repo.getSalesmanDealers(
+      salesmanId: _salesmanId,
+      page: _page,
+      limit: _limit,
+    );
+    if (list.length < _limit) _hasMore = false;
+    _cache = list;
+    return list;
+  }
+
+  void search(String query) {
+    _debounce?.cancel();
+    final trimmed = query.trim();
+
+    // Cleared search: restore cache instantly
+    if (trimmed.isEmpty) {
+      _requestId++;
+      _currentSearch = '';
+      _page = 1;
+      _hasMore = _cache != null ? _cache!.length >= _limit : true;
+      ref.read(salesmanDealerFilteringProvider.notifier).state = false;
+      if (_cache != null) {
+        state = AsyncData(_cache!);
+      } else {
+        refresh();
+      }
+      return;
+    }
+
+    final myId = ++_requestId;
+    // Keep old data visible — overlay spinner via salesmanDealerFilteringProvider
+    ref.read(salesmanDealerFilteringProvider.notifier).state = true;
+
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (myId != _requestId) return;
+      _currentSearch = trimmed;
+      try {
+        _page = 1;
+        _hasMore = true;
+        final list = await _repo.getSalesmanDealers(
+          salesmanId: _salesmanId,
+          page: _page,
+          limit: _limit,
+          search: _currentSearch,
+        );
+        if (myId != _requestId) return; // stale
+        if (list.length < _limit) _hasMore = false;
+        state = AsyncData(list);
+      } catch (e, st) {
+        if (myId != _requestId) return;
+        state = AsyncError(e, st);
+      } finally {
+        if (myId == _requestId) {
+          ref.read(salesmanDealerFilteringProvider.notifier).state = false;
+        }
+      }
+    });
+  }
+
+  Future<void> refresh() async {
+    _debounce?.cancel();
+    _requestId++;
+    ref.read(salesmanDealerFilteringProvider.notifier).state = true;
+    try {
+      final list = await _fetchFirstPage();
+      state = AsyncData(list);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    } finally {
+      ref.read(salesmanDealerFilteringProvider.notifier).state = false;
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (ref.read(salesmanDealerLoadingMoreProvider) || !_hasMore) return;
+    final current = state.valueOrNull;
+    if (current == null) return;
+
+    ref.read(salesmanDealerLoadingMoreProvider.notifier).state = true;
+    try {
+      _page++;
+      final more = await _repo.getSalesmanDealers(
+        salesmanId: _salesmanId,
+        page: _page,
+        limit: _limit,
+        search: _currentSearch.isEmpty ? null : _currentSearch,
+      );
+      if (more.length < _limit) _hasMore = false;
+      state = AsyncData([...current, ...more]);
+    } catch (e) {
+      _page--;
+      debugPrint('🔴 [SalesmanDealersNotifier loadMore] ERROR: $e');
+    } finally {
+      ref.read(salesmanDealerLoadingMoreProvider.notifier).state = false;
     }
   }
 }

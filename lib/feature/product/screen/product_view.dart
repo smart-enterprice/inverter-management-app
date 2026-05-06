@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:inverter_management_app/core/role/app_role.dart';
 import '../../../core/const/icons.dart';
 import '../../../model/product_model.dart';
-import '../../../model/user_model.dart';
+import '../../signup/model/user_model.dart';
 import '../../../widgets/circle_button.dart';
 import '../../signup/controller/signUp_controller.dart';
 import '../controller/product_controller.dart';

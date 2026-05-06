@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inverter_management_app/core/role/app_role.dart';
-import 'package:inverter_management_app/model/user_model.dart';
+import 'package:inverter_management_app/feature/signup/model/user_model.dart';
 import '../../../../core/const/district.dart';
 import '../../../../core/const/roll_converter.dart';
 import '../../../../model/brand_model.dart';

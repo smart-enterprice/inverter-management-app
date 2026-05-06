@@ -7,12 +7,20 @@ class UserModel {
   final String role;
   final String? photo;
   final String address;
+  final String? status;
+  final String? createdBy;
+  final String? createdAt;
+  final String? updatedAt;
 
   // Optional fields for ROLE_DEALER
   final String? shopName;
   final String? district;
   final String? town;
   final List<String>? brand;
+
+  // Dealer management fields
+  final List<String>? dealers;
+  final List<String>? removeDealers;
 
   UserModel({
     this.employeeId,
@@ -23,11 +31,18 @@ class UserModel {
     required this.role,
     this.photo,
     required this.address,
+    this.status,
+    this.createdBy,
+    this.createdAt,
+    this.updatedAt,
     this.shopName,
     this.district,
     this.town,
     this.brand,
+    this.dealers,
+    this.removeDealers,
   });
+
   Map<String, dynamic> toJson() {
     return {
       'employee_name': employeeName,
@@ -41,8 +56,11 @@ class UserModel {
       'district': district,
       'town': town,
       if (brand != null) 'brand': brand,
+      if (dealers != null) 'dealers': dealers,
+      if (removeDealers != null) 'remove_dealers': removeDealers,
     };
   }
+
   Map<String, dynamic> toUpdateJson() {
     return {
       'employee_name': employeeName,
@@ -54,6 +72,8 @@ class UserModel {
       'shop_name': shopName,
       'district': district,
       'town': town,
+      if (dealers != null) 'dealers': dealers,
+      if (removeDealers != null) 'remove_dealers': removeDealers,
     };
   }
 
@@ -65,12 +85,18 @@ class UserModel {
       password: json['password']?.toString() ?? '',
       employeePhone: json['employee_phone']?.toString() ?? '',
       role: json['role']?.toString() ?? '',
-      photo: json['photo']?.toString()??'',
+      photo: json['photo']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
+      status: json['status']?.toString(),
+      createdBy: json['created_by']?.toString(),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
       shopName: json['shop_name']?.toString(),
       district: json['district']?.toString(),
       town: json['town']?.toString(),
       brand: (json['brand'] as List?)?.map((e) => e.toString()).toList(),
+      dealers: (json['dealers'] as List?)?.map((e) => e.toString()).toList(),
+      removeDealers: (json['remove_dealers'] as List?)?.map((e) => e.toString()).toList(),
     );
   }
 
@@ -83,10 +109,16 @@ class UserModel {
     String? role,
     String? photo,
     String? address,
+    String? status,
+    String? createdBy,
+    String? createdAt,
+    String? updatedAt,
     String? shopName,
     String? district,
     String? town,
     List<String>? brand,
+    List<String>? dealers,
+    List<String>? removeDealers,
   }) {
     return UserModel(
       employeeId: employeeId ?? this.employeeId,
@@ -97,10 +129,16 @@ class UserModel {
       role: role ?? this.role,
       photo: photo ?? this.photo,
       address: address ?? this.address,
+      status: status ?? this.status,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       shopName: shopName ?? this.shopName,
       district: district ?? this.district,
       town: town ?? this.town,
       brand: brand ?? this.brand,
+      dealers: dealers ?? this.dealers,
+      removeDealers: removeDealers ?? this.removeDealers,
     );
   }
 }

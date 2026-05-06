@@ -16,16 +16,43 @@ class ProductRepository {
     await _dio.post('/product-details/create-product', data: product.toJson());
   }
 
-  /// Get All Products with pagination
+  /// Get All Products with pagination + filters
+  ///
+  /// Both `brand` (single, kept for backward compatibility) and `brands`
+  /// (multi-select list) are supported. If `brands` has values, they are
+  /// joined with commas — e.g. `brand=Acme,Globex`. Adjust the join format
+  /// to whatever your backend expects.
   Future<List<ProductModel>> getProducts({
     int page = 1,
     int limit = 20,
+    String? search,
+    String? type,
+    String? status,
+    String? category,
+    String? brand,
+    List<String>? brands,
+    String? model,
   }) async {
+    // Normalize brand selection: prefer multi-select if provided,
+    // otherwise fall back to single brand string.
+    String? brandParam;
+    if (brands != null && brands.isNotEmpty) {
+      brandParam = brands.join(',');
+    } else if (brand != null && brand.isNotEmpty) {
+      brandParam = brand;
+    }
+
     final response = await _dio.get(
       '/product-details/get/all',
       queryParameters: {
         'page': page,
         'limit': limit,
+        if (search != null && search.isNotEmpty) 'search': search,
+        if (type != null && type.isNotEmpty) 'type': type,
+        if (status != null) 'status': status,
+        if (category != null && category != 'All Categories') 'category': category,
+        if (brandParam != null) 'brand': brandParam,
+        if (model != null && model.isNotEmpty) 'model': model,
       },
     );
     final products = (response.data['data'] as List)

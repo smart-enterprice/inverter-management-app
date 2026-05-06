@@ -1,4 +1,6 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/core/const/snackbar.dart';
 import 'package:inverter_management_app/feature/authentication/controller/login_controller.dart';
@@ -10,6 +12,7 @@ import 'package:inverter_management_app/widgets/data_card.dart';
 
 import '../../feature/notification/provider/notification_provider.dart';
 import '../../feature/notification/view/notification_screen.dart';
+import '../../main.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const _kP          = Color(0xFF185FA5);
@@ -50,6 +53,7 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
   late final Animation<double> _fade;
 
   @override
+  @override
   void initState() {
     super.initState();
     _anim = AnimationController(
@@ -57,6 +61,37 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
       duration: const Duration(milliseconds: 500),
     )..forward();
     _fade = CurvedAnimation(parent: _anim, curve: Curves.easeOut);
+
+    // ── FCM listeners ──────────────────────────────────────
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      final notification = message.notification;
+      final android = message.notification?.android;
+      if (notification != null && android != null) {
+        flutterLocalNotificationsPlugin.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              channel.id,
+              channel.name,
+              channelDescription: channel.description,
+              icon: '@mipmap/ic_launcher',
+            ),
+          ),
+        );
+      }
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      debugPrint('Opened from notification: ${message.data}');
+    });
+
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) {
+        debugPrint('Opened from terminated: ${message.data}');
+      }
+    });
   }
 
   @override

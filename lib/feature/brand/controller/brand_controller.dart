@@ -137,4 +137,5 @@ String _extractDioError(DioException e, {required String fallback}) {
   }
   if (data is String) return data;
   return fallback;
+
 }

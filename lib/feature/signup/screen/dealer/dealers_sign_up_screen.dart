@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../../core/utils/password_generator.dart';
-import '../../../../model/user_model.dart';
+import '../../model/user_model.dart';
 import '../../../../widgets/circle_button.dart';
 import '../../../brand/controller/brand_controller.dart';
 import '../../controller/signUp_controller.dart';

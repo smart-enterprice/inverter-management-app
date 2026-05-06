@@ -6,9 +6,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:inverter_management_app/core/role/app_role.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/const/role.dart';
-import '../../../../model/user_model.dart';
+import '../../model/user_model.dart';
 import '../../../../widgets/circle_button.dart';
 import '../../controller/signUp_controller.dart';
+import '../dealer/dealerAssignmentScreen.dart';
 
 // ── Design tokens (mirrors DealerView exactly) ────────────────────────────────
 const _kP       = Color(0xFF185FA5);
@@ -116,9 +117,52 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
                                 ('Address', user.address ?? 'N/A'),
                               ]),
                           SizedBox(height: sh * 0.06),
+                          if (user.role == 'ROLE_SALESMAN') ...[
+                            SizedBox(height: sh * 0.012),
+                            _dealersCard(sw, sh, user),
+                          ],
                         ])),
                   ])),
                 ])))));
+  }
+  Widget _dealersCard(double sw, double sh, UserModel user) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => DealerAssignmentScreen(salesman: user)),
+      ),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+            horizontal: sw * 0.04, vertical: sw * 0.04),
+        decoration: BoxDecoration(
+            color: _kWhite,
+            borderRadius:
+            BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+            border: Border.all(color: _kBd, width: 0.5)),
+        child: Row(children: [
+          Container(
+            width: (sw * 0.075).clamp(26.0, 36.0),
+            height: (sw * 0.075).clamp(26.0, 36.0),
+            decoration: BoxDecoration(
+                color: _kBg,
+                borderRadius: BorderRadius.circular(
+                    (sw * 0.022).clamp(6.0, 10.0))),
+            child: Icon(Icons.storefront_outlined,
+                size: (sw * 0.04).clamp(14.0, 20.0), color: _kT1),
+          ),
+          SizedBox(width: sw * 0.025),
+          Expanded(
+              child: Text('Dealers',
+                  style: TextStyle(
+                      fontSize: (sw * 0.035).clamp(12.0, 16.0),
+                      fontWeight: FontWeight.w700,
+                      color: _kT1))),
+          Icon(Icons.arrow_forward_ios_rounded,
+              size: (sw * 0.035).clamp(12.0, 16.0), color: _kT4),
+        ]),
+      ),
+    );
   }
 
   // ── Profile card ────────────────────────────────────────────────────────
