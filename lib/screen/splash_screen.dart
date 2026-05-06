@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:inverter_management_app/screen/responsive_shell.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:inverter_management_app/feature/authentication/controller/login_controller.dart';
 import 'package:inverter_management_app/feature/authentication/screen/login_mobile_view.dart';
-import 'package:inverter_management_app/screen/rolebasescreen/AccountantMobileView.dart';
-import 'package:inverter_management_app/screen/rolebasescreen/deliveryMobileView.dart';
-import 'package:inverter_management_app/screen/rolebasescreen/managerMobileView.dart';
-import 'package:inverter_management_app/screen/rolebasescreen/packingMobileView.dart';
-import 'package:inverter_management_app/screen/rolebasescreen/productionMobileView.dart';
-import 'package:inverter_management_app/screen/rolebasescreen/salesmanmobileview.dart';
-import 'package:inverter_management_app/screen/superAdmin_home_screen.dart';
 import '../core/role/app_role.dart';
 
 const _kP    = Color(0xFF185FA5);
@@ -43,6 +37,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       if (!mounted) return;
       if (!isActive) {
         await ref.read(loginControllerProvider.notifier).forceLogout();
+        if (!mounted) return;
         _goTo(const LoginMobileView());
         return;
       }
@@ -62,19 +57,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   void _navigateByRole(String? role) {
-    Widget target;
-    switch (role) {
-      case 'ROLE_SUPER_ADMIN':
-      case 'ROLE_ADMIN':      target = const SuperAdminHomePage(); break;
-      case 'ROLE_SALESMAN':   target = const SalesmanMobileView(); break;
-      case 'ROLE_PRODUCTION': target = const ProductionMobileView(); break;
-      case 'ROLE_PACKING':    target = const PackingMobileView(); break;
-      case 'ROLE_MANAGER':    target = const ManagerMobileView(); break;
-      case 'ROLE_ACCOUNTS':   target = const AccountantMobileView(); break;
-      case 'ROLE_DELIVERY':   target = const DeliveryMobileView(); break;
-      default:                target = const LoginMobileView();
-    }
-    _goTo(target);
+    _goTo(ResponsiveShell.forRole(role));
   }
 
   void _goTo(Widget page) {

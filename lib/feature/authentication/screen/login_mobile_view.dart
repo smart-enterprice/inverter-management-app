@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../screen/rolebasescreen/AccountantMobileView.dart';
-import '../../../screen/rolebasescreen/deliveryMobileView.dart';
-import '../../../screen/rolebasescreen/managerMobileView.dart';
-import '../../../screen/rolebasescreen/packingMobileView.dart';
-import '../../../screen/rolebasescreen/productionMobileView.dart';
-import '../../../screen/rolebasescreen/salesmanmobileview.dart';
-import '../../../screen/superAdmin_home_screen.dart';
+import '../../../screen/responsive_shell.dart';
 import '../controller/login_controller.dart';
 
 // ── Zoho tokens ───────────────────────────────────────────────────────────────
@@ -47,6 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginMobileView> {
           _emailCtrl.text.trim(), _passCtrl.text.trim());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          duration: const Duration(seconds: 4),
           backgroundColor: result.success ? _kGreen : _kRed,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -56,19 +51,8 @@ class _LoginScreenState extends ConsumerState<LoginMobileView> {
   }
 
   void _navigateByRole(String? role) {
-    Widget target;
-    switch (role) {
-      case 'ROLE_SUPER_ADMIN':
-      case 'ROLE_ADMIN':      target = const SuperAdminHomePage(); break;
-      case 'ROLE_SALESMAN':   target = const SalesmanMobileView(); break;
-      case 'ROLE_MANAGER':    target = const ManagerMobileView(); break;
-      case 'ROLE_PACKING':    target = const PackingMobileView(); break;
-      case 'ROLE_ACCOUNTS':   target = const AccountantMobileView(); break;
-      case 'ROLE_PRODUCTION': target = const ProductionMobileView(); break;
-      case 'ROLE_DELIVERY':   target = const DeliveryMobileView(); break;
-      default:                target = const LoginMobileView();
-    }
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => target));
+    Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (_) => ResponsiveShell.forRole(role)));
   }
 
   @override
