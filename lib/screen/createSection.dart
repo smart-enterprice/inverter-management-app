@@ -121,6 +121,7 @@ class CreateSection extends ConsumerWidget {
     final visibleItems = items.where(
           (item) => AppPermissions.canAccess(role, item.feature),
     ).toList();
+    final isTablet = sw >= 600;
     return Scaffold(
       backgroundColor: _kBg,
       body: SafeArea(
@@ -147,7 +148,7 @@ class CreateSection extends ConsumerWidget {
                     SizedBox(width: sw * 0.03),
                     Text('Create & Manage',
                         style: TextStyle(
-                            fontSize: sw * 0.055,
+                            fontSize: (sw * 0.055).clamp(18.0, 28.0),
                             fontWeight: FontWeight.w800,
                             color: _kDark,
                             letterSpacing: -0.5)),
@@ -157,7 +158,7 @@ class CreateSection extends ConsumerWidget {
                     padding: EdgeInsets.only(left: sw * 0.045 + 4),
                     child: Text('Add new records to the system',
                         style: TextStyle(
-                            fontSize: sw * 0.032,
+                            fontSize: (sw * 0.032).clamp(11.0, 15.0),
                             color: _kMuted,
                             fontWeight: FontWeight.w500)),
                   ),
@@ -167,9 +168,24 @@ class CreateSection extends ConsumerWidget {
 
             Container(height: 1, color: _kBorder),
 
-            // ── List ────────────────────────────────────────────────────────
+            // ── List (mobile) / Grid (tablet) ────────────────────────────────
             Expanded(
-              child: ListView.separated(
+              child: isTablet
+                  ? GridView.builder(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                    sw * 0.03, sh * 0.02, sw * 0.03, sh * 0.04),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: sw * 0.02,
+                  mainAxisSpacing: sh * 0.018,
+                  childAspectRatio: 2.8,
+                ),
+                itemCount: visibleItems.length,
+                itemBuilder: (_, i) => _CreateCard(
+                    item: visibleItems[i], sw: sw * 0.44, sh: sh),
+              )
+                  : ListView.separated(
                 physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(
                     sw * 0.045, sh * 0.02, sw * 0.045, sh * 0.12),
