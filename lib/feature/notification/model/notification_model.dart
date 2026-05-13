@@ -87,7 +87,7 @@ class NotificationState {
   final bool hasMore;
   final int currentPage;
   final String? error;
-  final bool isConnected; // SSE connection status
+  final bool isConnected; // FCM token registered with backend
 
   const NotificationState({
     this.notifications = const [],

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/const/icons.dart';
 import '../../feature/brand/screen/brands_page.dart';
+import '../../feature/brand/screen/tablet/brands_tablet_view.dart';
 import '../../feature/product/screen/products_screen.dart';
+import '../../feature/product/screen/tablet/products_tablet_view.dart';
 import '../../widgets/quick_access_card.dart';
-
 
 class PackingPanel extends StatelessWidget {
   const PackingPanel({super.key});
@@ -20,6 +21,7 @@ class PackingPanel extends StatelessWidget {
           bg: Color(0xFFF5F3FF),
           border: Color(0xFFDDD6FE),
           page: ProductsScreen(),
+          tabletPage: ProductsTabletView(),
         ),
         QuickAccessCardData(
           title: 'Brands',
@@ -28,6 +30,7 @@ class PackingPanel extends StatelessWidget {
           bg: Color(0xFFFFF7ED),
           border: Color(0xFFFED7AA),
           page: BrandsScreen(),
+          tabletPage: BrandsTabletView(),
         ),
       ],
     );

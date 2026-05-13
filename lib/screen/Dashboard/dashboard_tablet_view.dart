@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 
 import '../../feature/order/controller/order_controller.dart';
 import '../../feature/order/screen/order_view_page.dart';
-import '../../feature/signup/controller/signUp_controller.dart';
 import '../../main.dart';
 import '../../model/order_model.dart';
 
@@ -14,10 +13,11 @@ import '../../model/order_model.dart';
 const _kP        = Color(0xFF185FA5);
 const _kPBg      = Color(0xFFEBF4FF);
 const _kPBd      = Color(0xFFBFD9F5);
-const _kBg       = Color(0xFFF7F8FA);
+const _kBg       = Color(0xFFF4F5F8);
 const _kWhite    = Color(0xFFFFFFFF);
-const _kBd       = Color(0xFFE5E7EB);
+const _kBd       = Color(0xFFEEF0F4);
 const _kT1       = Color(0xFF111827);
+const _kT2       = Color(0xFF374151);
 const _kT3       = Color(0xFF6B7280);
 const _kGreen    = Color(0xFF0F6E56);
 const _kGreenBg  = Color(0xFFEDFAF5);
@@ -40,6 +40,10 @@ const _kIndigoBd = Color(0xFFC7D2FE);
 const _kBlue     = Color(0xFF0369A1);
 const _kBlueBg   = Color(0xFFE0F2FE);
 const _kBlueBd   = Color(0xFFBAE6FD);
+
+const _kCardShadow = BoxShadow(
+  color: Color(0x0F0F172A), offset: Offset(0, 6), blurRadius: 20,
+);
 
 String _fmt(num? n) => n == null ? '0' : NumberFormat('#,##,###').format(n);
 
@@ -86,10 +90,18 @@ List<_Stat> _buildStats(List<OrderModel> orders) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// DashboardTabletView
+// DashboardTabletView — Flowdesk-inspired soft card UI
 // ═════════════════════════════════════════════════════════════════════════════
 class DashboardTabletView extends ConsumerStatefulWidget {
-  const DashboardTabletView({super.key});
+  const DashboardTabletView({
+    super.key,
+    this.statsPanel,
+    this.quickAccessPanel = const SizedBox.shrink(),
+  });
+
+  final Widget? statsPanel;
+  final Widget  quickAccessPanel;
+
   @override
   ConsumerState<DashboardTabletView> createState() => _DashboardTabletViewState();
 }
@@ -120,114 +132,134 @@ class _DashboardTabletViewState extends ConsumerState<DashboardTabletView> {
 
   @override
   Widget build(BuildContext context) {
-    final sw = MediaQuery.sizeOf(context).width;
-    final sh = MediaQuery.sizeOf(context).height;
-    final lw = (sw * 0.38).clamp(260.0, 420.0);
-
     final ordersAsync = ref.watch(recentOrdersProvider);
-    final user  = ref.watch(currentUserProvider).asData?.value;
-    final name  = (user?.employeeName ?? '...').replaceAll('_', ' ');
-    final role  = (user?.role ?? '...').replaceAll('ROLE_', '').replaceAll('_', ' ');
 
     return Scaffold(
       backgroundColor: _kBg,
       body: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        child: LayoutBuilder(builder: (ctx, c) {
+          final w = c.maxWidth;
+          final h = c.maxHeight;
+          final isWide = w >= 900;
+          final pad = (w * 0.022).clamp(12.0, 24.0);
+          final gap = (w * 0.018).clamp(10.0, 20.0);
 
-            // ── Left panel: order summary stats ───────────────────────────
-            SizedBox(
-              width: lw,
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  color: _kWhite,
-                  border: Border(right: BorderSide(color: _kBd, width: 0.5)),
-                ),
-                child: ordersAsync.when(
-                  loading: () => const Center(
-                      child: CircularProgressIndicator(color: _kP, strokeWidth: 2)),
-                  error: (_, __) => _LeftError(sw: lw, sh: sh),
-                  data: (orders) => _LeftPanel(
-                    sw: lw, sh: sh, name: name, role: role, orders: orders,
-                  ),
-                ),
-              ),
+          // Bottom panel height — recent orders gets internal scroll
+          final bottomMinH = isWide ? 360.0 : 320.0;
+          final bottomMaxH = isWide ? 620.0 : 540.0;
+          final bottomH = (h * 0.58).clamp(bottomMinH, bottomMaxH);
+
+          final summary = _OrderSummaryCard(ordersAsync: ordersAsync, w: w);
+          final recent = _RecentOrdersCard(
+            ordersAsync: ordersAsync,
+            w: w,
+            onRefresh: () => ref.invalidate(recentOrdersProvider),
+            onOpen: (o) => Navigator.push(
+              ctx,
+              MaterialPageRoute(builder: (_) =>
+                OrderViewPage(orderNumber: o.orderNumber ?? '')),
             ),
+          );
 
-            // ── Right panel: recent orders list ───────────────────────────
-            Expanded(
+          return Scrollbar(
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: EdgeInsets.all(pad),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Panel header
-                  Container(
-                    height: (sh * 0.07).clamp(48.0, 60.0),
-                    decoration: const BoxDecoration(
-                      color: _kWhite,
-                      border: Border(bottom: BorderSide(color: _kBd, width: 0.5)),
+                  if (widget.statsPanel != null) ...[
+                    _SectionCard(
+                      title: 'Overview',
+                      subtitle: 'Today at a glance',
+                      w: w,
+                      child: widget.statsPanel!,
                     ),
-                    padding: EdgeInsets.symmetric(horizontal: sw * 0.02),
-                    child: Row(children: [
-                      Text('Recent Orders', style: TextStyle(
-                        fontSize: (sw * 0.02).clamp(15.0, 19.0),
-                        fontWeight: FontWeight.w700,
-                        color: _kT1, letterSpacing: -0.3,
-                      )),
-                      const Spacer(),
-                      GestureDetector(
-                        onTap: () => ref.invalidate(recentOrdersProvider),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: sw * 0.015, vertical: sw * 0.006),
-                          decoration: BoxDecoration(
-                            color: _kPBg,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color: _kP.withValues(alpha: 0.3), width: 0.5),
-                          ),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.refresh_rounded,
-                                size: (sw * 0.018).clamp(12.0, 16.0), color: _kP),
-                            SizedBox(width: sw * 0.008),
-                            Text('Refresh', style: TextStyle(
-                                fontSize: (sw * 0.015).clamp(10.0, 12.5),
-                                fontWeight: FontWeight.w600, color: _kP)),
-                          ]),
-                        ),
-                      ),
-                    ]),
+                    SizedBox(height: gap),
+                  ],
+                  _SectionCard(
+                    title: 'Quick Access',
+                    subtitle: 'Jump straight into a task',
+                    w: w,
+                    child: widget.quickAccessPanel,
                   ),
-
-                  Expanded(
-                    child: ordersAsync.when(
-                      loading: () => const Center(
-                          child: CircularProgressIndicator(
-                              color: _kP, strokeWidth: 2)),
-                      error: (_, __) => const SizedBox.shrink(),
-                      data: (orders) => orders.isEmpty
-                          ? _RightEmpty(sw: sw - lw, sh: sh)
-                          : ListView.separated(
-                        padding: EdgeInsets.all((sw - lw) * 0.03),
-                        itemCount: orders.length,
-                        separatorBuilder: (_, __) =>
-                            SizedBox(height: sh * 0.010),
-                        itemBuilder: (ctx, i) => _RecentOrderRow(
-                          order: orders[i],
-                          sw: sw - lw,
-                          sh: sh,
-                          onTap: () => Navigator.push(ctx,
-                              MaterialPageRoute(builder: (_) =>
-                                  OrderViewPage(
-                                      orderNumber:
-                                      orders[i].orderNumber ?? ''))),
+                  SizedBox(height: gap),
+                  isWide
+                    ? SizedBox(
+                        height: bottomH,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(flex: 4, child: summary),
+                            SizedBox(width: gap),
+                            Expanded(flex: 6, child: recent),
+                          ],
                         ),
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          summary,
+                          SizedBox(height: gap),
+                          SizedBox(height: bottomH, child: recent),
+                        ],
                       ),
-                    ),
-                  ),
                 ],
               ),
             ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+// ── Generic section card ──────────────────────────────────────────────────────
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.title,
+    this.subtitle,
+    required this.child,
+    required this.w,
+  });
+
+  final String  title;
+  final String? subtitle;
+  final Widget  child;
+  final double  w;
+
+  @override
+  Widget build(BuildContext context) {
+    final pad     = (w * 0.025).clamp(14.0, 22.0);
+    final radius  = (w * 0.022).clamp(14.0, 20.0);
+    final titleFs = (w * 0.018).clamp(14.0, 17.0);
+    final subFs   = (w * 0.013).clamp(10.5, 12.5);
+
+    return Container(
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
+        color: _kWhite,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: const [_kCardShadow],
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(pad),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(title, style: TextStyle(
+              fontSize: titleFs, color: _kT1,
+              fontWeight: FontWeight.w800, letterSpacing: -0.3,
+            )),
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(subtitle!, style: TextStyle(
+                fontSize: subFs, color: _kT3, fontWeight: FontWeight.w500,
+              )),
+            ],
+            SizedBox(height: pad * 0.7),
+            child,
           ],
         ),
       ),
@@ -235,217 +267,368 @@ class _DashboardTabletViewState extends ConsumerState<DashboardTabletView> {
   }
 }
 
-// ── Left panel ────────────────────────────────────────────────────────────────
-class _LeftPanel extends StatelessWidget {
-  const _LeftPanel({required this.sw, required this.sh,
-    required this.name, required this.role, required this.orders});
-  final double sw, sh;
-  final String name, role;
-  final List<OrderModel> orders;
+// ── Order Summary card ────────────────────────────────────────────────────────
+class _OrderSummaryCard extends StatelessWidget {
+  const _OrderSummaryCard({required this.ordersAsync, required this.w});
+  final AsyncValue<List<OrderModel>> ordersAsync;
+  final double w;
 
   @override
-  Widget build(BuildContext context) {
-    final stats = _buildStats(orders);
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(sw * 0.07),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-        Text(name, style: TextStyle(
-          fontSize: (sw * 0.056).clamp(18.0, 26.0),
-          fontWeight: FontWeight.w800, color: _kT1, letterSpacing: -0.3,
-        )),
-        SizedBox(height: sh * 0.007),
-        Container(
-          padding: EdgeInsets.symmetric(
-              horizontal: sw * 0.045, vertical: sh * 0.004),
-          decoration: BoxDecoration(
-            color: _kPBg, borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _kPBd, width: 0.5),
-          ),
-          child: Text(role, style: TextStyle(
-              fontSize: (sw * 0.032).clamp(10.0, 13.0),
-              fontWeight: FontWeight.w600, color: _kP)),
-        ),
-        SizedBox(height: sh * 0.04),
-
-        _SectionLabel(text: 'Order Summary', sw: sw, sh: sh),
-        SizedBox(height: sh * 0.018),
-
-        GridView.builder(
+  Widget build(BuildContext context) => ordersAsync.when(
+    loading: () => _SectionCard(
+      title: 'Order Summary',
+      subtitle: 'Loading…',
+      w: w,
+      child: const SizedBox(
+        height: 180,
+        child: Center(
+          child: CircularProgressIndicator(color: _kP, strokeWidth: 2)),
+      ),
+    ),
+    error: (_, __) => _SectionCard(
+      title: 'Order Summary',
+      subtitle: 'Connection error',
+      w: w,
+      child: _ErrorBlock(w: w),
+    ),
+    data: (orders) {
+      final stats = _buildStats(orders);
+      return _SectionCard(
+        title: 'Order Summary',
+        subtitle: '${orders.length} order${orders.length != 1 ? 's' : ''} tracked',
+        w: w,
+        child: GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10,
-            childAspectRatio: 1.6,
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 1.3,
           ),
           itemCount: stats.length,
-          itemBuilder: (_, i) => _StatCard(stat: stats[i], sw: sw, sh: sh),
+          itemBuilder: (_, i) => _StatusTile(stat: stats[i], w: w),
         ),
-
-        SizedBox(height: sh * 0.03),
-        _SectionLabel(
-            text: 'Total: ${orders.length} order${orders.length != 1 ? 's' : ''}',
-            sw: sw, sh: sh),
-      ]),
-    );
-  }
-}
-
-// ── Stat card ─────────────────────────────────────────────────────────────────
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.stat, required this.sw, required this.sh});
-  final _Stat stat; final double sw, sh;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.symmetric(
-        horizontal: sw * 0.06, vertical: sh * 0.018),
-    decoration: BoxDecoration(
-      color: stat.bg,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: stat.bd, width: 0.5),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text('${stat.count}', style: TextStyle(
-          fontSize: (sw * 0.1).clamp(24.0, 34.0),
-          fontWeight: FontWeight.w800, color: stat.fg, height: 1.0,
-        )),
-        SizedBox(height: sh * 0.005),
-        Text(stat.label, style: TextStyle(
-          fontSize: (sw * 0.034).clamp(10.5, 13.0),
-          fontWeight: FontWeight.w600, color: stat.fg,
-        )),
-      ],
-    ),
+      );
+    },
   );
 }
 
-// ── Compact recent order row ──────────────────────────────────────────────────
-class _RecentOrderRow extends StatelessWidget {
-  const _RecentOrderRow({required this.order, required this.sw,
-    required this.sh, required this.onTap});
-  final OrderModel order; final double sw, sh; final VoidCallback onTap;
+// ── Status tile (Order Summary grid) ──────────────────────────────────────────
+class _StatusTile extends StatelessWidget {
+  const _StatusTile({required this.stat, required this.w});
+  final _Stat stat; final double w;
 
   @override
   Widget build(BuildContext context) {
-    final st = _ss(order.status);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-            horizontal: sw * 0.045, vertical: sh * 0.014),
-        decoration: BoxDecoration(
-          color: _kWhite,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: _kBd, width: 0.5),
-        ),
-        child: Row(children: [
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(order.orderNumber ?? 'N/A', style: TextStyle(
-                fontSize: (sw * 0.036).clamp(12.0, 15.0),
-                fontWeight: FontWeight.w700, color: _kT1,
-              )),
-              SizedBox(height: sh * 0.003),
-              Text(order.dealer?.employeeName ?? 'N/A', style: TextStyle(
-                fontSize: (sw * 0.028).clamp(10.0, 12.0), color: _kT3,
-                fontWeight: FontWeight.w500,
-              ), maxLines: 1, overflow: TextOverflow.ellipsis),
-            ],
-          )),
-          if (order.totalPrice != null) ...[
-            Text('₹${_fmt(order.totalPrice)}', style: TextStyle(
-              fontSize: (sw * 0.03).clamp(11.0, 13.5),
-              fontWeight: FontWeight.w700, color: _kT1,
-            )),
-            SizedBox(width: sw * 0.03),
-          ],
-          Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: sw * 0.028, vertical: sh * 0.004),
-            decoration: BoxDecoration(
-              color: st.bg, borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: st.bd, width: 0.5),
+    final radius  = (w * 0.012).clamp(8.0, 12.0);
+    final countFs = (w * 0.022).clamp(16.0, 22.0);
+    final labelFs = (w * 0.011).clamp(9.5, 11.5);
+    final dotSz   = (w * 0.010).clamp(7.0, 9.0);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+      decoration: BoxDecoration(
+        color: stat.bg,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(children: [
+            Container(
+              width: dotSz, height: dotSz,
+              decoration: BoxDecoration(
+                color: stat.fg, shape: BoxShape.circle,
+              ),
             ),
-            child: Text(order.status ?? '', style: TextStyle(
-              fontSize: (sw * 0.024).clamp(9.0, 11.0),
-              fontWeight: FontWeight.w700, color: st.fg, height: 1.0,
+            const SizedBox(width: 6),
+            Text('${stat.count}', style: TextStyle(
+              fontSize: countFs,
+              fontWeight: FontWeight.w800,
+              color: stat.fg,
+              height: 1.0,
+              letterSpacing: -0.3,
             )),
-          ),
-        ]),
+          ]),
+          Text(stat.label, style: TextStyle(
+            fontSize: labelFs,
+            fontWeight: FontWeight.w600,
+            color: stat.fg,
+            letterSpacing: 0.1,
+            height: 1.1,
+          ), maxLines: 1, overflow: TextOverflow.ellipsis),
+        ],
       ),
     );
   }
 }
 
-// ── Section label ─────────────────────────────────────────────────────────────
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.text, required this.sw, required this.sh});
-  final String text; final double sw, sh;
+// ── Recent Orders card ────────────────────────────────────────────────────────
+class _RecentOrdersCard extends StatelessWidget {
+  const _RecentOrdersCard({
+    required this.ordersAsync,
+    required this.w,
+    required this.onRefresh,
+    required this.onOpen,
+  });
+  final AsyncValue<List<OrderModel>> ordersAsync;
+  final double w;
+  final VoidCallback onRefresh;
+  final void Function(OrderModel) onOpen;
 
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.center,
-    children: [
-      Container(
-        width: (sw * 0.009).clamp(3.0, 5.0),
-        height: (sh * 0.022).clamp(14.0, 20.0),
-        decoration: BoxDecoration(
-          color: _kP,
-          borderRadius: BorderRadius.circular((sw * 0.004).clamp(1.5, 2.5)),
+  Widget build(BuildContext context) {
+    final pad     = (w * 0.025).clamp(14.0, 22.0);
+    final radius  = (w * 0.022).clamp(14.0, 20.0);
+    final titleFs = (w * 0.018).clamp(14.0, 17.0);
+    final subFs   = (w * 0.013).clamp(10.5, 12.5);
+    final count   = ordersAsync.asData?.value.length ?? 0;
+
+    return Container(
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
+        color: _kWhite,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: const [_kCardShadow],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(pad, pad, pad, pad * 0.55),
+            child: Row(children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Recent Orders', style: TextStyle(
+                      fontSize: titleFs, color: _kT1,
+                      fontWeight: FontWeight.w800, letterSpacing: -0.3,
+                    )),
+                    const SizedBox(height: 2),
+                    Text('Latest activity · $count', style: TextStyle(
+                      fontSize: subFs, color: _kT3,
+                      fontWeight: FontWeight.w500,
+                    )),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: onRefresh,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _kPBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.refresh_rounded,
+                        size: subFs + 3, color: _kP),
+                    const SizedBox(width: 4),
+                    Text('Refresh', style: TextStyle(
+                      fontSize: subFs,
+                      fontWeight: FontWeight.w700,
+                      color: _kP,
+                    )),
+                  ]),
+                ),
+              ),
+            ]),
+          ),
+          const Divider(height: 1, color: _kBd),
+          Expanded(
+            child: ordersAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(
+                  color: _kP, strokeWidth: 2)),
+              error: (_, __) => Padding(
+                padding: EdgeInsets.all(pad),
+                child: _ErrorBlock(w: w),
+              ),
+              data: (orders) => orders.isEmpty
+                ? _EmptyState(w: w)
+                : ListView.separated(
+                    padding: EdgeInsets.fromLTRB(
+                        pad, pad * 0.6, pad, pad),
+                    itemCount: orders.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: 8),
+                    itemBuilder: (_, i) => _RecentOrderRow(
+                      order: orders[i],
+                      w: w,
+                      onTap: () => onOpen(orders[i]),
+                    ),
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Recent order row — Flowdesk-style with colored accent stripe ──────────────
+class _RecentOrderRow extends StatelessWidget {
+  const _RecentOrderRow({
+    required this.order, required this.w, required this.onTap,
+  });
+  final OrderModel order; final double w; final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final st       = _ss(order.status);
+    final radius   = (w * 0.012).clamp(10.0, 14.0);
+    final orderFs  = (w * 0.016).clamp(13.0, 15.5);
+    final dealerFs = (w * 0.013).clamp(11.0, 12.5);
+    final priceFs  = (w * 0.016).clamp(12.5, 15.0);
+    final chipFs   = (w * 0.011).clamp(9.5, 11.0);
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 4, color: st.fg),
+              Expanded(
+                child: Container(
+                  color: st.bg,
+                  padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+                  child: Row(children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(order.orderNumber ?? 'N/A', style: TextStyle(
+                            fontSize: orderFs,
+                            fontWeight: FontWeight.w800,
+                            color: _kT1,
+                            letterSpacing: -0.2,
+                          ), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 2),
+                          Text(order.dealer?.employeeName ?? 'N/A',
+                            style: TextStyle(
+                              fontSize: dealerFs,
+                              color: _kT3,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (order.totalPrice != null)
+                          Text('₹${_fmt(order.totalPrice)}', style: TextStyle(
+                            fontSize: priceFs,
+                            fontWeight: FontWeight.w800,
+                            color: _kT1,
+                            letterSpacing: -0.2,
+                          )),
+                        const SizedBox(height: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _kWhite,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: st.bd, width: 0.7),
+                          ),
+                          child: Text(order.status ?? '', style: TextStyle(
+                            fontSize: chipFs,
+                            fontWeight: FontWeight.w700,
+                            color: st.fg,
+                            height: 1.0,
+                            letterSpacing: 0.2,
+                          )),
+                        ),
+                      ],
+                    ),
+                  ]),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      SizedBox(width: sw * 0.028),
-      Text(text, style: TextStyle(
-        fontSize: (sw * 0.038).clamp(12.0, 15.5),
-        fontWeight: FontWeight.w700, color: _kT1, letterSpacing: 0.1,
-      )),
-    ],
-  );
+    );
+  }
 }
 
-// ── Empty state (right panel) ─────────────────────────────────────────────────
-class _RightEmpty extends StatelessWidget {
-  const _RightEmpty({required this.sw, required this.sh});
-  final double sw, sh;
+// ── Empty state ───────────────────────────────────────────────────────────────
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.w});
+  final double w;
 
   @override
-  Widget build(BuildContext context) => Center(child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(Icons.inbox_outlined,
-          size: (sw * 0.08).clamp(40.0, 56.0),
-          color: const Color(0xFFD1D5DB)),
-      SizedBox(height: sh * 0.015),
-      Text('No recent orders', style: TextStyle(
-        fontSize: (sw * 0.028).clamp(13.0, 16.0),
-        color: _kT3, fontWeight: FontWeight.w500,
-      )),
-    ],
-  ));
+  Widget build(BuildContext context) {
+    final iconSz = (w * 0.05).clamp(36.0, 52.0);
+    final fs     = (w * 0.014).clamp(12.0, 14.0);
+    final subFs  = (w * 0.012).clamp(10.0, 12.0);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: iconSz * 1.7, height: iconSz * 1.7,
+            decoration: const BoxDecoration(
+              color: _kBg, shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.inbox_rounded,
+                size: iconSz, color: const Color(0xFFCBD5E1)),
+          ),
+          const SizedBox(height: 14),
+          Text('No recent orders', style: TextStyle(
+            fontSize: fs, color: _kT2, fontWeight: FontWeight.w700,
+          )),
+          const SizedBox(height: 4),
+          Text('Orders will appear here as they come in',
+            style: TextStyle(
+              fontSize: subFs, color: _kT3, fontWeight: FontWeight.w500,
+            )),
+        ],
+      ),
+    );
+  }
 }
 
-// ── Error state (left panel) ──────────────────────────────────────────────────
-class _LeftError extends StatelessWidget {
-  const _LeftError({required this.sw, required this.sh});
-  final double sw, sh;
+// ── Error block ───────────────────────────────────────────────────────────────
+class _ErrorBlock extends StatelessWidget {
+  const _ErrorBlock({required this.w});
+  final double w;
 
   @override
-  Widget build(BuildContext context) => Center(child: Padding(
-    padding: EdgeInsets.all(sw * 0.06),
-    child: Row(children: [
-      Icon(Icons.wifi_off_rounded, color: _kRed,
-          size: (sw * 0.07).clamp(18.0, 26.0)),
-      SizedBox(width: sw * 0.03),
-      Expanded(child: Text('Could not load data', style: TextStyle(
-        fontSize: (sw * 0.034).clamp(11.0, 14.0),
-        color: _kRed, fontWeight: FontWeight.w500,
-      ))),
-    ]),
-  ));
+  Widget build(BuildContext context) {
+    final iconSz = (w * 0.025).clamp(18.0, 24.0);
+    final fs     = (w * 0.014).clamp(12.0, 14.0);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _kRedBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(children: [
+        Icon(Icons.wifi_off_rounded, color: _kRed, size: iconSz),
+        const SizedBox(width: 10),
+        Expanded(child: Text('Could not load data', style: TextStyle(
+          fontSize: fs, color: _kRed, fontWeight: FontWeight.w600,
+        ))),
+      ]),
+    );
+  }
 }

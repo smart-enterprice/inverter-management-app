@@ -1,41 +1,24 @@
 // lib/feature/order/screen/tablet/orders_tablet_view.dart
-//
-// Zoho Books–style tablet orders screen.
-//
-// ┌────────────────────────────────────────────────────────────────────┐
-// │  White header: title · search bar · filter button                  │
-// │  Status chip row                                                    │
-// ├──────────────────────────┬─────────────────────────────────────────┤
-// │  Left panel (38%)        │  Right panel (62%)                      │
-// │  Compact order rows      │  ┌─────────────────────────────────┐   │
-// │  ─ date group headers ─  │  │  Order detail card              │   │
-// │  Selected row highlighted│  │  • Header: order# + status      │   │
-// │                          │  │  • Dealer · Shop · Phone        │   │
-// │                          │  │  • Date · Items count · Amount  │   │
-// │                          │  │  • "Open full details" link     │   │
-// │                          │  └─────────────────────────────────┘   │
-// └──────────────────────────┴─────────────────────────────────────────┘
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/const/icons.dart';
 import '../../../../model/order_model.dart';
+import '../../../../widgets/circle_button.dart';
 import '../../controller/order_controller.dart';
 import '../order_view_page.dart';
 
-// ── Design tokens — Zoho Books palette ───────────────────────────────────────
+// ── Design tokens ─────────────────────────────────────────────────────────────
 const _kP        = Color(0xFF185FA5);
 const _kPBg      = Color(0xFFEBF4FF);
 const _kPBd      = Color(0xFFBFD9F5);
-const _kBg       = Color(0xFFF4F5F7); // Zoho: slightly grey canvas
+const _kBg       = Color(0xFFF4F5F7);
 const _kWhite    = Color(0xFFFFFFFF);
 const _kBd       = Color(0xFFE5E7EB);
-const _kBdLight  = Color(0xFFF0F1F3); // lighter row divider
-const _kT1       = Color(0xFF1A1A2E);
-const _kT2       = Color(0xFF374151);
+const _kBdLight  = Color(0xFFF0F1F3);
+const _kT1       = Color(0xFF111827);
 const _kT3       = Color(0xFF6B7280);
 const _kT4       = Color(0xFF9CA3AF);
 const _kGreen    = Color(0xFF0F6E56);
@@ -59,22 +42,7 @@ _SS _ss(String? s) {
     case 'DELIVERED':
     case 'COMPLETED':  return const _SS(_kGreen, _kGreenBg, _kGreenBd);
     case 'CANCELLED':  return const _SS(_kRed, _kRedBg, _kRedBd);
-    default:           return const _SS(_kT3, Color(0xFFF3F4F6), _kBd);
-  }
-}
-
-Color _dot(String? v) {
-  switch (v?.toUpperCase()) {
-    case 'PENDING':    return const Color(0xFFB45309);
-    case 'CONFIRMED':  return _kP;
-    case 'PRODUCTION': return const Color(0xFFEA580C);
-    case 'PACKED':     return const Color(0xFF7C3AED);
-    case 'INVOICE':    return const Color(0xFF4338CA);
-    case 'SHIPPED':    return const Color(0xFF0369A1);
-    case 'DELIVERED':
-    case 'COMPLETED':  return _kGreen;
-    case 'CANCELLED':  return _kRed;
-    default:           return _kT3;
+    default:           return const _SS(_kT4, Color(0xFFF3F4F6), _kBd);
   }
 }
 
@@ -91,7 +59,7 @@ class _Tab { final String label; final String? api;
 const _Tab(this.label, [this.api]); }
 
 final _tabs = <_Tab>[
-  _Tab('All'),           _Tab('Pending',   'PENDING'),
+  _Tab('All'),          _Tab('Pending',   'PENDING'),
   _Tab('Confirmed',  'CONFIRMED'),  _Tab('Production','PRODUCTION'),
   _Tab('Packed',     'PACKED'),     _Tab('Invoice',   'INVOICE'),
   _Tab('Shipped',    'SHIPPED'),    _Tab('Delivered', 'DELIVERED'),
@@ -151,6 +119,7 @@ class _State extends ConsumerState<OrdersTabletView> {
   static const _limit = 20;
 
   OrderModel? _sel;
+  int         _selIdx = 0;
 
   @override
   void initState() {
@@ -166,7 +135,6 @@ class _State extends ConsumerState<OrdersTabletView> {
     super.dispose();
   }
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
   void _onScroll() {
     if (_listScroll.position.pixels >=
         _listScroll.position.maxScrollExtent - 200) {
@@ -190,13 +158,10 @@ class _State extends ConsumerState<OrdersTabletView> {
         }
         _loading = false;
       });
-    } catch (e, stack) {
-      debugPrint('_loadMore error: $e\n$stack');
-      setState(() => _loading = false);
-    }
+    } catch (_) { setState(() => _loading = false); }
   }
 
-  void _reset() => setState(() { _all = []; _page = 1; _hasMore = true; _sel = null; });
+  void _reset() => setState(() { _all = []; _page = 1; _hasMore = true; _sel = null; _selIdx = 0; });
 
   List<OrderModel> _filter(List<OrderModel> src) {
     if (_q.isEmpty) return src;
@@ -321,27 +286,26 @@ class _State extends ConsumerState<OrdersTabletView> {
     });
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final mq   = MediaQuery.of(context);
     final sw   = mq.size.width;
     final sh   = mq.size.height;
     final tab  = _tabs[_tab.clamp(0, _tabs.length - 1)];
-    final lw   = (sw * 0.38).clamp(260.0, 420.0); // left panel width
+    final lw   = (sw * 0.38).clamp(260.0, 420.0);
 
     final async$ = _dateOn && _from != null && _to != null
         ? ref.watch(filteredOrdersProvider(DateFilterParams(
         startDate: _apiDate(_from!), endDate: _apiDate(_to!))))
         : ref.watch(paginatedOrdersProvider(PaginatedOrderParams(
-        status: tab.api, page: _page, limit: _limit)));
+        status: tab.api, page: 1, limit: _limit)));
 
     return Scaffold(
       backgroundColor: _kBg,
       body: SafeArea(
         child: Column(children: [
 
-          // ── Top bar ───────────────────────────────────────────────────────
+          // ── Top bar ─────────────────────────────────────────────────────────
           _TopBar(
             sw: sw, sh: sh,
             q: _q, ctrl: _searchCtrl,
@@ -350,9 +314,14 @@ class _State extends ConsumerState<OrdersTabletView> {
             onClear:    ()  => setState(() { _searchCtrl.clear(); _q = ''; }),
             onDateTap:  _showDateDialog,
             onDateClear: _clearDate,
+            onRefresh: () {
+              _reset();
+              if (_dateOn) ref.invalidate(filteredOrdersProvider);
+              else         ref.invalidate(paginatedOrdersProvider);
+            },
           ),
 
-          // ── Status chips ──────────────────────────────────────────────────
+          // ── Status chips ─────────────────────────────────────────────────
           _ChipBar(
             tabs: _tabs, selected: _tab, disabled: _dateOn,
             ctrl: _chipScroll, sw: sw, sh: sh,
@@ -363,128 +332,126 @@ class _State extends ConsumerState<OrdersTabletView> {
             },
           ),
 
-          // ── Two-column body ───────────────────────────────────────────────
+          // ── Split view ───────────────────────────────────────────────────
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
 
-                // LEFT panel
-                SizedBox(
-                  width: lw,
-                  child: DecoratedBox(
-                    decoration: const BoxDecoration(
-                      color: _kWhite,
-                      border: Border(right: BorderSide(color: _kBd, width: 0.5)),
-                    ),
-                    child: async$.when(
-                      loading: () => const Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2)),
-                      error:   (_, __) => _ErrView(sw: lw, sh: sh, onRetry: () {
-                        _reset();
-                        if (_dateOn) ref.invalidate(filteredOrdersProvider);
-                        else         ref.invalidate(paginatedOrdersProvider);
-                      }),
-                      data: (raw) {
-                        // accumulate pages
-                        if (!_dateOn) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (!mounted) return;
-                            if (_page == 1) {
-                              if (_all.length != raw.length ||
-                                  (_all.isNotEmpty && raw.isNotEmpty &&
-                                      _all.first.orderNumber != raw.first.orderNumber)) {
-                                setState(() => _all = List.from(raw));
-                              }
-                            } else {
-                              final seen  = _all.map((o) => o.orderNumber).toSet();
-                              final fresh = raw.where((o) => !seen.contains(o.orderNumber)).toList();
-                              if (fresh.isNotEmpty) setState(() => _all.addAll(fresh));
-                            }
-                          });
-                        }
+              // LEFT — order list
+              SizedBox(
+                width: lw,
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: _kWhite,
+                    border: Border(right: BorderSide(color: _kBd, width: 0.5)),
+                  ),
+                  child: async$.when(
+                    loading: () => const Center(
+                        child: CircularProgressIndicator(color: _kP, strokeWidth: 2)),
+                    error: (_, __) => _ErrView(onRetry: () {
+                      _reset();
+                      if (_dateOn) ref.invalidate(filteredOrdersProvider);
+                      else         ref.invalidate(paginatedOrdersProvider);
+                    }),
+                    data: (raw) {
+                      if (!_dateOn && _all.isEmpty && raw.isNotEmpty) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && _all.isEmpty) {
+                            setState(() => _all = List.from(raw));
+                          }
+                        });
+                      }
 
-                        final src      = _dateOn ? raw : (_all.isEmpty ? raw : _all);
-                        final filtered = _filter(src);
+                      final src      = _dateOn ? raw : (_all.isEmpty ? raw : _all);
+                      final filtered = _filter(src);
 
-                        // auto-select first
-                        if (_sel == null && filtered.isNotEmpty) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted && _sel == null) setState(() => _sel = filtered.first);
-                          });
-                        }
+                      if (_sel == null && filtered.isNotEmpty) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && _sel == null) {
+                            setState(() { _sel = filtered.first; _selIdx = 0; });
+                          }
+                        });
+                      }
 
-                        if (filtered.isEmpty) return _EmptyLeft(
-                          sw: lw, sh: sh, isDate: _dateOn,
+                      if (filtered.isEmpty) {
+                        return _EmptyLeft(
+                          lw: lw, isDate: _dateOn,
                           tabLabel: tab.label,
                           onClear: _clearDate,
-                          onAll:   () => setState(() { _tab = 0; _reset(); _scrollChip(0); }),
+                          onAll: () => setState(() { _tab = 0; _reset(); _scrollChip(0); }),
                         );
+                      }
 
-                        final items = _grouped(filtered);
+                      final items = _grouped(filtered);
 
-                        return RefreshIndicator(
-                          color: _kP, backgroundColor: _kWhite,
-                          onRefresh: () async {
-                            _reset();
-                            if (_dateOn) ref.invalidate(filteredOrdersProvider);
-                            else         ref.invalidate(paginatedOrdersProvider);
-                            await Future.delayed(const Duration(milliseconds: 300));
-                          },
-                          child: ListView.builder(
-                            controller: _listScroll,
-                            padding: EdgeInsets.symmetric(vertical: sh * 0.01),
-                            itemCount: items.length + (_loading ? 1 : 0),
-                            itemBuilder: (_, i) {
-                              if (i == items.length) {
-                                return Center(child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: sh * 0.02),
-                                  child: const CircularProgressIndicator(color: _kP, strokeWidth: 2),
-                                ));
-                              }
-                              final item = items[i];
-
-                              // Date group header
-                              if (item is String) {
-                                return Padding(
-                                  padding: EdgeInsets.fromLTRB(lw * 0.06, i == 0 ? sh * 0.008 : sh * 0.014, lw * 0.06, sh * 0.005),
-                                  child: Text(item, style: TextStyle(
-                                    fontSize: (lw * 0.028).clamp(9.5, 11.5),
-                                    fontWeight: FontWeight.w600,
-                                    color: _kT4, letterSpacing: 0.4,
-                                  )),
-                                );
-                              }
-
-                              // Order row
-                              final o   = item as OrderModel;
-                              final sel = _sel?.orderNumber == o.orderNumber;
-                              return _OrderRow(
-                                order: o, selected: sel,
-                                lw: lw, sh: sh,
-                                onTap: () => setState(() => _sel = o),
+                      return RefreshIndicator(
+                        color: _kP, backgroundColor: _kWhite,
+                        onRefresh: () async {
+                          _reset();
+                          if (_dateOn) ref.invalidate(filteredOrdersProvider);
+                          else         ref.invalidate(paginatedOrdersProvider);
+                          await Future.delayed(const Duration(milliseconds: 300));
+                        },
+                        child: ListView.builder(
+                          controller: _listScroll,
+                          padding: EdgeInsets.only(top: sh * 0.008),
+                          itemCount: items.length + (_loading ? 1 : 0),
+                          itemBuilder: (_, i) {
+                            if (i == items.length) {
+                              return Center(child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: sh * 0.02),
+                                child: const SizedBox(
+                                  width: 20, height: 20,
+                                  child: CircularProgressIndicator(
+                                      color: _kP, strokeWidth: 2)),
+                              ));
+                            }
+                            final item = items[i];
+                            if (item is String) {
+                              return Padding(
+                                padding: EdgeInsets.fromLTRB(lw * 0.06,
+                                    i == 0 ? sh * 0.008 : sh * 0.014,
+                                    lw * 0.06, sh * 0.005),
+                                child: Text(item, style: TextStyle(
+                                  fontSize: (lw * 0.028).clamp(9.5, 11.5),
+                                  fontWeight: FontWeight.w600,
+                                  color: _kT4, letterSpacing: 0.4,
+                                )),
                               );
-                            },
-                          ),
-                        );
-                      },
-                    ),
+                            }
+                            final o   = item as OrderModel;
+                            final idx = filtered.indexOf(o);
+                            return _OrderRow(
+                              order: o,
+                              index: idx,
+                              selected: _sel?.orderNumber == o.orderNumber,
+                              lw: lw,
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() { _sel = o; _selIdx = idx; });
+                              },
+                            );
+                          },
+                        ),
+                      );
+                    },
                   ),
                 ),
+              ),
 
-                // RIGHT panel
-                Expanded(
-                  child: _sel == null
-                      ? _RightEmpty(sw: sw - lw, sh: sh)
-                      : _DetailCard(
-                    order: _sel!,
-                    pw: sw - lw, sh: sh,
-                    onOpen: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) =>
-                            OrderViewPage(orderNumber: _sel!.orderNumber ?? ''))),
-                  ),
+              // RIGHT — detail (always rendered, independent of left panel load state)
+              Expanded(
+                child: _sel == null
+                    ? _EmptyRight(rw: sw - lw)
+                    : _DetailCard(
+                  order: _sel!,
+                  index: _selIdx,
+                  rw: sw - lw, sh: sh,
+                  onOpen: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) =>
+                          OrderViewPage(orderNumber: _sel!.orderNumber ?? ''))),
                 ),
-              ],
-            ),
+              ),
+            ]),
           ),
         ]),
       ),
@@ -492,16 +459,14 @@ class _State extends ConsumerState<OrdersTabletView> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// _TopBar
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Top bar ───────────────────────────────────────────────────────────────────
 class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.sw, required this.sh,
     required this.q, required this.ctrl,
     required this.dateOn, required this.from, required this.to,
     required this.onChanged, required this.onClear,
-    required this.onDateTap, required this.onDateClear,
+    required this.onDateTap, required this.onDateClear, required this.onRefresh,
   });
   final double sw, sh;
   final String q;
@@ -509,121 +474,95 @@ class _TopBar extends StatelessWidget {
   final bool dateOn;
   final DateTime? from, to;
   final ValueChanged<String> onChanged;
-  final VoidCallback onClear, onDateTap, onDateClear;
+  final VoidCallback onClear, onDateTap, onDateClear, onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    final h    = (sh * 0.085).clamp(54.0, 68.0);
-    final hPad = sw * 0.022;
     return Container(
-      height: h,
+      height: (sh * 0.085).clamp(52.0, 64.0),
       decoration: const BoxDecoration(
         color: _kWhite,
         border: Border(bottom: BorderSide(color: _kBd, width: 0.5)),
       ),
-      padding: EdgeInsets.symmetric(horizontal: hPad),
+      padding: EdgeInsets.symmetric(horizontal: sw * 0.02),
       child: Row(children: [
-
-        // Title
+        CircularIconButton(
+            icon: Icons.arrow_back_ios_rounded,
+            onTap: () => Navigator.pop(context)),
+        SizedBox(width: sw * 0.016),
         Text('Orders', style: TextStyle(
-          fontSize:      (sw * 0.024).clamp(17.0, 22.0),
-          fontWeight:    FontWeight.w800,
-          color:         _kT1,
-          letterSpacing: -0.4,
+          fontSize: (sw * 0.022).clamp(16.0, 20.0),
+          fontWeight: FontWeight.w800, color: _kT1, letterSpacing: -0.3,
         )),
-        SizedBox(width: hPad * 1.2),
-
-        // Search bar — always visible inline (Zoho style)
-        Expanded(
-          child: _SearchBar(ctrl: ctrl, sw: sw, sh: sh,
-              onChanged: onChanged, onClear: onClear),
-        ),
-        SizedBox(width: hPad),
-
-        // Date filter pill
+        SizedBox(width: sw * 0.02),
+        Expanded(child: _SearchField(ctrl: ctrl, sw: sw, sh: sh,
+            hint: 'Search by order, dealer, shop…',
+            onChanged: onChanged, onClear: onClear)),
+        SizedBox(width: sw * 0.012),
         _FilterBtn(
           dateOn: dateOn, from: from, to: to,
           sw: sw, sh: sh,
-          onTap:   onDateTap,
-          onClear: onDateClear,
+          onTap: onDateTap, onClear: onDateClear,
+        ),
+        SizedBox(width: sw * 0.008),
+        GestureDetector(
+          onTap: onRefresh,
+          child: Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: _kPBg, borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _kPBd, width: 0.5),
+            ),
+            child: const Icon(Icons.refresh_rounded, size: 16, color: _kP),
+          ),
         ),
       ]),
     );
   }
 }
 
-// ── Inline search bar ─────────────────────────────────────────────────────────
-class _SearchBar extends StatefulWidget {
-  const _SearchBar({required this.ctrl, required this.sw, required this.sh,
-    required this.onChanged, required this.onClear});
+// ── Search field ──────────────────────────────────────────────────────────────
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.ctrl, required this.sw, required this.sh,
+    required this.hint, required this.onChanged, required this.onClear});
   final TextEditingController ctrl;
   final double sw, sh;
+  final String hint;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
-  @override State<_SearchBar> createState() => _SearchBarState();
-}
-class _SearchBarState extends State<_SearchBar> {
-  bool _focus = false;
-  final _fn = FocusNode();
-  @override void initState() {
-    super.initState();
-    _fn.addListener(() => setState(() => _focus = _fn.hasFocus));
-  }
-  @override void dispose() { _fn.dispose(); super.dispose(); }
 
   @override
-  Widget build(BuildContext context) {
-    final h  = (widget.sh * 0.052).clamp(34.0, 42.0);
-    final fs = (widget.sw * 0.015).clamp(11.0, 13.5);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 160),
-      height: h,
-      decoration: BoxDecoration(
-        color:        const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: _focus ? _kP : _kBd,
-            width: _focus ? 1.5 : 0.5),
+  Widget build(BuildContext context) => SizedBox(
+    height: (sh * 0.052).clamp(34.0, 42.0),
+    child: TextField(
+      controller: ctrl,
+      onChanged: onChanged,
+      style: const TextStyle(fontSize: 13, color: _kT1),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(fontSize: 12.5, color: _kT4),
+        prefixIcon: const Icon(Icons.search_rounded, size: 18, color: _kT4),
+        suffixIcon: ctrl.text.isNotEmpty
+            ? IconButton(icon: const Icon(Icons.close_rounded, size: 16, color: _kT4),
+            onPressed: onClear) : null,
+        filled: true, fillColor: const Color(0xFFF9FAFB),
+        contentPadding: EdgeInsets.zero,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(7),
+            borderSide: const BorderSide(color: _kBd, width: 0.5)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(7),
+            borderSide: const BorderSide(color: _kBd, width: 0.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(7),
+            borderSide: const BorderSide(color: _kP, width: 1.5)),
       ),
-      child: Row(children: [
-        SizedBox(width: h * 0.32),
-        Icon(Icons.search_rounded,
-            size: h * 0.44, color: _focus ? _kP : _kT4),
-        SizedBox(width: h * 0.22),
-        Expanded(child: TextField(
-          controller: widget.ctrl,
-          focusNode:  _fn,
-          onChanged:  widget.onChanged,
-          style: TextStyle(fontSize: fs, color: _kT1),
-          decoration: InputDecoration(
-            hintText:       'Search by order, dealer, shop...',
-            hintStyle:      TextStyle(fontSize: fs, color: _kT4),
-            border:         InputBorder.none,
-            isDense:        true,
-            contentPadding: EdgeInsets.zero,
-          ),
-        )),
-        if (widget.ctrl.text.isNotEmpty)
-          GestureDetector(
-            onTap: widget.onClear,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: h * 0.2),
-              child: Icon(Icons.close_rounded, size: h * 0.38, color: _kT4),
-            ),
-          )
-        else
-          SizedBox(width: h * 0.3),
-      ]),
-    );
-  }
+    ),
+  );
 }
 
 // ── Date filter button ────────────────────────────────────────────────────────
 class _FilterBtn extends StatelessWidget {
   const _FilterBtn({required this.dateOn, required this.from, required this.to,
-    required this.sw, required this.sh,
-    required this.onTap, required this.onClear});
-  final bool dateOn;
-  final DateTime? from, to;
+    required this.sw, required this.sh, required this.onTap, required this.onClear});
+  final bool dateOn; final DateTime? from, to;
   final double sw, sh;
   final VoidCallback onTap, onClear;
 
@@ -638,9 +577,8 @@ class _FilterBtn extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: sw * 0.014),
         decoration: BoxDecoration(
           color:        dateOn ? _kPBg : const Color(0xFFF3F4F6),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-              color: dateOn ? _kPBd : Colors.transparent, width: 0.5),
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(color: dateOn ? _kPBd : _kBd, width: 0.5),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.tune_rounded,
@@ -671,9 +609,7 @@ class _FilterBtn extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// _ChipBar — status filter row
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Status chip bar ───────────────────────────────────────────────────────────
 class _ChipBar extends StatelessWidget {
   const _ChipBar({required this.tabs, required this.selected,
     required this.disabled, required this.ctrl,
@@ -701,7 +637,7 @@ class _ChipBar extends StatelessWidget {
         itemBuilder: (_, i) {
           final t   = tabs[i];
           final sel = selected == i && !disabled;
-          final d   = _dot(t.api);
+          final st  = _ss(t.api);
           return GestureDetector(
             onTap: disabled ? null : () => onSelect(i),
             child: AnimatedContainer(
@@ -719,7 +655,8 @@ class _ChipBar extends StatelessWidget {
                 if (t.api != null) ...[
                   Container(width: 6, height: 6,
                       decoration: BoxDecoration(
-                          color: disabled ? _kBd : d, shape: BoxShape.circle)),
+                          color: disabled ? _kBd : st.fg,
+                          shape: BoxShape.circle)),
                   SizedBox(width: sw * 0.007),
                 ],
                 Text(t.label, style: TextStyle(
@@ -737,21 +674,29 @@ class _ChipBar extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// _OrderRow — compact left-panel row (Zoho Books list style)
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Order list row ────────────────────────────────────────────────────────────
+const _badgeSets = [
+  (_kPBg,                   _kPBd,                   _kP),
+  (_kGreenBg,               _kGreenBd,               _kGreen),
+  (Color(0xFFF5F3FF),       Color(0xFFDDD6FE),       Color(0xFF7C3AED)),
+  (Color(0xFFFFFBEB),       Color(0xFFFCD28A),       Color(0xFFB45309)),
+  (_kRedBg,                 _kRedBd,                 _kRed),
+];
+
+(Color, Color, Color) _badgeColors(int i) => _badgeSets[i % _badgeSets.length];
+
 class _OrderRow extends StatelessWidget {
-  const _OrderRow({required this.order, required this.selected,
-    required this.lw, required this.sh, required this.onTap});
+  const _OrderRow({required this.order, required this.index,
+    required this.selected, required this.lw, required this.onTap});
   final OrderModel order;
+  final int        index;
   final bool       selected;
-  final double     lw, sh;
+  final double     lw;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final st  = _ss(order.status);
-    final p   = _pri(order.priority);
+    final c = _badgeColors(index);
 
     return GestureDetector(
       onTap: onTap,
@@ -766,16 +711,23 @@ class _OrderRow extends StatelessWidget {
             bottom: const BorderSide(color: _kBdLight, width: 0.5),
           ),
         ),
-        padding: EdgeInsets.symmetric(
-            horizontal: lw * 0.07, vertical: sh * 0.014),
+        padding: EdgeInsets.symmetric(horizontal: lw * 0.06, vertical: 11),
         child: Row(children: [
-
-          // Priority dot
-          Container(width: 7, height: 7,
-              decoration: BoxDecoration(color: p, shape: BoxShape.circle)),
+          // Status-colored badge
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: c.$1,
+              border: Border.all(color: c.$2, width: 1.0),
+            ),
+            child: Center(child: Text(
+              (order.orderNumber ?? '?').replaceAll(RegExp(r'[^0-9]'), '').characters.take(2).toString(),
+              style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w800, color: c.$3),
+            )),
+          ),
           SizedBox(width: lw * 0.04),
-
-          // Order info
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -784,353 +736,231 @@ class _OrderRow extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color:      selected ? _kP : _kT1,
                 letterSpacing: -0.1,
-              )),
-              SizedBox(height: sh * 0.003),
+              ), maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
               Text(order.dealer?.employeeName ?? 'N/A', style: TextStyle(
                 fontSize: (lw * 0.034).clamp(10.0, 12.0),
                 color: _kT3, fontWeight: FontWeight.w500,
               ), maxLines: 1, overflow: TextOverflow.ellipsis),
               if ((order.dealer?.shopName ?? '').isNotEmpty) ...[
-                SizedBox(height: sh * 0.001),
+                const SizedBox(height: 1),
                 Text(order.dealer!.shopName, style: TextStyle(
                   fontSize: (lw * 0.03).clamp(9.0, 11.0), color: _kT4,
                 ), maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ],
           )),
-          SizedBox(width: lw * 0.03),
-
-          // Right: amount + status
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            if (order.totalPrice != null)
-              Text('₹${_fmt(order.totalPrice)}', style: TextStyle(
-                fontSize:   (lw * 0.036).clamp(10.5, 13.0),
-                fontWeight: FontWeight.w700,
-                color:      _kT1,
-              )),
-            SizedBox(height: sh * 0.004),
-            Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: lw * 0.04, vertical: sh * 0.003),
-              decoration: BoxDecoration(
-                color:        st.bg,
-                borderRadius: BorderRadius.circular(3),
-                border:       Border.all(color: st.bd, width: 0.5),
-              ),
-              child: Text(order.status ?? '', style: TextStyle(
-                fontSize:   (lw * 0.028).clamp(8.0, 10.0),
-                fontWeight: FontWeight.w700,
-                color:      st.fg, height: 1.0,
-              )),
-            ),
-          ]),
         ]),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// _DetailCard — right panel: single Zoho-style order card
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Detail card (right panel) — matches dealers style ────────────────────────
 class _DetailCard extends StatelessWidget {
-  const _DetailCard({required this.order, required this.pw,
-    required this.sh, required this.onOpen});
+  const _DetailCard({required this.order, required this.index,
+    required this.rw, required this.sh, required this.onOpen});
   final OrderModel order;
-  final double pw, sh;
+  final int        index;
+  final double     rw, sh;
   final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
+    final pad = (rw * 0.06).clamp(18.0, 32.0);
     final st  = _ss(order.status);
-    final p   = _pri(order.priority);
-    final pad = (pw * 0.06).clamp(20.0, 40.0);
+    final c   = _badgeColors(index);
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(pad),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-        // ── Card ──────────────────────────────────────────────────────────
+        // ── Main card ─────────────────────────────────────────────────────
         Container(
           decoration: BoxDecoration(
-            color:        _kWhite,
-            borderRadius: BorderRadius.circular(8),
-            border:       Border.all(color: _kBd, width: 0.5),
-            boxShadow: [
-              BoxShadow(
-                color:   const Color(0xFF000000).withValues(alpha: 0.04),
-                blurRadius: 8, offset: const Offset(0, 2),
-              ),
-            ],
+            color: _kWhite, borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _kBd, width: 0.5),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-            // ── Card header ────────────────────────────────────────────────
+            // Gray header — order number + date + status
             Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: pw * 0.06, vertical: sh * 0.022),
+              padding: EdgeInsets.all(pad),
               decoration: const BoxDecoration(
-                color: _kBg,
+                color: Color(0xFFF8F9FB),
                 borderRadius: BorderRadius.only(
-                  topLeft:  Radius.circular(8),
-                  topRight: Radius.circular(8),
-                ),
+                  topLeft: Radius.circular(10), topRight: Radius.circular(10)),
                 border: Border(bottom: BorderSide(color: _kBd, width: 0.5)),
               ),
               child: Row(children: [
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle, color: c.$1,
+                    border: Border.all(color: c.$2, width: 1.5),
+                  ),
+                  child: Center(child: Text(
+                    (order.orderNumber ?? '?').replaceAll(RegExp(r'[^0-9]'), '').characters.take(2).toString(),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: c.$3),
+                  )),
+                ),
+                SizedBox(width: pad * 0.6),
                 Expanded(child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(order.orderNumber ?? 'N/A', style: TextStyle(
-                      fontSize:   (pw * 0.038).clamp(16.0, 22.0),
-                      fontWeight: FontWeight.w800,
-                      color:      _kT1, letterSpacing: -0.3,
-                    )),
-                    SizedBox(height: sh * 0.005),
-                    if (order.createdAt != null)
-                      Text(
-                        DateFormat('d MMM yyyy, h:mm a')
-                            .format(order.createdAt!.toLocal()),
-                        style: TextStyle(
-                          fontSize: (pw * 0.024).clamp(10.0, 13.0),
-                          color: _kT3,
-                        ),
-                      ),
+                      fontSize: (rw * 0.032).clamp(15.0, 20.0),
+                      fontWeight: FontWeight.w800, color: _kT1, letterSpacing: -0.2,
+                    ), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (order.createdAt != null) ...[
+                      const SizedBox(height: 3),
+                      Text(DateFormat('d MMM yyyy, h:mm a')
+                          .format(order.createdAt!.toLocal()),
+                          style: const TextStyle(fontSize: 12, color: _kT3,
+                              fontWeight: FontWeight.w500)),
+                    ],
                   ],
                 )),
-
-                // Status badge
                 Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: pw * 0.04, vertical: sh * 0.008),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color:        st.bg,
+                    color: st.bg,
                     borderRadius: BorderRadius.circular(4),
-                    border:       Border.all(color: st.bd, width: 0.5),
+                    border: Border.all(color: st.bd, width: 0.5),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Container(width: 6, height: 6,
-                        decoration: BoxDecoration(
-                            color: st.fg, shape: BoxShape.circle)),
-                    SizedBox(width: pw * 0.018),
+                        decoration: BoxDecoration(color: st.fg, shape: BoxShape.circle)),
+                    const SizedBox(width: 6),
                     Text(order.status ?? '', style: TextStyle(
-                      fontSize:   (pw * 0.022).clamp(10.0, 13.0),
-                      fontWeight: FontWeight.w700,
-                      color:      st.fg, height: 1.0,
+                      fontSize: 12, fontWeight: FontWeight.w700,
+                      color: st.fg, height: 1.0,
                     )),
                   ]),
                 ),
               ]),
             ),
 
-            // ── Card body ─────────────────────────────────────────────────
-            Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: pw * 0.06, vertical: sh * 0.02),
-              child: Column(children: [
-
-                // Dealer row
-                _Row(icon: Icons.person_outline_rounded,
-                    label: 'Dealer',
-                    value: order.dealer?.employeeName ?? 'N/A',
-                    pw: pw, sh: sh),
-                _divider(),
-
-                // Shop row
-                _Row(icon: Icons.store_outlined,
-                    label: 'Shop',
-                    value: order.dealer?.shopName ?? 'N/A',
-                    pw: pw, sh: sh),
-                _divider(),
-
-                // Phone row
-                _Row(icon: Icons.phone_outlined,
-                    label: 'Phone',
-                    value: order.dealer?.employeePhone?.toString() ?? 'N/A',
-                    pw: pw, sh: sh),
-                _divider(),
-
-                // Items row
-                _Row(icon: Icons.inventory_2_outlined,
-                    label: 'Items',
-                    value: '${order.orderDetails.length} item${order.orderDetails.length != 1 ? 's' : ''}',
-                    pw: pw, sh: sh),
-                _divider(),
-
-                // Amount row
-                if (order.totalPrice != null) ...[
-                  _Row(icon: Icons.currency_rupee_rounded,
-                      label: 'Amount',
-                      value: '₹${_fmt(order.totalPrice)}',
-                      valueColor: _kGreen,
-                      pw: pw, sh: sh),
-                  _divider(),
-                ],
-
-                // Priority row
-                _PriorityRow(priority: order.priority, pw: pw, sh: sh),
-              ]),
-            ),
-
-            // ── Card footer ───────────────────────────────────────────────
-            Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: pw * 0.06, vertical: sh * 0.018),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: _kBd, width: 0.5)),
+            // ── Dealer section ────────────────────────────────────────────
+            if (order.dealer != null) ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(pad, pad * 0.7, pad, pad * 0.5),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const _SectionLabel('DEALER INFORMATION'),
+                  const SizedBox(height: 8),
+                  _InfoRow(icon: Icons.person_outline_rounded,
+                      label: 'Dealer', value: order.dealer!.employeeName),
+                  const _Divider(),
+                  _InfoRow(icon: Icons.storefront_outlined,
+                      label: 'Shop', value: order.dealer!.shopName),
+                  const _Divider(),
+                  _InfoRow(icon: Icons.phone_outlined,
+                      label: 'Phone',
+                      value: order.dealer!.employeePhone.toString()),
+                ]),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: onOpen,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: pw * 0.048, vertical: sh * 0.013),
-                      decoration: BoxDecoration(
-                        color:        _kP,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.open_in_new_rounded,
-                            size: (pw * 0.024).clamp(12.0, 15.0),
-                            color: _kWhite),
-                        SizedBox(width: pw * 0.016),
-                        Text('View Full Details', style: TextStyle(
-                          fontSize:   (pw * 0.022).clamp(11.0, 13.0),
-                          fontWeight: FontWeight.w700,
-                          color:      _kWhite,
-                        )),
-                      ]),
-                    ),
+              const _Divider(),
+            ],
+
+            // ── Order section ─────────────────────────────────────────────
+            Padding(
+              padding: EdgeInsets.fromLTRB(pad, pad * 0.7, pad, pad * 0.7),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const _SectionLabel('ORDER DETAILS'),
+                const SizedBox(height: 8),
+                _InfoRow(
+                  icon: Icons.inventory_2_outlined,
+                  label: 'Items',
+                  value: '${order.orderDetails.length} item${order.orderDetails.length != 1 ? 's' : ''}',
+                ),
+                if (order.totalPrice != null) ...[
+                  const _Divider(),
+                  _InfoRow(
+                    icon: Icons.currency_rupee_rounded,
+                    label: 'Amount',
+                    value: '₹${_fmt(order.totalPrice)}',
+                    valueColor: _kGreen,
                   ),
                 ],
-              ),
+                const _Divider(),
+                _InfoRow(
+                  icon: Icons.flag_outlined,
+                  label: 'Priority',
+                  value: order.priority,
+                  valueColor: _pri(order.priority),
+                ),
+              ]),
             ),
           ]),
         ),
+
+        SizedBox(height: pad * 0.7),
+
+        // ── Full-width action button ───────────────────────────────────────
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: onOpen,
+            icon: const Icon(Icons.open_in_new_rounded, size: 15),
+            label: const Text('View Full Details',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kP, foregroundColor: _kWhite,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ),
       ]),
     );
   }
-
-  Widget _divider() => const Divider(height: 1, thickness: 0.5, color: _kBdLight);
 }
 
-// ── Info row ──────────────────────────────────────────────────────────────────
-class _Row extends StatelessWidget {
-  const _Row({required this.icon, required this.label,
-    required this.value, required this.pw, required this.sh,
-    this.valueColor});
-  final IconData icon;
-  final String   label, value;
-  final double   pw, sh;
-  final Color?   valueColor;
+// ── Shared small widgets ──────────────────────────────────────────────────────
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Text(text, style: const TextStyle(
+    fontSize: 10.5, fontWeight: FontWeight.w700, color: _kT4, letterSpacing: 0.8,
+  ));
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.icon, required this.label,
+    required this.value, this.valueColor});
+  final IconData icon; final String label, value; final Color? valueColor;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(vertical: sh * 0.013),
+    padding: const EdgeInsets.symmetric(vertical: 10),
     child: Row(children: [
-      Icon(icon, size: (pw * 0.026).clamp(13.0, 16.0), color: _kT4),
-      SizedBox(width: pw * 0.028),
-      SizedBox(
-        width: pw * 0.22,
-        child: Text(label, style: TextStyle(
-          fontSize: (pw * 0.022).clamp(10.5, 13.0),
-          color: _kT3, fontWeight: FontWeight.w500,
-        )),
-      ),
-      Expanded(child: Text(value,
-        style: TextStyle(
-          fontSize:   (pw * 0.023).clamp(11.0, 13.5),
-          fontWeight: FontWeight.w600,
-          color:      valueColor ?? _kT1,
-        ),
-        textAlign: TextAlign.end,
-        maxLines: 1, overflow: TextOverflow.ellipsis,
-      )),
+      Icon(icon, size: 14, color: _kT4),
+      const SizedBox(width: 10),
+      SizedBox(width: 72, child: Text(label, style: const TextStyle(
+        fontSize: 12, color: _kT3, fontWeight: FontWeight.w500))),
+      Expanded(child: Text(value, style: TextStyle(
+        fontSize: 13, fontWeight: FontWeight.w600,
+        color: valueColor ?? _kT1,
+      ), textAlign: TextAlign.end, maxLines: 2, overflow: TextOverflow.ellipsis)),
     ]),
   );
 }
 
-// ── Priority row ──────────────────────────────────────────────────────────────
-class _PriorityRow extends StatelessWidget {
-  const _PriorityRow({required this.priority, required this.pw, required this.sh});
-  final String priority;
-  final double pw, sh;
-
+class _Divider extends StatelessWidget {
+  const _Divider();
   @override
-  Widget build(BuildContext context) {
-    final c = _pri(priority);
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: sh * 0.013),
-      child: Row(children: [
-        Icon(Icons.flag_outlined,
-            size: (pw * 0.026).clamp(13.0, 16.0), color: _kT4),
-        SizedBox(width: pw * 0.028),
-        SizedBox(
-          width: pw * 0.22,
-          child: Text('Priority', style: TextStyle(
-            fontSize: (pw * 0.022).clamp(10.5, 13.0),
-            color: _kT3, fontWeight: FontWeight.w500,
-          )),
-        ),
-        const Spacer(),
-        Container(
-          padding: EdgeInsets.symmetric(
-              horizontal: pw * 0.032, vertical: sh * 0.004),
-          decoration: BoxDecoration(
-            color:        c.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(3),
-            border: Border.all(color: c.withValues(alpha: 0.3), width: 0.5),
-          ),
-          child: Text(priority, style: TextStyle(
-            fontSize:   (pw * 0.022).clamp(10.0, 12.5),
-            fontWeight: FontWeight.w700,
-            color:      c, height: 1.0,
-          )),
-        ),
-      ]),
-    );
-  }
+  Widget build(BuildContext context) =>
+      const Divider(height: 1, thickness: 0.5, color: _kBdLight);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Empty / Error states
-// ─────────────────────────────────────────────────────────────────────────────
-class _RightEmpty extends StatelessWidget {
-  const _RightEmpty({required this.sw, required this.sh});
-  final double sw, sh;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(
-        width:  (sw * 0.1).clamp(52.0, 72.0),
-        height: (sw * 0.1).clamp(52.0, 72.0),
-        decoration: const BoxDecoration(
-            color: Color(0xFFF3F4F6), shape: BoxShape.circle),
-        child: Icon(Icons.receipt_long_outlined,
-            size: (sw * 0.045).clamp(22.0, 32.0), color: _kBd),
-      ),
-      SizedBox(height: sh * 0.016),
-      Text('No order selected', style: TextStyle(
-        fontSize:   (sw * 0.02).clamp(13.0, 15.0),
-        fontWeight: FontWeight.w600, color: _kT3,
-      )),
-      SizedBox(height: sh * 0.005),
-      Text('Select an order from the list', style: TextStyle(
-        fontSize: (sw * 0.015).clamp(10.0, 12.0), color: _kT4,
-      )),
-    ]),
-  );
-}
-
+// ── Empty / error states ──────────────────────────────────────────────────────
 class _EmptyLeft extends StatelessWidget {
-  const _EmptyLeft({required this.sw, required this.sh,
-    required this.isDate, required this.tabLabel,
-    required this.onClear, required this.onAll});
-  final double sw, sh;
-  final bool isDate;
+  const _EmptyLeft({required this.lw, required this.isDate,
+    required this.tabLabel, required this.onClear, required this.onAll});
+  final double lw; final bool isDate;
   final String tabLabel;
   final VoidCallback onClear, onAll;
 
@@ -1138,65 +968,64 @@ class _EmptyLeft extends StatelessWidget {
   Widget build(BuildContext context) => Center(child: Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Icon(isDate ? Icons.date_range_outlined : Icons.inbox_outlined,
-          size: (sw * 0.06).clamp(28.0, 40.0), color: _kBd),
-      SizedBox(height: sh * 0.014),
+      Icon(isDate ? Icons.date_range_outlined : Icons.receipt_long_outlined,
+          size: (lw * 0.12).clamp(32.0, 48.0), color: _kT4),
+      const SizedBox(height: 10),
       Text(isDate ? 'No orders in range' : 'No $tabLabel orders',
-        style: TextStyle(fontSize: (sw * 0.02).clamp(11.0, 13.0),
-            fontWeight: FontWeight.w600, color: _kT3),
-        textAlign: TextAlign.center,
+          style: TextStyle(fontSize: (lw * 0.036).clamp(12.0, 14.0),
+              color: _kT3, fontWeight: FontWeight.w500),
+          textAlign: TextAlign.center),
+    ],
+  ));
+}
+
+class _EmptyRight extends StatelessWidget {
+  const _EmptyRight({required this.rw});
+  final double rw;
+  @override
+  Widget build(BuildContext context) => Center(child: Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Container(
+        width: 56, height: 56,
+        decoration: BoxDecoration(
+          color: _kPBg, shape: BoxShape.circle,
+          border: Border.all(color: _kPBd, width: 0.5),
+        ),
+        child: const Icon(Icons.receipt_long_outlined, size: 26, color: _kP),
       ),
-      SizedBox(height: sh * 0.016),
-      if (isDate)
-        _TxtBtn(label: 'Clear Filter', onTap: onClear, sw: sw, sh: sh)
-      else if (tabLabel != 'All')
-        _TxtBtn(label: 'View All', onTap: onAll, sw: sw, sh: sh),
+      const SizedBox(height: 12),
+      Text('Select an order', style: TextStyle(
+          fontSize: (rw * 0.022).clamp(12.0, 15.0),
+          color: _kT3, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 4),
+      const Text('Tap an order on the left to see its details',
+          style: TextStyle(fontSize: 11.5, color: _kT4)),
     ],
   ));
 }
 
 class _ErrView extends StatelessWidget {
-  const _ErrView({required this.sw, required this.sh, required this.onRetry});
-  final double sw, sh; final VoidCallback onRetry;
-
+  const _ErrView({required this.onRetry});
+  final VoidCallback onRetry;
   @override
   Widget build(BuildContext context) => Center(child: Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Icon(Icons.wifi_off_rounded,
-          size: (sw * 0.06).clamp(28.0, 40.0), color: _kRed),
-      SizedBox(height: sh * 0.014),
-      Text('No connection', style: TextStyle(
-          fontSize: (sw * 0.02).clamp(11.0, 13.0),
-          fontWeight: FontWeight.w600, color: _kT2)),
-      SizedBox(height: sh * 0.016),
-      _TxtBtn(label: 'Retry', onTap: onRetry, sw: sw, sh: sh),
+      const Icon(Icons.wifi_off_rounded, size: 32, color: _kRed),
+      const SizedBox(height: 10),
+      const Text('Could not load orders',
+          style: TextStyle(color: _kRed, fontWeight: FontWeight.w500)),
+      const SizedBox(height: 14),
+      ElevatedButton(
+        onPressed: onRetry,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _kP, foregroundColor: _kWhite,
+          shape: const CircleBorder(), padding: const EdgeInsets.all(14), elevation: 0),
+        child: const Icon(Icons.refresh_rounded),
+      ),
     ],
   ));
-}
-
-class _TxtBtn extends StatelessWidget {
-  const _TxtBtn({required this.label, required this.onTap,
-    required this.sw, required this.sh});
-  final String label; final VoidCallback onTap;
-  final double sw, sh;
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: EdgeInsets.symmetric(
-          horizontal: sw * 0.03, vertical: sh * 0.01),
-      decoration: BoxDecoration(
-        color: _kPBg, borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: _kPBd, width: 0.5),
-      ),
-      child: Text(label, style: TextStyle(
-        fontSize: (sw * 0.016).clamp(10.0, 12.0),
-        fontWeight: FontWeight.w600, color: _kP,
-      )),
-    ),
-  );
 }
 
 // ── Date picker row (dialog) ──────────────────────────────────────────────────

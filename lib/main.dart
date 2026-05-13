@@ -10,22 +10,64 @@ import 'core/utils/Navigation_service.dart';
 import 'core/utils/orientation_lock.dart';
 import 'firebase_options.dart';
 
-// Background handler MUST be a top-level function
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print('Background message: ${message.messageId}');
-}
-
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
+    FlutterLocalNotificationsPlugin();
 
+// NOTE: Channel ID bumped to _v2 because Android notification channels are
+// immutable after first creation. The previous channel was created without
+// explicit sound settings on user devices, so we need a new ID to apply
+// playSound + enableVibration cleanly.
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
-  'high_importance_channel',
+  'high_importance_channel_v2',
   'High Importance Notifications',
   description: 'Used for important notifications.',
   importance: Importance.high,
+  playSound: true,
+  enableVibration: true,
 );
+
+// Background handler MUST be a top-level function.
+// Runs in a separate isolate, so it re-initializes Firebase and the local
+// notifications plugin. If the FCM payload contains a `notification` block
+// the OS already shows a banner — but for data-only payloads we surface
+// one ourselves so the user still sees something while the app is killed.
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (message.notification != null) return;
+
+  final data = message.data;
+  final title = (data['title'] as String?) ?? 'Notification';
+  final body = (data['message'] as String?) ?? (data['body'] as String?) ?? '';
+  if (title.isEmpty && body.isEmpty) return;
+
+  await flutterLocalNotificationsPlugin.initialize(
+    const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(),
+    ),
+  );
+
+  final androidDetails = AndroidNotificationDetails(
+    channel.id,
+    channel.name,
+    channelDescription: channel.description,
+    importance: Importance.high,
+    priority: Priority.high,
+    icon: '@mipmap/ic_launcher',
+    playSound: true,
+    enableVibration: true,
+  );
+
+  await flutterLocalNotificationsPlugin.show(
+    DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    title,
+    body,
+    NotificationDetails(android: androidDetails),
+    payload: data['notification_id'] as String?,
+  );
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,28 +78,12 @@ void main() async {
   }
 
   if (!kIsWeb) {
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
-
-    await flutterLocalNotificationsPlugin.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(),
-      ),
-    );
-
-    final token = await FirebaseMessaging.instance.getToken();
-    print('FCM Token: $token');
   }
   OrientationLock.setDefault();
   runApp(const ProviderScope(child: MyApp()));

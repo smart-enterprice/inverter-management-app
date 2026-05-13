@@ -1,10 +1,10 @@
-
-
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../model/notification_model.dart';
 import '../repository/notification_repository.dart';
+import '../service/fcm_service.dart';
 import '../service/local_notification_service.dart';
 
 // ─── Convenience providers ────────────────────────────────────────────────────
@@ -14,8 +14,8 @@ final unreadCountProvider = Provider<int>((ref) {
   return ref.watch(notificationProvider).unreadCount;
 });
 
-/// SSE connection status
-final sseConnectedProvider = Provider<bool>((ref) {
+/// FCM connection status (true once token registered)
+final fcmConnectedProvider = Provider<bool>((ref) {
   return ref.watch(notificationProvider).isConnected;
 });
 
@@ -25,31 +25,55 @@ final notificationProvider =
 StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
   final repo = ref.read(notificationRepositoryProvider);
   final localNotif = LocalNotificationService();
-  return NotificationNotifier(repo, localNotif);
+  final fcm = FcmService();
+  return NotificationNotifier(repo, localNotif, fcm);
 });
 
-class NotificationNotifier extends StateNotifier<NotificationState> {
+class NotificationNotifier extends StateNotifier<NotificationState>
+    with WidgetsBindingObserver {
   final NotificationRepository _repo;
   final LocalNotificationService _localNotif;
-  StreamSubscription? _sseSub;
-  StreamSubscription? _unreadSub;
+  final FcmService _fcm;
+  StreamSubscription<NotificationModel>? _fcmSub;
   String? _currentUserId;
 
-  NotificationNotifier(this._repo, this._localNotif)
+  NotificationNotifier(this._repo, this._localNotif, this._fcm)
       : super(const NotificationState()) {
+    WidgetsBinding.instance.addObserver(this);
     _init();
   }
 
   Future<void> _init() async {
     await _localNotif.initialize();
     final prefs = await SharedPreferences.getInstance();
-    _currentUserId = prefs.getString('user_id'); // matches _userIdKey in your login provider
+    _currentUserId = prefs.getString('user_id');
 
-    // Load initial data & connect SSE in parallel
-    await Future.wait([
-      loadNotifications(),
-      _connectSSE(),
-    ]);
+    // Subscribe to FCM messages first so anything arriving during the
+    // initial load isn't lost.
+    _fcmSub?.cancel();
+    _fcmSub = _fcm.notificationStream.listen(_onNewNotification);
+
+    await _initFcm();
+    // GET /notifications endpoint was removed by backend; skip the initial
+    // list fetch until it returns. Restore with:
+    // await Future.wait([loadNotifications(refresh: true), _initFcm()]);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // GET /notifications removed by backend — disabled until it returns.
+    // if (state == AppLifecycleState.resumed) {
+    //   loadNotifications(refresh: true);
+    // }
+  }
+
+  Future<void> _initFcm() async {
+    try {
+      await _fcm.initialize(_repo);
+      state = state.copyWith(isConnected: true);
+    } catch (_) {
+      state = state.copyWith(isConnected: false);
+    }
   }
 
   // ─── Load / Paginate ───────────────────────────────────────────────────────
@@ -99,7 +123,6 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   // ─── Mark single as read ──────────────────────────────────────────────────
   Future<void> markAsRead(String notificationId) async {
-    // Optimistic update
     final updated = state.notifications.map((n) {
       if (n.notificationId == notificationId && !n.isRead) {
         return n.copyWith(isRead: true);
@@ -107,8 +130,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       return n;
     }).toList();
 
-    final wasUnread =
-    state.notifications.any((n) => n.notificationId == notificationId && !n.isRead);
+    final wasUnread = state.notifications
+        .any((n) => n.notificationId == notificationId && !n.isRead);
 
     state = state.copyWith(
       notifications: updated,
@@ -117,13 +140,11 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
           : state.unreadCount,
     );
 
-    // Sync with server
     await _repo.markAsRead(notificationId);
   }
 
   // ─── Mark all as read ─────────────────────────────────────────────────────
   Future<void> markAllAsRead() async {
-    // Optimistic update
     final updated = state.notifications
         .map((n) => n.copyWith(isRead: true))
         .toList();
@@ -134,31 +155,10 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     await _localNotif.cancelAll();
   }
 
-  // ─── SSE Connection ───────────────────────────────────────────────────────
-  Future<void> _connectSSE() async {
-    state = state.copyWith(isConnected: false);
-
-    // Listen to unread count updates from SSE
-    _unreadSub?.cancel();
-    _unreadSub = _repo.unreadCountStream.listen((count) {
-      state = state.copyWith(unreadCount: count);
-    });
-
-    // Listen to new notifications
-    _sseSub?.cancel();
-    _sseSub = _repo.connectToSSE().listen(
-          (notification) async {
-        state = state.copyWith(isConnected: true);
-        _onNewNotification(notification);
-      },
-      onError: (_) => state = state.copyWith(isConnected: false),
-    );
-  }
-
+  // ─── New notification arrives via FCM ─────────────────────────────────────
   void _onNewNotification(NotificationModel notification) {
-    // Prepend to list (newest first)
-    final alreadyExists =
-    state.notifications.any((n) => n.notificationId == notification.notificationId);
+    final alreadyExists = state.notifications
+        .any((n) => n.notificationId == notification.notificationId);
 
     if (!alreadyExists) {
       state = state.copyWith(
@@ -167,16 +167,14 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       );
     }
 
-    // Show local push notification (status bar)
-    _localNotif.showNotification(notification);
     _localNotif.updateBadge(state.unreadCount);
   }
 
   // ─── Called when user logs out ────────────────────────────────────────────
+  @override
   void dispose() {
-    _sseSub?.cancel();
-    _unreadSub?.cancel();
-    _repo.disposeSSE();
+    WidgetsBinding.instance.removeObserver(this);
+    _fcmSub?.cancel();
     super.dispose();
   }
 }

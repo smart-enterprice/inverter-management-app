@@ -11,7 +11,7 @@ import 'package:inverter_management_app/feature/signup/controller/signUp_control
 import 'package:inverter_management_app/widgets/data_card.dart';
 
 import '../../feature/notification/provider/notification_provider.dart';
-import '../../feature/notification/view/notification_screen.dart';
+// import '../../feature/notification/view/notification_screen.dart'; // hidden bell
 import '../../main.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -325,8 +325,9 @@ class _Header extends ConsumerWidget {
     final pillH     = (sw * 0.018).clamp(2.0, 4.0);
     final pillR     = (sw * 0.04).clamp(3.0, 10.0);
 
-    // Watch unread count — rebuilds only when badge number changes
-    final unread = ref.watch(unreadCountProvider);
+    // Keep notificationProvider alive so FcmService.initialize() runs and
+    // push notifications are received. Bell UI is hidden, but FCM still works.
+    ref.watch(notificationProvider);
 
     return Container(
       width: double.infinity,
@@ -416,7 +417,8 @@ class _Header extends ConsumerWidget {
           ),
           SizedBox(width: sw * 0.02),
 
-          // ── Notification bell ─────────────────────────────────────────────
+          // ── Notification bell (hidden — backend list endpoint removed; restore when it returns)
+          /*
           GestureDetector(
             onTap: () => Navigator.push(
               context,
@@ -475,6 +477,7 @@ class _Header extends ConsumerWidget {
             ),
           ),
           SizedBox(width: sw * 0.02),
+          */
 
           // ── Logout button ─────────────────────────────────────────────────
           GestureDetector(

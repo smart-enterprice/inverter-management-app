@@ -141,8 +141,9 @@ Widget buildQuickAccessRow({
   required BuildContext context,
   required List<QuickAccessCardData> items,
 }) {
-  final sw = MediaQuery.sizeOf(context).width;
-  final gap = sw * 0.03;
+  final sw      = MediaQuery.sizeOf(context).width;
+  final gap     = sw * 0.03;
+  final isTablet = sw >= 600;
 
   return SingleChildScrollView(
     scrollDirection: Axis.horizontal,
@@ -150,18 +151,21 @@ Widget buildQuickAccessRow({
     clipBehavior: Clip.none,
     child: Row(
       children: items.asMap().entries.map((e) {
-        final isLast = e.key == items.length - 1;
+        final isLast    = e.key == items.length - 1;
+        final dest      = isTablet
+            ? (e.value.tabletPage ?? e.value.page)
+            : e.value.page;
         return Padding(
           padding: EdgeInsets.only(right: isLast ? 0 : gap),
           child: QuickAccessCard(
-            title: e.value.title,
+            title:    e.value.title,
             iconPath: e.value.iconPath,
-            accent: e.value.accent,
-            bg: e.value.bg,
-            border: e.value.border,
+            accent:   e.value.accent,
+            bg:       e.value.bg,
+            border:   e.value.border,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => e.value.page),
+              MaterialPageRoute(builder: (_) => dest),
             ),
           ),
         );
@@ -179,12 +183,14 @@ class QuickAccessCardData {
     required this.bg,
     required this.border,
     required this.page,
+    this.tabletPage,
   });
 
-  final String title;
-  final String iconPath;
-  final Color accent;
-  final Color bg;
-  final Color border;
-  final Widget page;
+  final String  title;
+  final String  iconPath;
+  final Color   accent;
+  final Color   bg;
+  final Color   border;
+  final Widget  page;
+  final Widget? tabletPage;
 }

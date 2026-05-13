@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/role/app_role.dart';
+import '../../notification/service/fcm_service.dart';
 import '../../../model/login_model.dart';
 import '../repository/login_repository.dart';
 
@@ -60,6 +61,8 @@ class LoginController extends AsyncNotifier<LoginResult?> {
 
   Future<LogoutResult> logout() async {
     try {
+      await FcmService().clearLocalToken();
+
       final response = await _repository.logout();
       await _clearUserData();
 
@@ -72,7 +75,10 @@ class LoginController extends AsyncNotifier<LoginResult?> {
     }
   }
 
-  Future<void> forceLogout() => _clearUserData();
+  Future<void> forceLogout() async {
+    await FcmService().clearLocalToken();
+    await _clearUserData();
+  }
 
   // ── Token / session helpers ─────────────────────────────────────────────────
 

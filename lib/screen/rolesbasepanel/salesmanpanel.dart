@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:inverter_management_app/core/const/icons.dart';
 import 'package:inverter_management_app/feature/brand/screen/brands_page.dart';
+import 'package:inverter_management_app/feature/brand/screen/tablet/brands_tablet_view.dart';
 import 'package:inverter_management_app/feature/order/screen/order_create_page.dart';
 import 'package:inverter_management_app/feature/product/screen/products_screen.dart';
+import 'package:inverter_management_app/feature/product/screen/tablet/products_tablet_view.dart';
 import 'package:inverter_management_app/feature/signup/screen/dealer/dealers_screen.dart';
+import 'package:inverter_management_app/feature/signup/screen/dealer/tablet/dealers_tablet_view.dart';
 import 'package:inverter_management_app/widgets/quick_access_card.dart';
 
 class SalesmanPanel extends StatelessWidget {
@@ -29,6 +32,7 @@ class SalesmanPanel extends StatelessWidget {
           bg: Color(0xFFF5F3FF),
           border: Color(0xFFDDD6FE),
           page: ProductsScreen(),
+          tabletPage: ProductsTabletView(),
         ),
         QuickAccessCardData(
           title: 'Brands',
@@ -37,6 +41,7 @@ class SalesmanPanel extends StatelessWidget {
           bg: Color(0xFFFFF7ED),
           border: Color(0xFFFED7AA),
           page: BrandsScreen(),
+          tabletPage: BrandsTabletView(),
         ),
         QuickAccessCardData(
           title: 'Dealers',
@@ -45,6 +50,7 @@ class SalesmanPanel extends StatelessWidget {
           bg: Color(0xFFEDFAF4),
           border: Color(0xFF9FE0C5),
           page: DealersScreen(),
+          tabletPage: DealersTabletView(),
         ),
       ],
     );
