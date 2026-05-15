@@ -264,15 +264,15 @@ class AppPermissions {
       AppFeature.viewProducts,
       AppFeature.viewPrice,
       AppFeature.viewPriceHistory,
-      AppFeature.updateStatus,
+      // AppFeature.updateStatus,
       AppFeature.viewStock,
       AppFeature.updateStock,
-      AppFeature.updateProduct,
+      // AppFeature.updateProduct,
       // AppFeature.createProduct,
       // AppFeature.updatePrice,
       AppFeature.viewTimestamps,
       AppFeature.viewBrands,
-      AppFeature.updateBrand,
+      // AppFeature.updateBrand,
       AppFeature.viewDealers,
       // AppFeature.createDealer,
       // AppFeature.editDealer,
@@ -348,6 +348,7 @@ class AppPermissions {
       // order status updates
       // AppFeature.productionCompleted,
       AppFeature.packedCompleted,
+      AppFeature.shippedCompleted,
 
     },
 

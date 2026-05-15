@@ -16,7 +16,7 @@ class DataCard extends StatelessWidget {
       case 'PENDING':
         return _StatusStyle(const Color(0xFFB45309), const Color(0xFFFFFBEB),
             const Color(0xFFFCD28A));
-      case 'CONFIRMED':
+      case 'INVOICE':
         return _StatusStyle(const Color(0xFF1B4FD8), const Color(0xFFEEF2FF),
             const Color(0xFFC7D2FE));
       case 'PRODUCTION':
