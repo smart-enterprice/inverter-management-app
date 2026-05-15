@@ -20,14 +20,10 @@ const _kWhite   = Colors.white;
 const _kBd      = Color(0xFFE5E7EB);
 const _kT1      = Color(0xFF111827);
 const _kT2      = Color(0xFF374151);
-const _kT3      = Color(0xFF6B7280);
 const _kT4      = Color(0xFF9CA3AF);
 const _kGreen   = Color(0xFF0F6E56);
 const _kGreenBg = Color(0xFFEDFAF5);
-const _kGreenBd = Color(0xFF9FE0C5);
 const _kRed     = Color(0xFFDC2626);
-const _kRedBg   = Color(0xFFFEF2F2);
-const _kRedBd   = Color(0xFFFECACA);
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 final userProvider = FutureProvider.family<UserModel, String>((ref, userId) async {
@@ -116,10 +112,10 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
                               rows: [
                                 ('Address', user.address ?? 'N/A'),
                               ]),
-                          SizedBox(height: sh * 0.06),
+                          SizedBox(height: sh * 0.012),
                           if (user.role == 'ROLE_SALESMAN') ...[
-                            SizedBox(height: sh * 0.012),
                             _dealersCard(sw, sh, user),
+                            SizedBox(height: sh * 0.012),
                           ],
                         ])),
                   ])),
@@ -193,7 +189,7 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
           ]),
           SizedBox(width: sw * 0.04),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(d.employeeName?.replaceAll('_', ' ') ?? 'N/A', style: TextStyle(
+            Text(d.employeeName.replaceAll('_', ' '), style: TextStyle(
                 fontSize: (sw * 0.042).clamp(14.0, 20.0), fontWeight: FontWeight.w800,
                 color: _kT1, letterSpacing: -0.3)),
             SizedBox(height: sw * 0.012),

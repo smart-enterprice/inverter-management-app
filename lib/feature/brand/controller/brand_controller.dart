@@ -1,6 +1,6 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/brand_model.dart';
+import '../../../network/app_exception.dart';
 import '../repository/brand_repository.dart';
 
 // ─── Providers ────────────────────────────────────────────────────────────────
@@ -19,57 +19,46 @@ AsyncNotifierProvider<ActiveBrandController, List<BrandModel>>(
 
 /// Single brand by ID
 final brandByIdProvider =
-FutureProvider.family<BrandModel, String>((ref, brandId) {
+    FutureProvider.autoDispose.family<BrandModel, String>((ref, brandId) {
   return ref.watch(brandRepositoryProvider).getBrandById(brandId).then(
         (b) => b ?? (throw Exception('Brand not found')),
-  );
+      );
 });
 
 /// Brands by dealer ID
 final dealerBrandsProvider =
-FutureProvider.family<List<BrandModel>, String>((ref, dealerId) {
+    FutureProvider.autoDispose.family<List<BrandModel>, String>((ref, dealerId) {
   return ref.watch(brandRepositoryProvider).getBrandsByDealer(dealerId);
 });
 
 // ─── BrandController (all brands + mutations) ─────────────────────────────────
 
 class BrandController extends AsyncNotifier<List<BrandModel>> {
-  late  BrandRepository _repo;
+  late BrandRepository _repo;
 
   @override
-  Future<List<BrandModel>> build() async {
+  Future<List<BrandModel>> build() {
     _repo = ref.watch(brandRepositoryProvider);
-    print('🔄 BrandController: fetching brands...');
-    try {
-      final result = await _repo.getBrands();
-      print('✅ BrandController: got ${result.length} brands');
-      return result;
-    } catch (e, st) {
-      print('❌ BrandController ERROR: $e');
-      print('📍 StackTrace: $st');
-      rethrow;
-    }
+    return _repo.getBrands();
   }
 
   Future<String?> createBrand(BrandModel model) async {
     try {
       await _repo.createBrand(model);
-      ref.invalidateSelf(); // re-fetch list
+      ref.invalidateSelf();
       return null;
-    } on DioException catch (e) {
-      return _extractDioError(e, fallback: 'Create brand failed');
-    } catch (_) {
-      return 'Something went wrong';
+    } on AppException catch (e) {
+      return e.message;
     }
   }
 
   Future<String?> updateBrand(
-      BrandModel model,
-      String name, {
-        Map<String, String>? brandModelsUpdate,
-        List<String>? deletedModels,
-        List<String>? addModel,
-      }) async {
+    BrandModel model,
+    String name, {
+    Map<String, String>? brandModelsUpdate,
+    List<String>? deletedModels,
+    List<String>? addModel,
+  }) async {
     try {
       await _repo.updateBrand(
         model,
@@ -80,10 +69,8 @@ class BrandController extends AsyncNotifier<List<BrandModel>> {
       );
       ref.invalidateSelf();
       return null;
-    } on DioException catch (e) {
-      return _extractDioError(e, fallback: 'Update brand failed');
-    } catch (_) {
-      return 'Something went wrong';
+    } on AppException catch (e) {
+      return e.message;
     }
   }
 
@@ -92,10 +79,8 @@ class BrandController extends AsyncNotifier<List<BrandModel>> {
       await _repo.deleteBrand(brandId);
       ref.invalidateSelf();
       return null;
-    } on DioException catch (e) {
-      return _extractDioError(e, fallback: 'Delete brand failed');
-    } catch (_) {
-      return 'Something went wrong';
+    } on AppException catch (e) {
+      return e.message;
     }
   }
 
@@ -124,18 +109,3 @@ class ActiveBrandController extends AsyncNotifier<List<BrandModel>> {
   }
 }
 
-// ─── Shared error helper ──────────────────────────────────────────────────────
-
-String _extractDioError(DioException e, {required String fallback}) {
-  final data = e.response?.data;
-  if (data is Map<String, dynamic>) {
-    if (data['message'] != null) return data['message'] as String;
-    final errors = data['errors'];
-    if (errors is List && errors.isNotEmpty) {
-      return errors[0]['message'] as String? ?? fallback;
-    }
-  }
-  if (data is String) return data;
-  return fallback;
-
-}

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/login_model.dart';
+import '../../../network/app_exception.dart';
 import '../../../network/dio_client.dart';
 
 final loginRepositoryProvider = Provider<LoginRepository>((ref) {
@@ -12,10 +13,19 @@ class LoginRepository {
 
   final Dio _dio;
 
-  Future<Response<Map<String, dynamic>>> login(LoginRequest request) =>
-      _dio.post('/auth/signin', data: request.toJson());
+  Future<Response<Map<String, dynamic>>> login(LoginRequest request) {
+    return guardDio(
+      () => _dio.post<Map<String, dynamic>>('/auth/signin', data: request.toJson()),
+      fallback: 'Login failed',
+    );
+  }
 
-  Future<Response<void>> logout() => _dio.post('/auth/logout');
+  Future<Response<void>> logout() {
+    return guardDio(
+      () => _dio.post<void>('/auth/logout'),
+      fallback: 'Logout failed',
+    );
+  }
 
   Future<bool> isTokenActive() async {
     try {

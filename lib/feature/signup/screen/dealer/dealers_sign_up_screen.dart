@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:shimmer/shimmer.dart';
 import '../../../../core/utils/password_generator.dart';
 import '../../model/user_model.dart';
 import '../../../../widgets/circle_button.dart';
@@ -44,7 +43,7 @@ class _AddDealerScreenState extends ConsumerState<AddDealerScreen> {
   final _shopCtrl = TextEditingController();
   final _townCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
-  String? _district; File? _photo; List<String> _brands = [];
+  String? _district; File? _photo; final List<String> _brands = [];
 
   @override void dispose() { _nameCtrl.dispose(); _emailCtrl.dispose();
   _phoneCtrl.dispose(); _shopCtrl.dispose(); _townCtrl.dispose();

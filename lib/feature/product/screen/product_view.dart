@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:inverter_management_app/core/role/app_role.dart';
-import '../../../core/const/icons.dart';
 import '../../../model/product_model.dart';
 import '../../signup/model/user_model.dart';
 import '../../../widgets/circle_button.dart';
@@ -20,7 +18,6 @@ const _kWhite   = Colors.white;
 const _kBd      = Color(0xFFE5E7EB);
 const _kT1      = Color(0xFF111827);
 const _kT2      = Color(0xFF374151);
-const _kT3      = Color(0xFF6B7280);
 const _kT4      = Color(0xFF9CA3AF);
 const _kGreen   = Color(0xFF0F6E56);
 const _kGreenBg = Color(0xFFEDFAF5);
@@ -183,7 +180,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                 fontSize: (sw * 0.038).clamp(13.0, 17.0), fontWeight: FontWeight.w800, color: c)),
           ])),
           RoleGuard(feature: AppFeature.updateStatus,
-              child: Switch(value: active, activeColor: _kGreen, activeTrackColor: _kGreenBd,
+              child: Switch(value: active, activeThumbColor: _kGreen, activeTrackColor: _kGreenBd,
                   inactiveThumbColor: _kRed, inactiveTrackColor: _kRedBd,
                   onChanged: (v) async {
                     try {

@@ -16,7 +16,6 @@ const _kWhite    = Colors.white;
 const _kBd       = Color(0xFFE5E7EB);
 const _kT1       = Color(0xFF111827);
 const _kT2       = Color(0xFF374151);
-const _kT3       = Color(0xFF6B7280);
 const _kT4       = Color(0xFF9CA3AF);
 const _kGreen    = Color(0xFF0F6E56);
 const _kGreenBg  = Color(0xFFEDFAF5);

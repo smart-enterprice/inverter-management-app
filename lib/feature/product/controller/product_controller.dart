@@ -1,6 +1,6 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/product_model.dart';
+import '../../../network/app_exception.dart';
 import '../repository/product_repository.dart';
 
 // ─────────────────────────────────────────────
@@ -73,12 +73,12 @@ class ProductPaginationNotifier extends Notifier<ProductPaginationState> {
 // ─────────────────────────────────────────────
 
 final productByIdProvider =
-FutureProvider.family<ProductModel?, String>((ref, id) {
+    FutureProvider.autoDispose.family<ProductModel?, String>((ref, id) {
   return ref.read(productControllerProvider.notifier).getProductById(id);
 });
 
-final productByBrandProvider =
-FutureProvider.family<List<ProductModel>, String>((ref, brandKey) async {
+final productByBrandProvider = FutureProvider.autoDispose
+    .family<List<ProductModel>, String>((ref, brandKey) async {
   final brands = brandKey.split(',');
   return ref
       .read(productControllerProvider.notifier)
@@ -86,7 +86,7 @@ FutureProvider.family<List<ProductModel>, String>((ref, brandKey) async {
 });
 
 final lowStockProvider =
-FutureProvider.family<List<ProductModel>, int>((ref, threshold) async {
+    FutureProvider.autoDispose.family<List<ProductModel>, int>((ref, threshold) async {
   return ref
       .read(productControllerProvider.notifier)
       .fetchLowStockProducts(threshold);
@@ -229,10 +229,8 @@ class ProductController extends AsyncNotifier<List<ProductModel>> {
     try {
       await _repo.createProduct(product);
       await fetchProducts();
-    } on DioException catch (e) {
-      final errorMessage =
-          e.response?.data['message'] ?? 'Something went wrong';
-      throw errorMessage;
+    } on AppException catch (e) {
+      throw e.message;
     }
   }
 

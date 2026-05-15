@@ -706,7 +706,7 @@ class OrderDetailsModel {
       hasProductionCompleted: clearHasProductionCompleted
           ? null
           : (hasProductionCompleted ?? this.hasProductionCompleted),
-      nextStatus: clearNextStatus ? null : (newStatus ?? this.nextStatus),
+      nextStatus: clearNextStatus ? null : (newStatus ?? nextStatus),
       cancelQty: clearCancelQty ? null : (cancelQty ?? this.cancelQty),
       reasonForCancellation: clearReasonForCancellation
           ? null

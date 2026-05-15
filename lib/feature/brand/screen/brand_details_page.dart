@@ -19,7 +19,6 @@ const _kWhite   = Colors.white;
 const _kBd      = Color(0xFFE5E7EB);
 const _kT1      = Color(0xFF111827);
 const _kT2      = Color(0xFF374151);
-const _kT3      = Color(0xFF6B7280);
 const _kT4      = Color(0xFF9CA3AF);
 const _kGreen   = Color(0xFF0F6E56);
 const _kGreenBg = Color(0xFFEDFAF5);
@@ -171,7 +170,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                 fontSize: (sw * 0.038).clamp(13.0, 17.0), fontWeight: FontWeight.w800, color: c)),
           ])),
           RoleGuard(feature: AppFeature.updateStatus,
-              child: Switch(value: active, activeColor: _kGreen, activeTrackColor: _kGreenBd,
+              child: Switch(value: active, activeThumbColor: _kGreen, activeTrackColor: _kGreenBd,
                   inactiveThumbColor: _kRed, inactiveTrackColor: _kRedBd,
                   onChanged: (v) async {
                     try {

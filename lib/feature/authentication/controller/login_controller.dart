@@ -1,9 +1,9 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/role/app_role.dart';
 import '../../notification/service/fcm_service.dart';
 import '../../../model/login_model.dart';
+import '../../../network/app_exception.dart';
 import '../repository/login_repository.dart';
 
 // ─── Provider ────────────────────────────────────────────────────────────────
@@ -48,8 +48,8 @@ class LoginController extends AsyncNotifier<LoginResult?> {
         return await _saveUserData(response.data?['data']);
       }
       return _setFailure('Something went wrong. Try again.');
-    } on DioException catch (e) {
-      final msg = e.response?.statusCode == 400
+    } on AppException catch (e) {
+      final msg = e.statusCode == 400
           ? 'Password and email required'
           : 'Login error: ${e.message}';
       return _setFailure(msg);

@@ -242,7 +242,7 @@ class _DealerAssignmentScreenState
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         if (_selectionMode) { _exitSelectionMode(); return; }
-        if (await _confirmDiscard() && mounted) Navigator.pop(context);
+        if (await _confirmDiscard() && context.mounted) Navigator.pop(context);
       },
       child: Scaffold(
         backgroundColor: _kBg,
@@ -375,7 +375,10 @@ class _DealerAssignmentScreenState
         CircularIconButton(
           icon: Icons.arrow_back_ios_rounded,
           onTap: () async {
-            if (await _confirmDiscard() && mounted) Navigator.pop(context);
+            final ok = await _confirmDiscard();
+            if (!ok || !context.mounted) return;
+            // ignore: use_build_context_synchronously
+            Navigator.pop(context);
           },
         ),
         const Spacer(),
@@ -395,8 +398,11 @@ class _DealerAssignmentScreenState
         CircularIconButton(
           icon: Icons.search_rounded,
           onTap: () => setState(() {
-            if (_tabCtrl.index == 0) _showAllSearch = true;
-            else _showAssignedSearch = true;
+            if (_tabCtrl.index == 0) {
+              _showAllSearch = true;
+            } else {
+              _showAssignedSearch = true;
+            }
           }),
         ),
       ]),
@@ -506,7 +512,7 @@ class _DealerAssignmentScreenState
             if (isFiltering)
               Positioned.fill(child: IgnorePointer(
                 child: Container(
-                  color: _kWhite.withOpacity(0.65),
+                  color: _kWhite.withValues(alpha: 0.65),
                   child: const Center(child: SizedBox(
                     width: 28, height: 28,
                     child: CircularProgressIndicator(
@@ -611,7 +617,7 @@ class _DealerAssignmentScreenState
             if (isFiltering)
               Positioned.fill(child: IgnorePointer(
                 child: Container(
-                  color: _kWhite.withOpacity(0.65),
+                  color: _kWhite.withValues(alpha: 0.65),
                   child: const Center(child: SizedBox(
                     width: 28, height: 28,
                     child: CircularProgressIndicator(

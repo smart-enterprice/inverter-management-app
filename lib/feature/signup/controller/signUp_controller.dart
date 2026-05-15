@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../model/user_model.dart';
+import '../../../network/app_exception.dart';
 import '../repository/signUp_repository.dart';
 
 // ─────────────────────────────────────────────
@@ -18,12 +18,13 @@ AsyncNotifierProvider<SignupController, void>(
 );
 
 final employeeByIdProvider =
-FutureProvider.family<UserModel?, String>((ref, id) async {
+    FutureProvider.autoDispose.family<UserModel?, String>((ref, id) async {
   if (id.isEmpty) return null;
   return ref.read(signupControllerProvider.notifier).getEmployeeById(id);
 });
 
-final userListProvider = FutureProvider<List<UserModel>>((ref) async {
+final userListProvider =
+    FutureProvider.autoDispose<List<UserModel>>((ref) async {
   return ref.read(signupRepositoryProvider).getEmployees();
 });
 
@@ -39,11 +40,12 @@ final dealerLoadingMoreProvider = StateProvider<bool>((ref) => false);
 final dealerFilteringProvider = StateProvider<bool>((ref) => false);
 
 final usersByRoleProvider =
-FutureProvider.family<List<UserModel>, String>((ref, role) async {
+    FutureProvider.autoDispose.family<List<UserModel>, String>((ref, role) async {
   return ref.read(signupControllerProvider.notifier).getUsersByRole(role);
 });
 
-final currentUserProvider = FutureProvider<UserModel?>((ref) async {
+final currentUserProvider =
+    FutureProvider.autoDispose<UserModel?>((ref) async {
   final prefs = await SharedPreferences.getInstance();
   final userId = prefs.getString('user_id');
   if (userId == null) return null;
@@ -86,24 +88,9 @@ class SignupController extends AsyncNotifier<void> {
       await _repo.userSignup(request);
       state = const AsyncData(null);
       return null;
-    } on DioException catch (e, st) {
-      String msg = 'Signup failed.';
-      final responseData = e.response?.data;
-      if (responseData is Map<String, dynamic>) {
-        if (responseData['errors'] != null &&
-            responseData['errors'] is List &&
-            responseData['errors'][0]['message'] != null) {
-          msg = responseData['errors'][0]['message'];
-        } else if (responseData['message'] != null) {
-          msg = responseData['message'];
-        }
-      } else if (responseData is String) {
-        msg = responseData;
-      } else {
-        msg = responseData.toString();
-      }
+    } on AppException catch (e, st) {
       state = AsyncError(e, st);
-      return msg;
+      return e.message;
     } catch (e, st) {
       state = AsyncError(e, st);
       return 'Something went wrong';

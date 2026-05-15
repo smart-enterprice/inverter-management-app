@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/core/role/app_role.dart';
 import 'package:inverter_management_app/feature/signup/screen/user/sign_up_screen.dart';
 import 'package:inverter_management_app/feature/signup/screen/user/user_view_screen.dart';
-import '../../../../core/media_query/media_query.dart';
 import '../../model/user_model.dart';
 import '../../../../widgets/circle_button.dart';
 import '../../controller/signUp_controller.dart';

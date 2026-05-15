@@ -15,7 +15,7 @@ class SalesChart extends StatelessWidget {
             show: true,
             drawVerticalLine: false,
             getDrawingHorizontalLine: (value) => FlLine(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withValues(alpha: 0.2),
               strokeWidth: 1,
             ),
           ),

@@ -31,7 +31,9 @@ class _BrandCreateScreenState extends ConsumerState<BrandCreateScreen> {
 
   @override void initState() { super.initState(); _modelCtrls.add(TextEditingController()); }
   @override void dispose() { _nameCtrl.dispose(); _descCtrl.dispose();
-  for (final c in _modelCtrls) c.dispose(); super.dispose(); }
+  for (final c in _modelCtrls) {
+    c.dispose();
+  } super.dispose(); }
 
   void _addModel() => setState(() => _modelCtrls.add(TextEditingController()));
   void _removeModel(int i) => setState(() { _modelCtrls[i].dispose(); _modelCtrls.removeAt(i); });

@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/const/icons.dart';
 import '../../feature/brand/screen/brands_page.dart';
-import '../../feature/brand/screen/tablet/brands_tablet_view.dart';
 import '../../feature/product/screen/products_screen.dart';
-import '../../feature/product/screen/tablet/products_tablet_view.dart';
 import '../../feature/signup/screen/dealer/dealers_screen.dart';
-import '../../feature/signup/screen/dealer/tablet/dealers_tablet_view.dart';
 import '../../widgets/quick_access_card.dart';
 
 class AccountantPanel extends StatelessWidget {
@@ -24,7 +21,6 @@ class AccountantPanel extends StatelessWidget {
           bg: Color(0xFFF5F3FF),
           border: Color(0xFFDDD6FE),
           page: ProductsScreen(),
-          tabletPage: ProductsTabletView(),
         ),
         QuickAccessCardData(
           title: 'Brands',
@@ -33,7 +29,6 @@ class AccountantPanel extends StatelessWidget {
           bg: Color(0xFFFFF7ED),
           border: Color(0xFFFED7AA),
           page: BrandsScreen(),
-          tabletPage: BrandsTabletView(),
         ),
         QuickAccessCardData(
           title: 'Dealers',
@@ -42,7 +37,6 @@ class AccountantPanel extends StatelessWidget {
           bg: Color(0xFFEDFAF4),
           border: Color(0xFF9FE0C5),
           page: DealersScreen(),
-          tabletPage: DealersTabletView(),
         ),
       ],
     );

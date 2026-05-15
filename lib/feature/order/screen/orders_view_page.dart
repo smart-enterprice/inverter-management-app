@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import '../../../core/const/icons.dart';
-import '../../../core/media_query/media_query.dart';
 import '../controller/order_controller.dart';
 import '../../../model/order_model.dart';
 import 'order_view_page.dart';
@@ -252,7 +251,7 @@ class _State extends ConsumerState<OrdersViewPage> {
         final sh = MediaQuery.sizeOf(context).height;
         final canApply = _from != null && _to != null;
 
-        String _fmtD(DateTime? d) => d == null
+        String fmtD(DateTime? d) => d == null
             ? 'Select date'
             : DateFormat('d MMM yyyy').format(d);
 
@@ -292,7 +291,7 @@ class _State extends ConsumerState<OrdersViewPage> {
               // From / To rows
               _DateRow(
                 label: 'From',
-                value: _fmtD(_from),
+                value: fmtD(_from),
                 hasValue: _from != null,
                 sw: sw, sh: sh,
                 onTap: () async {
@@ -302,7 +301,7 @@ class _State extends ConsumerState<OrdersViewPage> {
               SizedBox(height: sh * 0.012),
               _DateRow(
                 label: 'To',
-                value: _fmtD(_to),
+                value: fmtD(_to),
                 hasValue: _to != null,
                 sw: sw, sh: sh,
                 onTap: () async {
@@ -455,8 +454,11 @@ class _State extends ConsumerState<OrdersViewPage> {
               child: CircularProgressIndicator(color: _kP, strokeWidth: 2)),
           error: (_, __) => _ErrorView(sw: sw, sh: sh, onRetry: () {
             _reset();
-            if (_dateActive) ref.invalidate(filteredOrdersProvider);
-            else ref.invalidate(paginatedOrdersProvider);
+            if (_dateActive) {
+              ref.invalidate(filteredOrdersProvider);
+            } else {
+              ref.invalidate(paginatedOrdersProvider);
+            }
           }),
           data: (orders) {
             // Accumulate paginated orders
@@ -480,7 +482,8 @@ class _State extends ConsumerState<OrdersViewPage> {
             final display  = _dateActive ? orders : (_all.isEmpty ? orders : _all);
             final filtered = _filter(display);
 
-            if (filtered.isEmpty) return _EmptyView(
+            if (filtered.isEmpty) {
+              return _EmptyView(
               sw: sw, sh: sh,
               isSearch: _searching && _q.isNotEmpty,
               isDate: _dateActive,
@@ -491,6 +494,7 @@ class _State extends ConsumerState<OrdersViewPage> {
                 _tab = 0; _reset(); _scrollTab(0);
               }),
             );
+            }
 
             // Build grouped list items
             final items = _groupByDate(filtered);
@@ -500,8 +504,11 @@ class _State extends ConsumerState<OrdersViewPage> {
               backgroundColor: _kWhite,
               onRefresh: () async {
                 _reset();
-                if (_dateActive) ref.invalidate(filteredOrdersProvider);
-                else ref.invalidate(paginatedOrdersProvider);
+                if (_dateActive) {
+                  ref.invalidate(filteredOrdersProvider);
+                } else {
+                  ref.invalidate(paginatedOrdersProvider);
+                }
                 await Future.delayed(const Duration(milliseconds: 400));
               },
               child: ListView.builder(

@@ -1176,7 +1176,7 @@ class _ModelDiscountSheetState extends State<_ModelDiscountSheet> {
                     Switch(
                       value:            _isPercentage,
                       onChanged:        (v) => setState(() => _isPercentage = v),
-                      activeColor:      _kGreen,
+                      activeThumbColor: _kGreen,
                       activeTrackColor: _kGreenBd,
                       inactiveThumbColor: _kP,
                       inactiveTrackColor: _kPBd,

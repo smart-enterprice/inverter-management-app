@@ -1,6 +1,5 @@
 // order_controller.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
 import '../../../model/order_model.dart';
 import '../repository/order_repository.dart';
 
@@ -89,53 +88,51 @@ class DateFilterParams {
 // FutureProvider family — unchanged
 // ─────────────────────────────────────────────
 
-final paginatedOrdersProvider =
-FutureProvider.family<List<OrderModel>, PaginatedOrderParams>(
-        (ref, params) async {
-      final repository = ref.watch(orderRepositoryProvider);
-      return repository.getAllOrders(
-        status: params.isAll ? null : params.status,
-        page: params.page,
-        limit: params.limit,
-      );
-    });
+final paginatedOrdersProvider = FutureProvider.autoDispose
+    .family<List<OrderModel>, PaginatedOrderParams>((ref, params) async {
+  final repository = ref.watch(orderRepositoryProvider);
+  return repository.getAllOrders(
+    status: params.isAll ? null : params.status,
+    page: params.page,
+    limit: params.limit,
+  );
+});
 
-final ordersProvider =
-FutureProvider.family<List<OrderModel>, OrderStatusParams>(
-        (ref, params) async {
-      final repository = ref.watch(orderRepositoryProvider);
-      return repository.getAllOrders(
-        status: params.isAll ? null : params.status,
-      );
-    });
+final ordersProvider = FutureProvider.autoDispose
+    .family<List<OrderModel>, OrderStatusParams>((ref, params) async {
+  final repository = ref.watch(orderRepositoryProvider);
+  return repository.getAllOrders(
+    status: params.isAll ? null : params.status,
+  );
+});
 
-final filteredOrdersProvider =
-FutureProvider.family<List<OrderModel>, DateFilterParams>(
-        (ref, params) async {
-      final repository = ref.watch(orderRepositoryProvider);
-      return repository.getOrdersByDateFilter(
-        startDate: params.startDate,
-        endDate: params.endDate,
-        deliveryStartDate: params.deliveryStartDate,
-        deliveryEndDate: params.deliveryEndDate,
-        page: params.page,
-        limit: params.limit,
-      );
-    });
+final filteredOrdersProvider = FutureProvider.autoDispose
+    .family<List<OrderModel>, DateFilterParams>((ref, params) async {
+  final repository = ref.watch(orderRepositoryProvider);
+  return repository.getOrdersByDateFilter(
+    startDate: params.startDate,
+    endDate: params.endDate,
+    deliveryStartDate: params.deliveryStartDate,
+    deliveryEndDate: params.deliveryEndDate,
+    page: params.page,
+    limit: params.limit,
+  );
+});
 
-final orderByIdProvider =
-FutureProvider.family<OrderModel?, String>((ref, orderId) async {
+final orderByIdProvider = FutureProvider.autoDispose
+    .family<OrderModel?, String>((ref, orderId) async {
   final repository = ref.watch(orderRepositoryProvider);
   return repository.getOrderById(orderId);
 });
 
-final recentOrdersProvider = FutureProvider<List<OrderModel>>((ref) async {
+final recentOrdersProvider =
+    FutureProvider.autoDispose<List<OrderModel>>((ref) async {
   final repository = ref.watch(orderRepositoryProvider);
   return repository.getAllOrders(limit: 5);
 });
 
-final ordersByDealerProvider =
-FutureProvider.family<List<OrderModel>, String>((ref, dealerId) async {
+final ordersByDealerProvider = FutureProvider.autoDispose
+    .family<List<OrderModel>, String>((ref, dealerId) async {
   final repository = ref.watch(orderRepositoryProvider);
   return repository.getOrdersByDealer(dealerId);
 });
@@ -158,12 +155,8 @@ class OrderController extends AsyncNotifier<List<OrderModel>> {
     return _repo.getAllOrders(limit: 10000);
   }
 
-  Future<void> createOrder(OrderModel order) async {
-    try {
-      await _repo.createOrder(order);
-    } on DioException {
-      rethrow;
-    }
+  Future<void> createOrder(OrderModel order) {
+    return _repo.createOrder(order);
   }
 
   Future<void> getAllOrders({int limit = 10000}) async {
@@ -185,41 +178,24 @@ class OrderController extends AsyncNotifier<List<OrderModel>> {
   }
 
   Future<void> updateOrderItemStatus(OrderModel order) async {
-    try {
-      print('📤 Sending to API (updateOrderItemStatus): ${order.toUpdateItemJson()}');
-      await _repo.updateOrderItemStatus(order);
-      await getAllOrders();
-    } catch (_) {
-      rethrow;
-    }
+    await _repo.updateOrderItemStatus(order);
+    await getAllOrders();
   }
 
   Future<void> updateOrder(OrderModel order) async {
-    try {
-      print('📤 Sending to API (updateOrder): ${order.toUpdateJson()}');
-      await _repo.updateOrder(order);
-      await getAllOrders();
-    } catch (_) {
-      rethrow;
-    }
+    await _repo.updateOrder(order);
+    await getAllOrders();
   }
 
   Future<void> updatePaymentOrder(OrderModel order) async {
-    try {
-      print('📤 Sending to API (updatePayment): ${order.toUpdatePaymentJson()}');
-      await _repo.updateOrderPayment(order);
-      await getAllOrders();
-    } catch (_) {
-      rethrow;
-    }
+    await _repo.updateOrderPayment(order);
+    await getAllOrders();
   }
 
-  Future<List<OrderModel>> getOrdersByDealer(String dealerId,
-      {int limit = 10000}) async {
-    try {
-      return await _repo.getOrdersByDealer(dealerId, limit: limit);
-    } catch (_) {
-      rethrow;
-    }
+  Future<List<OrderModel>> getOrdersByDealer(
+    String dealerId, {
+    int limit = 10000,
+  }) {
+    return _repo.getOrdersByDealer(dealerId, limit: limit);
   }
 }

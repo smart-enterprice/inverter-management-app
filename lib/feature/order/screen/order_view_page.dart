@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:inverter_management_app/core/role/app_role.dart';
-import '../../../core/media_query/media_query.dart';
-import '../../../screen/loadingScreen.dart';
 import '../../../widgets/circle_button.dart';
 import '../../signup/controller/signUp_controller.dart';
 import 'order_payment_history.dart';
@@ -114,7 +112,7 @@ _DeliveryNoteData? _parseDeliveryNote(String raw) {
     final arrow = datePart.contains('→') ? '→' : '->';
     final dates = datePart.split(arrow);
 
-    String _shortDate(String raw) {
+    String shortDate(String raw) {
       try {
         final d = DateTime.parse(raw.trim());
         return '${d.day} ${['Jan','Feb','Mar','Apr','May','Jun',
@@ -127,8 +125,8 @@ _DeliveryNoteData? _parseDeliveryNote(String raw) {
       }
     }
 
-    final from = dates.isNotEmpty ? _shortDate(dates[0]) : '';
-    final to   = dates.length > 1  ? _shortDate(dates[1]) : '';
+    final from = dates.isNotEmpty ? shortDate(dates[0]) : '';
+    final to   = dates.length > 1  ? shortDate(dates[1]) : '';
 
     return _DeliveryNoteData(
       employee: employee,
@@ -373,7 +371,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
 
   Widget _buildItemRow(BuildContext context, double sw, double sh,
       OrderDetailsModel item, int index, OrderModel order) {
-    String _subLabel(OrderDetailsModel item) {
+    String subLabel(OrderDetailsModel item) {
       if (item.hasProduction == true) return 'In Production';
       if (item.hasUnpacked == true)   return 'Awaiting Packing';
       return 'Ready to Ship';
@@ -449,7 +447,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
               (item.status == 'PACKED' &&
                   item.hasProduction == false &&
                   item.hasUnpacked == false))
-            _Pill(sw: sw, label: _subLabel(item),
+            _Pill(sw: sw, label: subLabel(item),
                 fg: _kAmber, bg: _kAmberBg, bd: _kAmberBd),
           _Pill(sw: sw, label: 'Ordered: ${item.qtyOrdered ?? 0}',
               fg: _kP, bg: _kPBg, bd: _kPBd),
@@ -1414,10 +1412,12 @@ class _PaymentUpdateSheetState extends State<_PaymentUpdateSheet> {
                       setState(() => _loading = true);
                       try {
                         await widget.onUpdate(v, _payType);
-                        if (mounted) Navigator.pop(context);
+                        if (context.mounted) Navigator.pop(context);
                       } catch (e) {
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('$e'), backgroundColor: _kRed));
+                        }
                       } finally { if (mounted) setState(() => _loading = false); }
                     },
                     style: ElevatedButton.styleFrom(
@@ -1642,10 +1642,12 @@ class _OrderStatusDialogState extends ConsumerState<_OrderStatusDialog> {
                           try {
                             await widget.onUpdate(_statusToSend,
                                 _isCancelled ? _cancelReason.trim() : null);
-                            if (mounted) Navigator.pop(context);
+                            if (context.mounted) Navigator.pop(context);
                           } catch (e) {
-                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text('$e'), backgroundColor: _kRed));
+                            }
                           } finally { if (mounted) setState(() => _loading = false); }
                         },
                         style: ElevatedButton.styleFrom(
@@ -1780,10 +1782,12 @@ class _ItemStatusDialogState extends ConsumerState<_ItemStatusDialog> {
                           await widget.onUpdate(
                               _prod ? true : null, _pack ? true : null,
                               _status ? _next : null);
-                          if (mounted) Navigator.pop(context);
+                          if (context.mounted) Navigator.pop(context);
                         } catch (e) {
-                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('$e'), backgroundColor: _kRed));
+                          }
                         } finally { if (mounted) setState(() => _loading = false); }
                       },
                       style: ElevatedButton.styleFrom(
@@ -1886,10 +1890,12 @@ class _CancelItemDialogState extends State<_CancelItemDialog> {
                   setState(() => _loading = true);
                   try {
                     await widget.onConfirm(_ctrl.text.trim());
-                    if (mounted) Navigator.pop(context);
+                    if (context.mounted) Navigator.pop(context);
                   } catch (e) {
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('$e'), backgroundColor: _kRed));
+                    }
                   } finally { if (mounted) setState(() => _loading = false); }
                 },
                 style: ElevatedButton.styleFrom(
@@ -2040,10 +2046,12 @@ class _CancelQtyDialogState extends State<_CancelQtyDialog> {
                       setState(() => _loading = true);
                       try {
                         await widget.onConfirm(_qty!, _reasonCtrl.text.trim());
-                        if (mounted) Navigator.pop(context);
+                        if (context.mounted) Navigator.pop(context);
                       } catch (e) {
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('$e'), backgroundColor: _kRed));
+                        }
                       } finally { if (mounted) setState(() => _loading = false); }
                     },
                     style: ElevatedButton.styleFrom(
@@ -2076,7 +2084,6 @@ class _DeliveryDateDialogState extends State<_DeliveryDateDialog> {
   late DateTime _date;
   final _noteCtrl = TextEditingController();
   bool _loading = false;
-  final bool _triedNote = false;
 
   @override
   void initState() {
@@ -2215,10 +2222,12 @@ class _DeliveryDateDialogState extends State<_DeliveryDateDialog> {
                           final note = _noteCtrl.text.trim().isEmpty
                               ? null : _noteCtrl.text.trim();
                           await widget.onUpdate(_date, note); // ✅ pass note
-                          if (mounted) Navigator.pop(context);
+                          if (context.mounted) Navigator.pop(context);
                         } catch (e) {
-                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('$e'), backgroundColor: _kRed));
+                          }
                         } finally { if (mounted) setState(() => _loading = false); }
                       },
                       style: ElevatedButton.styleFrom(

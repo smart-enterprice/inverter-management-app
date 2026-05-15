@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/core/role/app_role.dart';
-import 'package:inverter_management_app/screen/loadingScreen.dart';
 import '../../../core/media_query/media_query.dart';
 import '../../../widgets/circle_button.dart';
 import '../controller/brand_controller.dart';
@@ -25,9 +24,6 @@ const _kGreenBd  = Color(0xFF9FE0C5);
 const _kRed      = Color(0xFFDC2626);
 const _kRedBg    = Color(0xFFFEF2F2);
 const _kRedBd    = Color(0xFFFECACA);
-const _kAmber    = Color(0xFFB45309);
-const _kAmberBg  = Color(0xFFFFFBEB);
-const _kAmberBd  = Color(0xFFFCD28A);
 const _kPurple   = Color(0xFF7C3AED);
 const _kPurpleBg = Color(0xFFF5F3FF);
 const _kPurpleBd = Color(0xFFDDD6FE);
@@ -99,11 +95,7 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
           body: Center(
               child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5))),
 
-      error: (error, stackTrace) {
-        print('🖥️ UI ERROR: $error');
-        print('🖥️ UI STACK: $stackTrace');
-        return _errorScaffold(context, sw, sh);
-      },
+      error: (error, stackTrace) => _errorScaffold(context, sw, sh),
 
       data: (brands) {
         // Filter by status + search query
@@ -208,7 +200,6 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                         ),
                       ),
                     );
-                    ref.invalidate(brandControllerProvider);
                   },
                 ),
               ),

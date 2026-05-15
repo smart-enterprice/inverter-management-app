@@ -15,7 +15,6 @@ const _kBg        = Color(0xFFF0F2F5);
 const _kCard      = Colors.white;
 const _kBorder    = Color(0xFFE5E7EB);
 const _kDark      = Color(0xFF0F1C3F);
-const _kMid       = Color(0xFF374151);
 const _kMuted     = Color(0xFF9CA3AF);
 
 // ─── Item model ──────────────────────────────────────────────────────────────

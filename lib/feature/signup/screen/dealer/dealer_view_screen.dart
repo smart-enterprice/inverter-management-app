@@ -30,7 +30,6 @@ const _kWhite   = Colors.white;
 const _kBd      = Color(0xFFE5E7EB);
 const _kT1      = Color(0xFF111827);
 const _kT2      = Color(0xFF374151);
-const _kT3      = Color(0xFF6B7280);
 const _kT4      = Color(0xFF9CA3AF);
 const _kGreen   = Color(0xFF0F6E56);
 const _kGreenBg = Color(0xFFEDFAF5);
@@ -182,7 +181,7 @@ class _DealerViewState extends ConsumerState<DealerView> {
           ]),
           SizedBox(width: sw * 0.04),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(d.employeeName?.replaceAll('_', ' ') ?? 'N/A', style: TextStyle(
+            Text(d.employeeName.replaceAll('_', ' '), style: TextStyle(
                 fontSize: (sw * 0.042).clamp(14.0, 20.0), fontWeight: FontWeight.w800,
                 color: _kT1, letterSpacing: -0.3)),
             SizedBox(height: sw * 0.012),
@@ -247,8 +246,10 @@ class _DealerViewState extends ConsumerState<DealerView> {
           Padding(padding: EdgeInsets.fromLTRB(sw * 0.04, sw * 0.03, sw * 0.04, sw * 0.035),
               child: ref.watch(dealerBrandsProvider(widget.dealerId)).when(
                   data: (brands) {
-                    if (brands.isEmpty) return Text('No brands assigned', style: TextStyle(
+                    if (brands.isEmpty) {
+                      return Text('No brands assigned', style: TextStyle(
                         fontSize: (sw * 0.033).clamp(11.0, 14.0), color: _kT4));
+                    }
                     return Wrap(spacing: sw * 0.02, runSpacing: sw * 0.02,
                         children: brands.asMap().entries.map((e) {
                           final c = _chipColor(e.key);
@@ -283,9 +284,11 @@ class _DealerViewState extends ConsumerState<DealerView> {
               error: (_, __) => Padding(padding: EdgeInsets.all(sw * 0.04),
                   child: _banner('Error loading discounts', _kRed, _kRedBg, _kRedBd)),
               data: (discounts) {
-                if (discounts.isEmpty) return Padding(padding: EdgeInsets.all(sw * 0.05),
+                if (discounts.isEmpty) {
+                  return Padding(padding: EdgeInsets.all(sw * 0.05),
                     child: Center(child: Text('No discounts yet', style: TextStyle(
                         fontSize: (sw * 0.034).clamp(11.5, 15.0), color: _kT4))));
+                }
                 return Padding(
                     padding: EdgeInsets.fromLTRB(sw * 0.035, sw * 0.03, sw * 0.035, sw * 0.035),
                     child: Column(children: discounts.map((d) => Padding(
@@ -380,7 +383,7 @@ class _DealerViewState extends ConsumerState<DealerView> {
               validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),
           const SizedBox(height: 14),
           DropdownButtonFormField<String>(
-              value: keralaDistricts.contains(dist) ? dist : null,
+              initialValue: keralaDistricts.contains(dist) ? dist : null,
               decoration: _sheetDeco('District', Icons.map_outlined),
               items: keralaDistricts.map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(),
               onChanged: (v) => setS(() => dist = v),
@@ -526,7 +529,7 @@ class _DealerViewState extends ConsumerState<DealerView> {
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Text('Is Percentage?', style: TextStyle(
                     fontSize: (sw * 0.036).clamp(12.0, 16.0), fontWeight: FontWeight.w600, color: _kT1)),
-                Switch(value: isPct, onChanged: (v) => setS(() => isPct = v), activeColor: _kP),
+                Switch(value: isPct, onChanged: (v) => setS(() => isPct = v), activeThumbColor: _kP),
               ])),
           const SizedBox(height: 22),
           _sheetActions(onCancel: () => Navigator.pop(ctx), onSave: () async {
@@ -653,8 +656,10 @@ class _DealerViewState extends ConsumerState<DealerView> {
       if (src == null) return;
       final f = await ImagePicker().pickImage(source: src, imageQuality: 70, maxWidth: 1024);
       if (f == null) return;
-      if (ctx.mounted) showDialog(context: ctx, barrierDismissible: false,
+      if (ctx.mounted) {
+        showDialog(context: ctx, barrierDismissible: false,
           builder: (_) => const Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5)));
+      }
       final err = await ref.read(signupControllerProvider.notifier)
           .updateUser(oldUser: d, photoFile: File(f.path));
       if (ctx.mounted) { Navigator.pop(ctx);

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../model/notification_model.dart';
@@ -22,25 +21,29 @@ final fcmConnectedProvider = Provider<bool>((ref) {
 // ─── Main Notifier ────────────────────────────────────────────────────────────
 
 final notificationProvider =
-StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  final repo = ref.read(notificationRepositoryProvider);
-  final localNotif = LocalNotificationService();
-  final fcm = FcmService();
-  return NotificationNotifier(repo, localNotif, fcm);
-});
+    NotifierProvider<NotificationNotifier, NotificationState>(
+  NotificationNotifier.new,
+);
 
-class NotificationNotifier extends StateNotifier<NotificationState>
-    with WidgetsBindingObserver {
-  final NotificationRepository _repo;
-  final LocalNotificationService _localNotif;
-  final FcmService _fcm;
+class NotificationNotifier extends Notifier<NotificationState> {
+  late final NotificationRepository _repo;
+  late final LocalNotificationService _localNotif;
+  late final FcmService _fcm;
   StreamSubscription<NotificationModel>? _fcmSub;
   String? _currentUserId;
 
-  NotificationNotifier(this._repo, this._localNotif, this._fcm)
-      : super(const NotificationState()) {
-    WidgetsBinding.instance.addObserver(this);
+  @override
+  NotificationState build() {
+    _repo = ref.read(notificationRepositoryProvider);
+    _localNotif = LocalNotificationService();
+    _fcm = FcmService();
+
+    ref.onDispose(() => _fcmSub?.cancel());
+
+    // Fire-and-forget init; state updates land via copyWith later.
     _init();
+
+    return const NotificationState();
   }
 
   Future<void> _init() async {
@@ -56,15 +59,7 @@ class NotificationNotifier extends StateNotifier<NotificationState>
     await _initFcm();
     // GET /notifications endpoint was removed by backend; skip the initial
     // list fetch until it returns. Restore with:
-    // await Future.wait([loadNotifications(refresh: true), _initFcm()]);
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // GET /notifications removed by backend — disabled until it returns.
-    // if (state == AppLifecycleState.resumed) {
-    //   loadNotifications(refresh: true);
-    // }
+    // await loadNotifications(refresh: true);
   }
 
   Future<void> _initFcm() async {
@@ -168,13 +163,5 @@ class NotificationNotifier extends StateNotifier<NotificationState>
     }
 
     _localNotif.updateBadge(state.unreadCount);
-  }
-
-  // ─── Called when user logs out ────────────────────────────────────────────
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _fcmSub?.cancel();
-    super.dispose();
   }
 }

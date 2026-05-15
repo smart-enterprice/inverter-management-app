@@ -75,7 +75,6 @@ class _StatTile extends StatelessWidget {
   final String label, value;
   final IconData icon;
   final Color accent, accentBg, accentBorder;
-  final bool highlight;
 
   const _StatTile({
     required this.sw,
@@ -86,7 +85,6 @@ class _StatTile extends StatelessWidget {
     required this.accent,
     required this.accentBg,
     required this.accentBorder,
-    this.highlight = false,
   });
 
   @override
@@ -97,14 +95,12 @@ class _StatTile extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(sw * 0.04),
         border: Border.all(
-          color: highlight ? accentBorder : const Color(0xFFE5E7EB),
-          width: highlight ? 1.5 : 1,
+          color: const Color(0xFFE5E7EB),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: highlight
-                ? accent.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -143,7 +139,7 @@ class _StatTile extends StatelessWidget {
                 style: TextStyle(
                   fontSize: sw * 0.052,
                   fontWeight: FontWeight.w800,
-                  color: highlight ? accent : const Color(0xFF111827),
+                  color: const Color(0xFF111827),
                   letterSpacing: -0.5,
                 ),
               ),

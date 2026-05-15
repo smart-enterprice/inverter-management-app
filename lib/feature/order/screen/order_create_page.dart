@@ -26,20 +26,16 @@ const _kWhite = Colors.white;
 const _kBd = Color(0xFFE5E7EB);
 const _kT1 = Color(0xFF111827);
 const _kT2 = Color(0xFF374151);
-const _kT3 = Color(0xFF6B7280);
 const _kT4 = Color(0xFF9CA3AF);
 const _kGreen = Color(0xFF0F6E56);
 const _kGreenBg = Color(0xFFEDFAF5);
 const _kGreenBd = Color(0xFF9FE0C5);
 const _kRed = Color(0xFFDC2626);
-const _kRedBg = Color(0xFFFEF2F2);
-const _kRedBd = Color(0xFFFECACA);
 const _kAmber = Color(0xFFB45309);
 const _kAmberBg = Color(0xFFFFFBEB);
 const _kAmberBd = Color(0xFFFCD28A);
 const _kPurple = Color(0xFF7C3AED);
 const _kPurpleBg = Color(0xFFF5F3FF);
-const _kPurpleBd = Color(0xFFDDD6FE);
 
 class OrderCreatePage extends ConsumerStatefulWidget {
   const OrderCreatePage({super.key});
@@ -416,7 +412,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
             const Spacer(),
             Switch(
                 value: product.isScheme,
-                activeColor: _kPurple,
+                activeThumbColor: _kPurple,
                 activeTrackColor: _kPurpleBg,
                 onChanged: (v) => setState(() {
                       selectedProducts[index] =
@@ -927,10 +923,11 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                         child: CircularProgressIndicator(
                             color: _kP, strokeWidth: 2.5)));
               }
-              if (snap.hasError)
+              if (snap.hasError) {
                 return AlertDialog(
                     title: const Text('Salesmen'),
                     content: Text(snap.error.toString()));
+              }
               final salesmen = snap.data ?? [];
               final query = ValueNotifier('');
               return AlertDialog(
@@ -961,13 +958,14 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                             .toLowerCase()
                                             .contains(q);
                                   }).toList();
-                                  if (filtered.isEmpty)
+                                  if (filtered.isEmpty) {
                                     return Center(
                                         child: Text('No salesmen found',
                                             style: TextStyle(
                                                 color: _kT4,
                                                 fontSize: (sw * 0.034)
                                                     .clamp(11.5, 15.0))));
+                                  }
                                   return ListView.builder(
                                       itemCount: filtered.length,
                                       itemBuilder: (_, i) {
@@ -1169,13 +1167,14 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                         cur == 'All' || (p.model ?? '') == cur;
                                     return matchSearch && matchModel;
                                   }).toList();
-                                  if (filtered.isEmpty)
+                                  if (filtered.isEmpty) {
                                     return Center(
                                         child: Text('No products found',
                                             style: TextStyle(
                                                 color: _kT4,
                                                 fontSize: (sw * 0.034)
                                                     .clamp(11.5, 15.0))));
+                                  }
                                   return ListView.builder(
                                       itemCount: filtered.length,
                                       itemBuilder: (_, i) {
@@ -1341,10 +1340,11 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                     onSurface: _kT1),
                 dialogTheme: const DialogThemeData(backgroundColor: _kWhite)),
             child: child!));
-    if (picked != null)
+    if (picked != null) {
       setState(() {
         selectedProducts[index] = product.copyWith(deliveryDate: picked);
       });
+    }
   }
 
   // ── Logic — unchanged ────────────────────────────────────────────────────
@@ -1355,7 +1355,9 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     if (selectedDealer == null ||
         selectedSalesman == null ||
         selectedProducts.isEmpty ||
-        amountPaid < 0) return false;
+        amountPaid < 0) {
+      return false;
+    }
     return !selectedProducts.any((p) => p.deliveryDate == null);
   }
 
@@ -1420,7 +1422,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
       if (mounted) Navigator.pop(context);
     } catch (e, s) {
       debugPrint('❌ Error creating order: $e\n$s');
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Row(children: [
               const Icon(Icons.error_outline, color: _kWhite),
@@ -1431,6 +1433,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10))));
+      }
     } finally {
       if (mounted) setState(() => isCreatingOrder = false);
     }

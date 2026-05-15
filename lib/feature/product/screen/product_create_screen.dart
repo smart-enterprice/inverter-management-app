@@ -26,10 +26,8 @@ const _kGreenBd  = Color(0xFF9FE0C5);
 const _kRed      = Color(0xFFDC2626);
 const _kAmber    = Color(0xFFB45309);
 const _kAmberBg  = Color(0xFFFFFBEB);
-const _kAmberBd  = Color(0xFFFCD28A);
 const _kPurple   = Color(0xFF7C3AED);
 const _kPurpleBg = Color(0xFFF5F3FF);
-const _kPurpleBd = Color(0xFFDDD6FE);
 
 // ─────────────────────────────────────────────────────────────────────────────
 class ProductCreateScreen extends ConsumerStatefulWidget {
@@ -70,7 +68,9 @@ class _ProductCreateScreenState extends ConsumerState<ProductCreateScreen> {
 
   @override
   void dispose() {
-    for (final c in _controllers.values) c.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 

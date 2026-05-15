@@ -5,14 +5,11 @@ import '../controller/login_controller.dart';
 
 // ── Zoho tokens ───────────────────────────────────────────────────────────────
 const _kP     = Color(0xFF185FA5);
-const _kPBg   = Color(0xFFEBF4FF);
-const _kPBd   = Color(0xFFBFD9F5);
 const _kBg    = Color(0xFFF7F8FA);
 const _kWhite = Colors.white;
 const _kBd    = Color(0xFFE5E7EB);
 const _kT1    = Color(0xFF111827);
 const _kT2    = Color(0xFF374151);
-const _kT3    = Color(0xFF6B7280);
 const _kT4    = Color(0xFF9CA3AF);
 const _kRed   = Color(0xFFDC2626);
 const _kGreen = Color(0xFF0F6E56);
