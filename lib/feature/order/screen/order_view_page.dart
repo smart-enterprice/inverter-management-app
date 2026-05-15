@@ -191,13 +191,26 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                   _buildSummary(context, sw, sh, order),
                   SizedBox(height: sh * 0.012),
                   if (order.dealer != null)
-                    RoleGuard(
-                      feature: AppFeature.viewDealers,
-                      child: Column(children: [
-                        _buildDealer(context, sw, sh, order.dealer!),
-                        SizedBox(height: sh * 0.012),
-                      ]),
-                    ),
+                    Consumer(builder: (_, ref, __) {
+                      final role = ref.watch(roleNotifierProvider);
+                      final canViewFull =
+                          AppPermissions.canAccess(role, AppFeature.viewDealers);
+                      final canViewBasic =
+                          AppPermissions.canAccess(role, AppFeature.viewDealerBasic);
+                      if (canViewFull) {
+                        return Column(children: [
+                          _buildDealer(context, sw, sh, order.dealer!),
+                          SizedBox(height: sh * 0.012),
+                        ]);
+                      }
+                      if (canViewBasic) {
+                        return Column(children: [
+                          _buildDealerBasic(sw, sh, order.dealer!),
+                          SizedBox(height: sh * 0.012),
+                        ]);
+                      }
+                      return const SizedBox.shrink();
+                    }),
                   _buildItems(context, sw, sh, order),
                   SizedBox(height: sh * 0.012),
                   RoleGuard(
@@ -332,6 +345,53 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
     });
   }
 
+  // ── Dealer (basic — name + shop only) ─────────────────────────────────────
+  Widget _buildDealerBasic(double sw, double sh, DealerModel dealer) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _kWhite,
+        borderRadius: BorderRadius.circular((sw * 0.04).clamp(10.0, 18.0)),
+        border: Border.all(color: _kBd, width: 0.5),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(sw * 0.04),
+        child: Row(children: [
+          CircleAvatar(
+            radius: (sw * 0.055).clamp(20.0, 32.0),
+            backgroundColor: _kPBg,
+            backgroundImage: dealer.photo.isNotEmpty
+                ? NetworkImage(dealer.photo) : null,
+            child: dealer.photo.isEmpty
+                ? Text(dealer.employeeName[0].toUpperCase(),
+                style: TextStyle(
+                    fontSize: (sw * 0.04).clamp(14.0, 20.0),
+                    fontWeight: FontWeight.w700, color: _kP))
+                : null,
+          ),
+          SizedBox(width: sw * 0.03),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(dealer.employeeName, style: TextStyle(
+                  fontSize: (sw * 0.036).clamp(12.0, 16.0),
+                  fontWeight: FontWeight.w700, color: _kT1)),
+              SizedBox(height: sh * 0.003),
+              Row(children: [
+                Icon(Icons.storefront_outlined,
+                    size: (sw * 0.032).clamp(11.0, 14.0), color: _kT4),
+                SizedBox(width: sw * 0.012),
+                Expanded(child: Text(dealer.shopName, style: TextStyle(
+                    fontSize: (sw * 0.03).clamp(10.0, 13.0),
+                    color: _kT3, fontWeight: FontWeight.w500),
+                    maxLines: 1, overflow: TextOverflow.ellipsis)),
+              ]),
+            ],
+          )),
+        ]),
+      ),
+    );
+  }
+
   // ── Items ─────────────────────────────────────────────────────────────────
   Widget _buildItems(BuildContext context, double sw, double sh, OrderModel o) {
     final cardR = (sw * 0.04).clamp(10.0, 18.0);
@@ -379,6 +439,8 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
 
     final isCancelled = item.status == 'CANCELLED';
     final isCompleted = item.status == 'COMPLETED' || item.status == 'DELIVERED';
+    final orderStatus = (order.status ?? '').toUpperCase();
+    final isOrderLocked = orderStatus == 'PENDING' || orderStatus == 'REJECTED';
     final maxCancellable = (item.qtyOrdered ?? 0) - (item.qtyDelivered ?? 0);
     final st = _ss(item.status ?? '');
     final hasCancelHistory =
@@ -498,7 +560,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
         if (item.deliveryDate != null) ...[
           SizedBox(height: sw * 0.015),
           GestureDetector(
-            onTap: isCancelled || isCompleted ? null
+            onTap: isCancelled || isCompleted || isOrderLocked ? null
                 : () => _showDeliveryDateDialog(context, item, index, order),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Text('Delivery  ', style: TextStyle(
@@ -511,7 +573,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
                   style: TextStyle(
                       fontSize: (sw * 0.03).clamp(10.0, 13.0),
                       color: _kT2, fontWeight: FontWeight.w600)),
-              if (!isCancelled && !isCompleted) ...[
+              if (!isCancelled && !isCompleted && !isOrderLocked) ...[
                 SizedBox(width: sw * 0.015),
                 Icon(Icons.edit_outlined,
                     size: (sw * 0.032).clamp(11.0, 14.0), color: _kP),
@@ -532,20 +594,18 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
         ],
 
         // Action buttons
-        if (!isCancelled && !isCompleted) ...[
+        if (!isCancelled && !isCompleted && !isOrderLocked) ...[
           SizedBox(height: sw * 0.025),
           Divider(height: 1, color: _kBd),
           SizedBox(height: sw * 0.02),
           Row(children: [
-            if ((order.status ?? '').toUpperCase() != 'PENDING') ...[
-              Expanded(child: RoleGuard(
-                feature: AppFeature.updateOrderStatus,
-                child: _ActionBtn(sw: sw, label: 'Update',
-                    icon: Icons.update_rounded, color: _kP,
-                    onTap: () => _showItemStatusDialog(context, item, index, order)),
-              )),
-              SizedBox(width: sw * 0.02),
-            ],
+            Expanded(child: RoleGuard(
+              feature: AppFeature.updateOrderStatus,
+              child: _ActionBtn(sw: sw, label: 'Update',
+                  icon: Icons.update_rounded, color: _kP,
+                  onTap: () => _showItemStatusDialog(context, item, index, order)),
+            )),
+            SizedBox(width: sw * 0.02),
             if (maxCancellable > 0) ...[
               Expanded(child: RoleGuard(
                 feature: AppFeature.cancelOrder,

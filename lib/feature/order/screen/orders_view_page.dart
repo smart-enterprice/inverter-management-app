@@ -31,14 +31,13 @@ class _S { final Color fg, bg, bd; const _S(this.fg, this.bg, this.bd); }
 _S _ss(String? s) {
   switch (s?.toUpperCase()) {
     case 'PENDING':    return const _S(Color(0xFFB45309), Color(0xFFFFFBEB), Color(0xFFFCD28A));
-    case 'CONFIRMED':  return const _S(_kP, _kPBg, _kPBd);
     case 'PRODUCTION': return const _S(Color(0xFFEA580C), Color(0xFFFFF7ED), Color(0xFFFED7AA));
     case 'PACKED':     return const _S(Color(0xFF7C3AED), Color(0xFFF5F3FF), Color(0xFFDDD6FE));
     case 'INVOICE':    return const _S(Color(0xFF4338CA), Color(0xFFEEF2FF), Color(0xFFC7D2FE));
     case 'SHIPPED':    return const _S(Color(0xFF0369A1), Color(0xFFE0F2FE), Color(0xFFBAE6FD));
-    case 'DELIVERED':
     case 'COMPLETED':  return const _S(_kGreen, _kGreenBg, Color(0xFF9FE0C5));
     case 'CANCELLED':  return const _S(_kRed, _kRedBg, _kRedBd);
+  case 'REJECTED':  return const _S(_kP, _kPBg, _kPBd);
     default:           return const _S(_kT3, Color(0xFFF3F4F6), _kBd);
   }
 }
@@ -46,7 +45,6 @@ _S _ss(String? s) {
 Color _dotColor(String? v) {
   switch (v?.toUpperCase()) {
     case 'PENDING':    return const Color(0xFFB45309);
-    case 'CONFIRMED':  return _kP;
     case 'PRODUCTION': return const Color(0xFFEA580C);
     case 'PACKED':     return const Color(0xFF7C3AED);
     case 'INVOICE':    return const Color(0xFF4338CA);
@@ -54,6 +52,7 @@ Color _dotColor(String? v) {
     case 'DELIVERED':
     case 'COMPLETED':  return _kGreen;
     case 'CANCELLED':  return _kRed;
+    case 'REJECTED':  return _kP;
     default:           return _kT3;
   }
 }
@@ -71,11 +70,11 @@ class _Tab { final String label; final String? api;
 const _Tab(this.label, [this.api]); }
 
 final _tabs = <_Tab>[
-  _Tab('All'), _Tab('Pending','PENDING'), _Tab('Confirmed','CONFIRMED'),
+  _Tab('All'), _Tab('Pending','PENDING'),
   _Tab('Production','PRODUCTION'), _Tab('Packed','PACKED'),
   _Tab('Invoice','INVOICE'), _Tab('Shipped','SHIPPED'),
   _Tab('Delivered','DELIVERED'), _Tab('Completed','COMPLETED'),
-  _Tab('Cancelled','CANCELLED'),
+  _Tab('Cancelled','CANCELLED'),_Tab('Rejected','REJECTED'),
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

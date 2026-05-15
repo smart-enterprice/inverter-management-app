@@ -94,6 +94,7 @@ class AppFeature {
   // People
   static const String viewCreator     = 'view_creator';
   static const String viewDealers       = 'view_dealers';
+  static const String viewDealerBasic   = 'view_dealer_basic';
   static const String createDealer      = 'create_dealer';
   static const String editDealer        = 'edit_dealer';
   static const String deleteDealer      = 'delete_dealer';
@@ -171,6 +172,7 @@ class AppPermissions {
       AppFeature.viewBrands,
       AppFeature.updateBrand,
       AppFeature.viewDealers,
+      AppFeature.viewDealerBasic,
       AppFeature.createDealer,
       AppFeature.editDealer,
       AppFeature.deleteDealer,
@@ -223,6 +225,7 @@ class AppPermissions {
       AppFeature.updateBrand,
       AppFeature.viewBrands,
       AppFeature.viewDealers,
+      AppFeature.viewDealerBasic,
       AppFeature.createDealer,
       AppFeature.editDealer,
       AppFeature.deleteDealer,
@@ -274,6 +277,7 @@ class AppPermissions {
       AppFeature.viewBrands,
       // AppFeature.updateBrand,
       AppFeature.viewDealers,
+      AppFeature.viewDealerBasic,
       // AppFeature.createDealer,
       // AppFeature.editDealer,
       // AppFeature.deleteDealer,
@@ -314,6 +318,7 @@ class AppPermissions {
       AppFeature.viewStock,
       AppFeature.viewBrands,        // view only — no createBrand
       AppFeature.viewDealers,       // view only — no createDealer, no editDealer
+      AppFeature.viewDealerBasic,
       AppFeature.manageDiscounts,
       AppFeature.accessCreatePanel,
       AppFeature.discountView,
@@ -330,6 +335,7 @@ class AppPermissions {
       AppFeature.updateStock,
       AppFeature.viewTimestamps,
       AppFeature.viewProducts,
+      AppFeature.viewDealerBasic,
       AppFeature.updateUnpackedStock,
       // order status updates
       AppFeature.productionCompleted,
@@ -344,6 +350,7 @@ class AppPermissions {
       AppFeature.viewStock,
       AppFeature.updateStock,
       AppFeature.updateOrderStatus,
+      AppFeature.viewDealerBasic,
       AppFeature.updatePackedStock,
       // order status updates
       // AppFeature.productionCompleted,
