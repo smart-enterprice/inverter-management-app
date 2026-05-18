@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../model/brand_model.dart';
-import '../../../network/app_exception.dart';
-import '../../../network/dio_client.dart';
+import '../../../feature/brand/model/brand_model.dart';
+import '../../../core/network/app_exception.dart';
+import '../../../core/network/dio_client.dart';
 
 final brandRepositoryProvider = Provider<BrandRepository>((ref) {
   return BrandRepository(ref.watch(dioClientProvider));

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../network/dio_client.dart';
+import '../../../core/network/dio_client.dart';
 import '../model/notification_model.dart';
 
 

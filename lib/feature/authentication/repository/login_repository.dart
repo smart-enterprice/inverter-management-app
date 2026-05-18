@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../model/login_model.dart';
-import '../../../network/app_exception.dart';
-import '../../../network/dio_client.dart';
+import '../../../feature/authentication/model/login_model.dart';
+import '../../../core/network/app_exception.dart';
+import '../../../core/network/dio_client.dart';
 
 final loginRepositoryProvider = Provider<LoginRepository>((ref) {
   return LoginRepository(ref.watch(dioClientProvider));
@@ -27,11 +27,19 @@ class LoginRepository {
     );
   }
 
+  /// Returns true if server confirms token is active.
+  /// Returns false if server explicitly says token is invalid (401, active:false).
+  /// Throws [DioException] for network/timeout errors — caller decides what to do.
   Future<bool> isTokenActive() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>('/auth/token/active');
       return res.statusCode == 200 && res.data?['active'] == true;
-    } on DioException {
+    } on DioException catch (e) {
+      final isNetworkError = e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout;
+      if (isNetworkError) rethrow;
       return false;
     }
   }

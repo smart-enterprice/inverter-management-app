@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../model/user_model.dart';
-import '../../../network/app_exception.dart';
-import '../../../network/dio_client.dart';
+import '../../../core/network/app_exception.dart';
+import '../../../core/network/dio_client.dart';
 
 final signupRepositoryProvider = Provider<SignupRepository>((ref) {
   return SignupRepository(ref.watch(dioClientProvider));

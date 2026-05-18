@@ -83,6 +83,7 @@ class AppFeature {
   static const String updateBrand = 'update_brand';
   static const String updatePrice   = 'update_price';
   static const String viewPrice     = 'view_price';
+  static const String viewCostPrice = 'view_cost_price';
   static const String viewStock = 'view_stock';
   static const String viewPriceHistory     = 'view_price_history';
   static const String updateStock        = 'update_stock';
@@ -159,6 +160,7 @@ class AppPermissions {
       AppFeature.cancelOrder,
       AppFeature.updatePayment,
       AppFeature.viewPrice,
+      AppFeature.viewCostPrice,
       AppFeature.updateStatus,
       AppFeature.viewPriceHistory,
       AppFeature.viewStock,
@@ -213,6 +215,7 @@ class AppPermissions {
       AppFeature.updatePayment,
       AppFeature.viewProducts,
       AppFeature.viewPrice,
+      AppFeature.viewCostPrice,
       AppFeature.viewPriceHistory,
       AppFeature.updateStatus,
       AppFeature.updateProduct,
@@ -335,6 +338,7 @@ class AppPermissions {
       AppFeature.updateStock,
       AppFeature.viewTimestamps,
       AppFeature.viewProducts,
+      AppFeature.viewBrands,
       AppFeature.viewDealerBasic,
       AppFeature.updateUnpackedStock,
       // order status updates
@@ -350,6 +354,8 @@ class AppPermissions {
       AppFeature.viewStock,
       AppFeature.updateStock,
       AppFeature.updateOrderStatus,
+      AppFeature.viewProducts,
+      AppFeature.viewBrands,
       AppFeature.viewDealerBasic,
       AppFeature.updatePackedStock,
       // order status updates
@@ -359,7 +365,7 @@ class AppPermissions {
 
     },
 
-    // ── Accounts — payment + order status update ───────────────────────────
+    // ── Accounts — payment + catalog read + order status update ────────────
     AppRole.accounts: {
       AppFeature.viewCreator,
       AppFeature.viewAllOrders,
@@ -371,6 +377,10 @@ class AppPermissions {
       AppFeature.viewTimestamps,
       AppFeature.viewReports,
       AppFeature.viewDashboard,
+      AppFeature.viewProducts,
+      AppFeature.viewBrands,
+      AppFeature.viewDealers,
+      AppFeature.viewDealerBasic,
       AppFeature.discountView,
       AppFeature.paymentView,
       // order status updates

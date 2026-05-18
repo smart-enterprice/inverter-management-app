@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../model/brand_model.dart';
-import '../../../network/app_exception.dart';
+import '../../../feature/brand/model/brand_model.dart';
+import '../../../core/network/app_exception.dart';
 import '../repository/brand_repository.dart';
 
 // ─── Providers ────────────────────────────────────────────────────────────────

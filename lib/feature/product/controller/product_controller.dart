@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../model/product_model.dart';
-import '../../../network/app_exception.dart';
+import '../../../feature/product/model/product_model.dart';
+import '../../../core/network/app_exception.dart';
 import '../repository/product_repository.dart';
 
 // ─────────────────────────────────────────────

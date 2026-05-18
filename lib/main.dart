@@ -4,9 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:inverter_management_app/screen/splash_screen.dart';
+import 'package:inverter_management_app/screens/splash_screen.dart';
 import 'core/theme/theme.dart';
-import 'core/utils/Navigation_service.dart';
+import 'core/utils/navigation_service.dart';
 import 'core/utils/orientation_lock.dart';
 import 'firebase_options.dart';
 
@@ -96,6 +96,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: NavigationService.navigatorKey,
+      scaffoldMessengerKey: NavigationService.scaffoldMessengerKey,
       theme: AppTheme.theme,
       themeMode: ThemeMode.light,
       debugShowCheckedModeBanner: false,

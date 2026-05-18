@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/role/app_role.dart';
 import '../../notification/service/fcm_service.dart';
-import '../../../model/login_model.dart';
-import '../../../network/app_exception.dart';
+import '../../../feature/authentication/model/login_model.dart';
+import '../../../core/network/app_exception.dart';
 import '../repository/login_repository.dart';
 
 // ─── Provider ────────────────────────────────────────────────────────────────
@@ -82,14 +82,13 @@ class LoginController extends AsyncNotifier<LoginResult?> {
 
   // ── Token / session helpers ─────────────────────────────────────────────────
 
+  /// Returns true if server confirms token is active.
+  /// Returns false if not logged in locally OR server rejected the token.
+  /// Throws on network errors (offline) — caller can keep the session.
   Future<bool> isTokenActive() async {
     final loggedIn = await isLoggedIn();
     if (!loggedIn) return false;
-    try {
-      return await _repository.isTokenActive();
-    } catch (_) {
-      return false;
-    }
+    return await _repository.isTokenActive();
   }
 
   Future<bool>    isLoggedIn()  => _getBool(_loggedInKey);

@@ -1,6 +1,6 @@
 // order_controller.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../model/order_model.dart';
+import '../../../feature/order/model/order_model.dart';
 import '../repository/order_repository.dart';
 
 // ─────────────────────────────────────────────

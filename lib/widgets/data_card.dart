@@ -3,7 +3,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:inverter_management_app/core/const/icons.dart';
 import 'package:inverter_management_app/core/media_query/media_query.dart';
-import '../../../model/order_model.dart';
+import '../../../feature/order/model/order_model.dart';
 
 class DataCard extends StatelessWidget {
   final OrderModel order;

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../model/dealer_discount_model.dart';
+import '../../../feature/discount/model/dealer_discount_model.dart';
 import '../repository/discount_repository.dart';
 
 // ─── Providers ────────────────────────────────────────────────────────────────
