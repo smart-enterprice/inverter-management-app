@@ -4,6 +4,7 @@ import 'package:inverter_management_app/core/role/app_role.dart';
 import '../../../core/media_query/media_query.dart';
 import '../../../widgets/circle_button.dart';
 import '../controller/brand_controller.dart';
+import '../model/brand_model.dart';
 import 'brand_create.dart';
 import 'brand_details_page.dart';
 
@@ -89,27 +90,34 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
     final sh         = Screen.h(context);
     final brandState = ref.watch(brandControllerProvider);
 
-    return brandState.when(
-      loading: () => const Scaffold(
+    // Keep the list visible whenever cached data exists, even while the
+    // provider is re-fetching. Spinner only on first load.
+    final cached = brandState.value;
+    if (cached == null) {
+      if (brandState.hasError) return _errorScaffold(context, sw, sh);
+      return const Scaffold(
           backgroundColor: _kBg,
           body: Center(
-              child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5))),
+              child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5)));
+    }
 
-      error: (error, stackTrace) => _errorScaffold(context, sw, sh),
+    return _buildScaffold(context, sw, sh, cached);
+  }
 
-      data: (brands) {
-        // Filter by status + search query
-        final filtered = brands.where((b) {
-          final statusOk =
-              _status == null || b.status?.toLowerCase() == _status;
-          if (!statusOk) return false;
-          if (_query.isEmpty) return true;
-          final q = _query.toLowerCase();
-          return b.brandName.toLowerCase().contains(q) ||
-              b.brandModels.any((m) => m.toLowerCase().contains(q));
-        }).toList();
+  Widget _buildScaffold(BuildContext context, double sw, double sh,
+      List<BrandModel> brands) {
+    // Filter by status + search query
+    final filtered = brands.where((b) {
+      final statusOk =
+          _status == null || b.status?.toLowerCase() == _status;
+      if (!statusOk) return false;
+      if (_query.isEmpty) return true;
+      final q = _query.toLowerCase();
+      return b.brandName.toLowerCase().contains(q) ||
+          b.brandModels.any((m) => m.toLowerCase().contains(q));
+    }).toList();
 
-        return Scaffold(
+    return Scaffold(
           backgroundColor: _kBg,
           body: SafeArea(child: Column(children: [
 
@@ -206,8 +214,6 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
             ),
           ])),
         );
-      },
-    );
   }
 
   // ── Status chip ─────────────────────────────────────────────────────────

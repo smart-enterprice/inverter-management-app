@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../feature/order/model/order_model.dart';
+import '../../../feature/order/model/production_summary_model.dart';
 import '../../../core/network/app_exception.dart';
 import '../../../core/network/dio_client.dart';
 
@@ -24,6 +25,8 @@ class OrderRepository {
     int? page,
     int? limit,
     String? status,
+    String? salesman,
+    String? dealer,
   }) {
     return guardDio(() async {
       final queryParameters = <String, dynamic>{
@@ -31,6 +34,8 @@ class OrderRepository {
         'page': page ?? 1,
         if (limit != null) 'limit': limit,
         if (status != null && status != 'ALL') 'status': status,
+        if (salesman != null && salesman.isNotEmpty) 'salesman': salesman,
+        if (dealer != null && dealer.isNotEmpty) 'dealer': dealer,
       };
       final response = await _dio.get(
         '/order-details',
@@ -55,6 +60,8 @@ class OrderRepository {
     String? deliveryEndDate,
     int page = 1,
     int limit = 20,
+    String? salesman,
+    String? dealer,
   }) {
     return guardDio(() async {
       final queryParameters = <String, dynamic>{
@@ -66,6 +73,8 @@ class OrderRepository {
           'deliveryStartDate': deliveryStartDate,
         if (deliveryEndDate != null && deliveryEndDate.isNotEmpty)
           'deliveryEndDate': deliveryEndDate,
+        if (salesman != null && salesman.isNotEmpty) 'salesman': salesman,
+        if (dealer != null && dealer.isNotEmpty) 'dealer': dealer,
       };
       final response = await _dio.get(
         '/order-details',
@@ -104,6 +113,16 @@ class OrderRepository {
       ),
       fallback: 'Update payment failed',
     );
+  }
+
+  Future<List<ProductionSummaryRow>> getProductionSummary() {
+    return guardDio(() async {
+      final response = await _dio.get('/order-details/production-summary');
+      final data = response.data['data'] as List;
+      return data
+          .map((e) => ProductionSummaryRow.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
   }
 
   Future<List<OrderModel>> getOrdersByDealer(

@@ -154,24 +154,33 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final employeesAsync = ref.watch(userListProvider);
     final selectedRole = ref.watch(selectedRoleProvider);
 
-    return employeesAsync.when(
-      loading: () => const Scaffold(
+    // Show the loading/error screens only when we have no cached data yet.
+    // On refetch with previous data, keep the list visible.
+    final cached = employeesAsync.value;
+    if (cached == null) {
+      if (employeesAsync.hasError) return _errorView(context, sw, sh);
+      return const Scaffold(
           backgroundColor: _kBg,
           body: Center(
-              child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5))),
-      error: (_, __) => _errorView(context, sw, sh),
-      data: (users) {
-        final allRoles = [
-          'All',
-          ...{
-            for (final u in users)
-              if (u.role != 'ROLE_SUPER_ADMIN' && u.role != 'ROLE_DEALER')
-                _formatRole(u.role)
-          }
-        ];
-        final filtered = _filter(users, selectedRole);
+              child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5)));
+    }
 
-        return Scaffold(
+    return _buildScaffold(context, sw, sh, cached, selectedRole);
+  }
+
+  Widget _buildScaffold(BuildContext context, double sw, double sh,
+      List<UserModel> users, String? selectedRole) {
+    final allRoles = [
+      'All',
+      ...{
+        for (final u in users)
+          if (u.role != 'ROLE_SUPER_ADMIN' && u.role != 'ROLE_DEALER')
+            _formatRole(u.role)
+      }
+    ];
+    final filtered = _filter(users, selectedRole);
+
+    return Scaffold(
           backgroundColor: _kBg,
           body: SafeArea(child: Column(children: [
 
@@ -270,8 +279,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             Expanded(child: _buildList(context, sw, sh, filtered)),
           ])),
         );
-      },
-    );
   }
 
   // ── List ────────────────────────────────────────────────────────────────

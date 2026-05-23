@@ -156,54 +156,64 @@ class _DealersScreenState extends ConsumerState<DealersScreen> {
         required AsyncValue<List<UserModel>> async,
         required bool isFiltering,
       }) {
+    // Keep the list visible whenever we have cached data, even while the
+    // provider is re-fetching. RefreshIndicator handles refresh feedback.
+    final cached = async.value;
+    if (cached != null) {
+      return _renderDealersBody(context, sw, sh, cached, isFiltering);
+    }
     return async.when(
       // First-time load: full spinner is fine, no list yet
       loading: () => const Center(
         child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5),
       ),
       error: (_, __) => _bodyErrorView(sw, sh),
-      data: (dealers) {
-        // Empty state (search returned nothing OR no dealers at all)
-        if (dealers.isEmpty) {
-          return _showSearch && _query.isNotEmpty
-              ? _emptySearch(sw, sh)
-              : _emptyAll(sw, sh);
-        }
+      data: (dealers) => _renderDealersBody(
+          context, sw, sh, dealers, isFiltering),
+    );
+  }
 
-        return Column(
-          children: [
-            _buildCountBadge(sw, dealers.length),
-            Expanded(
-              child: Stack(
-                children: [
-                  _buildList(context, sw, sh, dealers),
+  Widget _renderDealersBody(BuildContext context, double sw, double sh,
+      List<UserModel> dealers, bool isFiltering) {
+    // Empty state (search returned nothing OR no dealers at all)
+    if (dealers.isEmpty) {
+      return _showSearch && _query.isNotEmpty
+          ? _emptySearch(sw, sh)
+          : _emptyAll(sw, sh);
+    }
 
-                  // ── Filter-change overlay ──────────────────────────────
-                  // Old data visible underneath, translucent veil + spinner.
-                  if (isFiltering)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: Container(
-                          color: _kWhite.withValues(alpha: 0.65),
-                          child: const Center(
-                            child: SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: CircularProgressIndicator(
-                                color: _kP,
-                                strokeWidth: 2.5,
-                              ),
-                            ),
+    return Column(
+      children: [
+        _buildCountBadge(sw, dealers.length),
+        Expanded(
+          child: Stack(
+            children: [
+              _buildList(context, sw, sh, dealers),
+
+              // ── Filter-change overlay ──────────────────────────────
+              // Old data visible underneath, translucent veil + spinner.
+              if (isFiltering)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      color: _kWhite.withValues(alpha: 0.65),
+                      child: const Center(
+                        child: SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(
+                            color: _kP,
+                            strokeWidth: 2.5,
                           ),
                         ),
                       ),
                     ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

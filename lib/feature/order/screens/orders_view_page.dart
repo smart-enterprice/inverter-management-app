@@ -1,11 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import '../../../core/const/icons.dart';
+import '../../../core/role/app_role.dart';
+import '../../signup/controller/signUp_controller.dart';
+import '../../signup/model/user_model.dart';
 import '../controller/order_controller.dart';
 import '../../../feature/order/model/order_model.dart';
+import '../widgets/order_progress_bar.dart';
 import 'order_view_page.dart';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
@@ -24,6 +29,12 @@ const _kRedBg    = Color(0xFFFEF2F2);
 const _kRedBd    = Color(0xFFFECACA);
 const _kGreen    = Color(0xFF0F6E56);
 const _kGreenBg  = Color(0xFFEDFAF5);
+const _kAmberTx  = Color(0xFFB45309); // amber-700
+const _kAmberIc  = Color(0xFFD97706); // amber-600
+const _kIndigoTx = Color(0xFF4338CA); // indigo-700
+const _kIndigoIc = Color(0xFF4F46E5); // indigo-600
+const _kGreenTx  = Color(0xFF047857); // emerald-700
+const _kGreenIc  = Color(0xFF059669); // emerald-600
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 class _S { final Color fg, bg, bd; const _S(this.fg, this.bg, this.bd); }
@@ -135,11 +146,18 @@ class _State extends ConsumerState<OrdersViewPage> {
   DateTime? _to;
   bool      _dateActive = false;
 
+  String? _filterSalesmanId;
+  String? _filterSalesmanName;
+  String? _filterDealerId;
+  String? _filterDealerName;
+
   List<OrderModel> _all  = [];
   int  _page    = 1;
   bool _loading = false;
   bool _hasMore = true;
   static const _limit = 20;
+
+  bool get _filterActive => _filterSalesmanId != null || _filterDealerId != null;
 
   @override
   void initState() {
@@ -168,7 +186,11 @@ class _State extends ConsumerState<OrdersViewPage> {
     setState(() => _loading = true);
     try {
       final more = await ref.read(paginatedOrdersProvider(PaginatedOrderParams(
-        status: _tabs[_tab].api, page: _page + 1, limit: _limit,
+        status: _tabs[_tab].api,
+        page: _page + 1,
+        limit: _limit,
+        salesmanId: _filterSalesmanId,
+        dealerId: _filterDealerId,
       )).future);
       setState(() {
         if (more.isEmpty) { _hasMore = false; }
@@ -204,6 +226,77 @@ class _State extends ConsumerState<OrdersViewPage> {
   void _clearDate() => setState(() {
     _from = null; _to = null; _dateActive = false; _reset();
   });
+
+  // ── Salesman / Dealer filter ──────────────────────────────────────────────
+  void _clearFilters() => setState(() {
+    _filterSalesmanId = null;
+    _filterSalesmanName = null;
+    _filterDealerId = null;
+    _filterDealerName = null;
+    _reset();
+  });
+
+  void _onSelectSalesman(String? id, String? name) => setState(() {
+    _filterSalesmanId = id;
+    _filterSalesmanName = name;
+    // Changing salesman invalidates the previously picked dealer
+    // (it might not belong to the new salesman).
+    _filterDealerId = null;
+    _filterDealerName = null;
+    _reset();
+  });
+
+  void _onSelectDealer(String? id, String? name) => setState(() {
+    _filterDealerId = id;
+    _filterDealerName = name;
+    _reset();
+  });
+
+  Future<void> _showFilterSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: _kWhite,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => _FilterSheet(
+        salesmanId: _filterSalesmanId,
+        salesmanName: _filterSalesmanName,
+        dealerId: _filterDealerId,
+        dealerName: _filterDealerName,
+        onPickSalesman: () async {
+          final picked = await showModalBottomSheet<_PickResult?>(
+            context: ctx,
+            backgroundColor: _kWhite,
+            isScrollControlled: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            builder: (_) => const _SalesmanPicker(),
+          );
+          if (picked == null) return null;
+          _onSelectSalesman(picked.id, picked.name);
+          return picked;
+        },
+        onPickDealer: () async {
+          final picked = await showModalBottomSheet<_PickResult?>(
+            context: ctx,
+            backgroundColor: _kWhite,
+            isScrollControlled: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            builder: (_) => _DealerPicker(salesmanId: _filterSalesmanId),
+          );
+          if (picked == null) return null;
+          _onSelectDealer(picked.id, picked.name);
+          return picked;
+        },
+        onClearAll: () { _clearFilters(); Navigator.pop(ctx); },
+      ),
+    );
+  }
 
   void _applyDate() {
     if (_from == null || _to == null) return;
@@ -357,12 +450,29 @@ class _State extends ConsumerState<OrdersViewPage> {
     final sw  = MediaQuery.sizeOf(context).width;
     final sh  = MediaQuery.sizeOf(context).height;
     final tab = _tabs[_tab.clamp(0, _tabs.length - 1)];
+    final role = ref.watch(roleNotifierProvider);
+    final canFilter = role == AppRole.superAdmin ||
+        role == AppRole.admin ||
+        role == AppRole.manager;
 
+    // Build always watches page 1 — pagination beyond page 1 is handled
+    // by _loadMore() appending into _all. Watching `page: _page` would
+    // cause the whole list to flash to the loading spinner each time the
+    // user scrolls to a new page (autoDispose + new provider instance).
     final AsyncValue<List<OrderModel>> async$ = _dateActive && _from != null && _to != null
         ? ref.watch(filteredOrdersProvider(DateFilterParams(
-        startDate: _apiDate(_from!), endDate: _apiDate(_to!))))
+            startDate: _apiDate(_from!),
+            endDate: _apiDate(_to!),
+            salesmanId: _filterSalesmanId,
+            dealerId: _filterDealerId,
+          )))
         : ref.watch(paginatedOrdersProvider(PaginatedOrderParams(
-        status: tab.api, page: _page, limit: _limit)));
+            status: tab.api,
+            page: 1,
+            limit: _limit,
+            salesmanId: _filterSalesmanId,
+            dealerId: _filterDealerId,
+          )));
 
     return Scaffold(
       backgroundColor: _kBg,
@@ -391,6 +501,16 @@ class _State extends ConsumerState<OrdersViewPage> {
                   sw: sw,
                   onTap: _toggleSearch,
                 ),
+                if (canFilter) ...[
+                  SizedBox(width: sw * 0.02),
+                  _IconBtn(
+                    icon: Icons.filter_alt_outlined,
+                    active: _filterActive,
+                    activeColor: _kP,
+                    sw: sw,
+                    onTap: _showFilterSheet,
+                  ),
+                ],
                 SizedBox(width: sw * 0.02),
                 // Date filter
                 _IconBtn(
@@ -428,6 +548,17 @@ class _State extends ConsumerState<OrdersViewPage> {
               _DateBanner(from: _from!, to: _to!, sw: sw, sh: sh,
                   onClear: _clearDate),
 
+            // Active filter chips (salesman / dealer)
+            if (_filterActive)
+              _FilterBanner(
+                salesmanName: _filterSalesmanName,
+                dealerName: _filterDealerName,
+                sw: sw, sh: sh,
+                onClearSalesman: () => _onSelectSalesman(null, null),
+                onClearDealer:   () => _onSelectDealer(null, null),
+                onClearAll:      _clearFilters,
+              ),
+
             // Status chips
             _StatusChips(
               tabs: _tabs,
@@ -460,7 +591,10 @@ class _State extends ConsumerState<OrdersViewPage> {
             }
           }),
           data: (orders) {
-            // Accumulate paginated orders
+            // Sync page-1 results into _all. Higher pages are appended by
+            // _loadMore() directly. We only replace _all here when we're
+            // still on the first page (no further pages loaded yet) to avoid
+            // wiping out previously-paginated rows on a silent refetch.
             if (!_dateActive) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
@@ -470,10 +604,6 @@ class _State extends ConsumerState<OrdersViewPage> {
                           _all.first.orderNumber != orders.first.orderNumber)) {
                     setState(() => _all = List.from(orders));
                   }
-                } else {
-                  final seen = _all.map((o) => o.orderNumber).toSet();
-                  final fresh = orders.where((o) => !seen.contains(o.orderNumber)).toList();
-                  if (fresh.isNotEmpty) setState(() => _all.addAll(fresh));
                 }
               });
             }
@@ -825,6 +955,99 @@ class _DateRow extends StatelessWidget {
   }
 }
 
+// ── Status sub-lines ──────────────────────────────────────────────────────────
+class _SubLineData {
+  final IconData icon;
+  final String text;
+  final Color textColor, iconColor;
+  const _SubLineData(this.icon, this.text, this.textColor, this.iconColor);
+}
+
+String _pluralItem(int n, String suffix) =>
+    n == 1 ? '1 item $suffix' : '$n items $suffix';
+
+List<_SubLineData> _orderSubLines(OrderModel order) {
+  final lines = <_SubLineData>[];
+  final main = (order.status ?? '').toUpperCase();
+  final details = order.orderDetails;
+
+  // When the whole order is COMPLETED, the main status badge already says it.
+  if (main == 'COMPLETED') return lines;
+
+  if (main == 'PRODUCTION') {
+    final readyForPacking =
+        details.where((d) => d.hasUnpacked == true).length;
+    if (readyForPacking > 0) {
+      lines.add(_SubLineData(Icons.inventory_2_outlined,
+          _pluralItem(readyForPacking, 'ready for packing'),
+          _kAmberTx, _kAmberIc));
+    }
+  }
+
+  int countBy(String status) =>
+      details.where((d) => (d.status ?? '').toUpperCase() == status).length;
+
+  final inProd       = countBy('PRODUCTION');
+  final awaitInvoice = countBy('PACKED');
+  final awaitShip    = countBy('INVOICE');
+  final awaitDeliver = countBy('SHIPPED');
+  final delivered    = countBy('DELIVERED');
+  final completed    = countBy('COMPLETED');
+
+  if (inProd > 0) {
+    lines.add(_SubLineData(Icons.inventory_2_outlined,
+        _pluralItem(inProd, 'in production'),
+        _kIndigoTx, _kIndigoIc));
+  }
+  if (awaitInvoice > 0) {
+    lines.add(_SubLineData(Icons.description_outlined,
+        _pluralItem(awaitInvoice, 'awaiting invoice'),
+        _kAmberTx, _kAmberIc));
+  }
+  if (awaitShip > 0) {
+    lines.add(_SubLineData(Icons.local_shipping_outlined,
+        _pluralItem(awaitShip, 'awaiting shipping'),
+        _kAmberTx, _kAmberIc));
+  }
+  if (awaitDeliver > 0) {
+    lines.add(_SubLineData(Icons.local_shipping_outlined,
+        _pluralItem(awaitDeliver, 'awaiting delivery'),
+        _kAmberTx, _kAmberIc));
+  }
+  if (delivered > 0) {
+    lines.add(_SubLineData(Icons.check_circle_outline,
+        _pluralItem(delivered, 'delivered'),
+        _kGreenTx, _kGreenIc));
+  }
+  if (completed > 0) {
+    lines.add(_SubLineData(Icons.check_circle_outline,
+        _pluralItem(completed, 'completed'),
+        _kGreenTx, _kGreenIc));
+  }
+
+  return lines;
+}
+
+class _SubLine extends StatelessWidget {
+  const _SubLine({required this.data, required this.sw});
+  final _SubLineData data;
+  final double sw;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.symmetric(vertical: sw * 0.005),
+    child: Row(children: [
+      Icon(data.icon,
+          size: (sw * 0.034).clamp(12.0, 15.0), color: data.iconColor),
+      SizedBox(width: sw * 0.018),
+      Expanded(child: Text(data.text, style: TextStyle(
+          fontSize: (sw * 0.028).clamp(9.5, 12.0),
+          fontWeight: FontWeight.w600, color: data.textColor,
+          height: 1.2))),
+    ]),
+  );
+}
+
 // ── Order card ────────────────────────────────────────────────────────────────
 class _OrderCard extends StatelessWidget {
   const _OrderCard({required this.order, required this.sw,
@@ -837,6 +1060,12 @@ class _OrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final st  = _ss(order.status);
     final pri = _priColor(order.priority);
+    final subLines = _orderSubLines(order);
+    final progressBar = OrderProgressBar.maybeFor(
+      progress: order.progress,
+      status: order.status,
+      sw: sw, sh: sh,
+    );
 
     return GestureDetector(
       onTap: onTap,
@@ -913,6 +1142,28 @@ class _OrderCard extends StatelessWidget {
               ),
             ]),
           ),
+
+          // ── Status sub-lines (per-item breakdown) ─────────────────────
+          if (subLines.isNotEmpty) ...[
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                  sw * 0.038, 0, sw * 0.038, sw * 0.028),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final l in subLines) _SubLine(data: l, sw: sw),
+                ],
+              ),
+            ),
+          ],
+
+          // ── Partial-fulfillment progress bar ──────────────────────────
+          if (progressBar != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                  sw * 0.038, 0, sw * 0.038, sw * 0.028),
+              child: progressBar,
+            ),
 
           // ── Divider ───────────────────────────────────────────────────
           Container(height: 0.5, color: const Color(0xFFF3F4F6)),
@@ -1087,4 +1338,773 @@ class _TextBtn extends StatelessWidget {
       )),
     ),
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Salesman / Dealer filter
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PickResult {
+  final String? id;
+  final String? name;
+  const _PickResult(this.id, this.name);
+}
+
+// ── Active filter banner ──────────────────────────────────────────────────────
+class _FilterBanner extends StatelessWidget {
+  const _FilterBanner({
+    required this.salesmanName,
+    required this.dealerName,
+    required this.sw,
+    required this.sh,
+    required this.onClearSalesman,
+    required this.onClearDealer,
+    required this.onClearAll,
+  });
+  final String? salesmanName, dealerName;
+  final double sw, sh;
+  final VoidCallback onClearSalesman, onClearDealer, onClearAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.fromLTRB(sw * 0.045, 0, sw * 0.045, sh * 0.01),
+      padding: EdgeInsets.symmetric(
+          horizontal: sw * 0.025, vertical: sh * 0.008),
+      decoration: BoxDecoration(
+        color: _kPBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _kPBd, width: 0.5),
+      ),
+      child: Row(children: [
+        Icon(Icons.filter_alt_outlined,
+            size: (sw * 0.038).clamp(13.0, 16.0), color: _kP),
+        SizedBox(width: sw * 0.02),
+        Expanded(child: Wrap(
+          spacing: sw * 0.015,
+          runSpacing: sh * 0.005,
+          children: [
+            if (salesmanName != null)
+              _FilterChip(
+                label: 'Salesman: $salesmanName',
+                sw: sw, onClear: onClearSalesman,
+              ),
+            if (dealerName != null)
+              _FilterChip(
+                label: 'Dealer: $dealerName',
+                sw: sw, onClear: onClearDealer,
+              ),
+          ],
+        )),
+        GestureDetector(
+          onTap: onClearAll,
+          child: Padding(
+            padding: EdgeInsets.only(left: sw * 0.02),
+            child: Icon(Icons.close_rounded,
+                size: (sw * 0.038).clamp(13.0, 16.0), color: _kP),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({required this.label, required this.sw, required this.onClear});
+  final String label;
+  final double sw;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: sw * 0.025, vertical: sw * 0.008),
+      decoration: BoxDecoration(
+        color: _kWhite,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kPBd, width: 0.5),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Flexible(child: Text(label,
+            style: TextStyle(
+              fontSize: (sw * 0.028).clamp(9.5, 12.0),
+              color: _kP, fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1, overflow: TextOverflow.ellipsis)),
+        SizedBox(width: sw * 0.012),
+        GestureDetector(
+          onTap: onClear,
+          child: Icon(Icons.close_rounded,
+              size: (sw * 0.032).clamp(11.0, 14.0), color: _kP),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── Filter selection sheet ────────────────────────────────────────────────────
+class _FilterSheet extends StatefulWidget {
+  const _FilterSheet({
+    required this.salesmanId,
+    required this.salesmanName,
+    required this.dealerId,
+    required this.dealerName,
+    required this.onPickSalesman,
+    required this.onPickDealer,
+    required this.onClearAll,
+  });
+  final String? salesmanId, salesmanName, dealerId, dealerName;
+  final Future<_PickResult?> Function() onPickSalesman;
+  final Future<_PickResult?> Function() onPickDealer;
+  final VoidCallback onClearAll;
+
+  @override
+  State<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends State<_FilterSheet> {
+  String? _salesmanName;
+  String? _dealerName;
+
+  @override
+  void initState() {
+    super.initState();
+    _salesmanName = widget.salesmanName;
+    _dealerName   = widget.dealerName;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+    final hasAny = _salesmanName != null || _dealerName != null;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          sw * 0.05, sh * 0.02, sw * 0.05,
+          sh * 0.04 + MediaQuery.viewInsetsOf(context).bottom),
+      child: Column(mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Center(child: Container(
+          width: sw * 0.1, height: 3,
+          decoration: BoxDecoration(
+              color: _kBd, borderRadius: BorderRadius.circular(2)),
+        )),
+        SizedBox(height: sh * 0.022),
+
+        Row(children: [
+          Text('Filter Orders', style: TextStyle(
+            fontSize: (sw * 0.042).clamp(14.0, 19.0),
+            fontWeight: FontWeight.w700, color: _kT1,
+          )),
+          const Spacer(),
+          if (hasAny)
+            GestureDetector(
+              onTap: widget.onClearAll,
+              child: Text('Clear all', style: TextStyle(
+                fontSize: (sw * 0.032).clamp(11.0, 14.0),
+                color: _kRed, fontWeight: FontWeight.w600,
+              )),
+            ),
+        ]),
+        SizedBox(height: sh * 0.025),
+
+        _FilterRow(
+          label: 'Salesman',
+          value: _salesmanName ?? 'All salesmen',
+          hasValue: _salesmanName != null,
+          sw: sw, sh: sh,
+          onTap: () async {
+            final picked = await widget.onPickSalesman();
+            if (!mounted) return;
+            setState(() {
+              _salesmanName = picked?.name;
+              // Salesman change clears dealer too
+              _dealerName = null;
+            });
+          },
+        ),
+        SizedBox(height: sh * 0.012),
+        _FilterRow(
+          label: 'Dealer',
+          value: _dealerName ?? 'All dealers',
+          hasValue: _dealerName != null,
+          subtitle: _salesmanName != null
+              ? "From $_salesmanName's dealers"
+              : null,
+          sw: sw, sh: sh,
+          onTap: () async {
+            final picked = await widget.onPickDealer();
+            if (!mounted) return;
+            setState(() => _dealerName = picked?.name);
+          },
+        ),
+        SizedBox(height: sh * 0.03),
+
+        SizedBox(
+          width: double.infinity,
+          height: sh * 0.058,
+          child: ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kP,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular((sw * 0.03).clamp(8.0, 12.0)),
+              ),
+            ),
+            child: Text('Done', style: TextStyle(
+              fontSize: (sw * 0.038).clamp(13.0, 16.0),
+              fontWeight: FontWeight.w700, color: _kWhite,
+            )),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _FilterRow extends StatelessWidget {
+  const _FilterRow({
+    required this.label,
+    required this.value,
+    required this.hasValue,
+    required this.sw,
+    required this.sh,
+    required this.onTap,
+    this.subtitle,
+  });
+  final String label, value;
+  final bool hasValue;
+  final double sw, sh;
+  final VoidCallback onTap;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+            horizontal: sw * 0.04, vertical: sh * 0.016),
+        decoration: BoxDecoration(
+          color: hasValue ? _kPBg : const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular((sw * 0.025).clamp(8.0, 12.0)),
+          border: Border.all(
+              color: hasValue ? _kPBd : _kBd, width: 0.5),
+        ),
+        child: Row(children: [
+          Icon(label == 'Salesman'
+                  ? Icons.person_outline_rounded
+                  : Icons.storefront_outlined,
+              size: (sw * 0.04).clamp(14.0, 18.0),
+              color: hasValue ? _kP : _kT4),
+          SizedBox(width: sw * 0.03),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: TextStyle(
+                fontSize: (sw * 0.026).clamp(9.0, 11.0),
+                color: _kT4, fontWeight: FontWeight.w500,
+              )),
+              SizedBox(height: sh * 0.002),
+              Text(value, style: TextStyle(
+                fontSize: (sw * 0.032).clamp(11.0, 14.0),
+                color: hasValue ? _kP : _kT3,
+                fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
+              ), maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (subtitle != null) ...[
+                SizedBox(height: sh * 0.002),
+                Text(subtitle!, style: TextStyle(
+                  fontSize: (sw * 0.024).clamp(8.5, 10.5),
+                  color: _kT4,
+                ), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ],
+          )),
+          Icon(Icons.chevron_right_rounded,
+              size: (sw * 0.045).clamp(16.0, 20.0), color: _kT4),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Salesman picker ───────────────────────────────────────────────────────────
+class _SalesmanPicker extends ConsumerStatefulWidget {
+  const _SalesmanPicker();
+  @override
+  ConsumerState<_SalesmanPicker> createState() => _SalesmanPickerState();
+}
+
+class _SalesmanPickerState extends ConsumerState<_SalesmanPicker> {
+  final _ctrl   = TextEditingController();
+  final _scroll = ScrollController();
+  Timer? _debounce;
+
+  String _query        = '';
+  final List<UserModel> _items = [];
+  int   _page          = 1;
+  bool  _hasMore       = true;
+  bool  _loadingMore   = false;
+  static const int _limit = 30;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _scroll.dispose();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 200) {
+      if (!_loadingMore && _hasMore) _loadMore();
+    }
+  }
+
+  void _onSearchChanged(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      final trimmed = v.trim();
+      if (trimmed == _query || !mounted) return;
+      setState(() {
+        _query = trimmed;
+        _items.clear();
+        _page = 1;
+        _hasMore = true;
+        _loadingMore = false;
+      });
+    });
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final next = await ref.read(salesmanListProvider(
+        SalesmanPickerArg(search: _query, page: _page + 1, limit: _limit),
+      ).future);
+      if (!mounted) return;
+      setState(() {
+        if (next.isEmpty) {
+          _hasMore = false;
+        } else {
+          final seen = _items.map((u) => u.employeeId).toSet();
+          _items.addAll(next.where((u) => !seen.contains(u.employeeId)));
+          _page++;
+          if (next.length < _limit) _hasMore = false;
+        }
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+    final async$ = ref.watch(salesmanListProvider(
+      SalesmanPickerArg(search: _query, page: 1, limit: _limit),
+    ));
+
+    async$.whenData((data) {
+      if (_items.isEmpty && data.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _items.addAll(data);
+            if (data.length < _limit) _hasMore = false;
+          });
+        });
+      } else if (data.isEmpty && _items.isEmpty && _hasMore) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _hasMore = false);
+        });
+      }
+    });
+
+    return _PickerScaffold(
+      title: 'Select Salesman',
+      searchHint: 'Search salesman by name…',
+      sw: sw, sh: sh,
+      controller: _ctrl,
+      onSearch: _onSearchChanged,
+      onAll: () => Navigator.pop(context, const _PickResult(null, null)),
+      items: _items,
+      initialLoading: async$.isLoading && _items.isEmpty,
+      hasError: async$.hasError && _items.isEmpty,
+      hasMore: _hasMore,
+      loadingMore: _loadingMore,
+      scrollController: _scroll,
+      tileBuilder: (u) => _PickerTile(
+        title: u.employeeName,
+        subtitle: u.employeePhone,
+        sw: sw, sh: sh,
+        onTap: () => Navigator.pop(
+            context, _PickResult(u.employeeId, u.employeeName)),
+      ),
+    );
+  }
+}
+
+// ── Dealer picker ─────────────────────────────────────────────────────────────
+class _DealerPicker extends ConsumerStatefulWidget {
+  const _DealerPicker({required this.salesmanId});
+  final String? salesmanId;
+  @override
+  ConsumerState<_DealerPicker> createState() => _DealerPickerState();
+}
+
+class _DealerPickerState extends ConsumerState<_DealerPicker> {
+  final _ctrl   = TextEditingController();
+  final _scroll = ScrollController();
+  Timer? _debounce;
+
+  String _query        = '';
+  final List<UserModel> _items = [];
+  int   _page          = 1;
+  bool  _hasMore       = true;
+  bool  _loadingMore   = false;
+  static const int _limit = 30;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _scroll.dispose();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 200) {
+      if (!_loadingMore && _hasMore) _loadMore();
+    }
+  }
+
+  void _onSearchChanged(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      final trimmed = v.trim();
+      if (trimmed == _query || !mounted) return;
+      setState(() {
+        _query = trimmed;
+        _items.clear();
+        _page = 1;
+        _hasMore = true;
+        _loadingMore = false;
+      });
+    });
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final next = await ref.read(dealerPickerProvider(DealerPickerArg(
+        salesmanId: widget.salesmanId,
+        search: _query,
+        page: _page + 1,
+        limit: _limit,
+      )).future);
+      if (!mounted) return;
+      setState(() {
+        if (next.isEmpty) {
+          _hasMore = false;
+        } else {
+          final seen = _items.map((u) => u.employeeId).toSet();
+          _items.addAll(next.where((u) => !seen.contains(u.employeeId)));
+          _page++;
+          if (next.length < _limit) _hasMore = false;
+        }
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = MediaQuery.sizeOf(context).width;
+    final sh = MediaQuery.sizeOf(context).height;
+    final async$ = ref.watch(dealerPickerProvider(DealerPickerArg(
+      salesmanId: widget.salesmanId,
+      search: _query,
+      page: 1,
+      limit: _limit,
+    )));
+
+    async$.whenData((data) {
+      if (_items.isEmpty && data.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _items.addAll(data);
+            if (data.length < _limit) _hasMore = false;
+          });
+        });
+      } else if (data.isEmpty && _items.isEmpty && _hasMore) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _hasMore = false);
+        });
+      }
+    });
+
+    return _PickerScaffold(
+      title: 'Select Dealer',
+      searchHint: 'Search dealer by name or shop…',
+      sw: sw, sh: sh,
+      controller: _ctrl,
+      onSearch: _onSearchChanged,
+      onAll: () => Navigator.pop(context, const _PickResult(null, null)),
+      items: _items,
+      initialLoading: async$.isLoading && _items.isEmpty,
+      hasError: async$.hasError && _items.isEmpty,
+      hasMore: _hasMore,
+      loadingMore: _loadingMore,
+      scrollController: _scroll,
+      tileBuilder: (u) => _PickerTile(
+        title: u.employeeName,
+        subtitle: u.shopName ?? u.employeePhone,
+        sw: sw, sh: sh,
+        onTap: () => Navigator.pop(
+            context, _PickResult(u.employeeId, u.employeeName)),
+      ),
+    );
+  }
+}
+
+// ── Shared picker scaffold ────────────────────────────────────────────────────
+class _PickerScaffold extends StatelessWidget {
+  const _PickerScaffold({
+    required this.title,
+    required this.searchHint,
+    required this.sw,
+    required this.sh,
+    required this.controller,
+    required this.onSearch,
+    required this.onAll,
+    required this.items,
+    required this.initialLoading,
+    required this.hasError,
+    required this.hasMore,
+    required this.loadingMore,
+    required this.scrollController,
+    required this.tileBuilder,
+  });
+  final String title, searchHint;
+  final double sw, sh;
+  final TextEditingController controller;
+  final ValueChanged<String> onSearch;
+  final VoidCallback onAll;
+  final List<UserModel> items;
+  final bool initialLoading, hasError, hasMore, loadingMore;
+  final ScrollController scrollController;
+  final Widget Function(UserModel) tileBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = (sw * 0.025).clamp(8.0, 12.0);
+    final maxH = MediaQuery.sizeOf(context).height * 0.8;
+
+    final Widget body;
+    if (initialLoading) {
+      body = const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator(
+            color: _kP, strokeWidth: 2)),
+      );
+    } else if (hasError) {
+      body = Padding(
+        padding: EdgeInsets.all(sw * 0.04),
+        child: Text('Failed to load. Please try again.',
+            style: TextStyle(
+              fontSize: (sw * 0.032).clamp(11.0, 14.0),
+              color: _kRed, fontWeight: FontWeight.w500,
+            )),
+      );
+    } else if (items.isEmpty) {
+      body = Padding(
+        padding: EdgeInsets.all(sw * 0.06),
+        child: Center(child: Text('No results',
+            style: TextStyle(
+              fontSize: (sw * 0.034).clamp(12.0, 14.0),
+              color: _kT3, fontWeight: FontWeight.w500,
+            ))),
+      );
+    } else {
+      body = ListView.builder(
+        controller: scrollController,
+        itemCount: items.length + ((loadingMore || hasMore) ? 1 : 0),
+        itemBuilder: (_, i) {
+          if (i == items.length) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: sh * 0.02),
+              child: Center(
+                child: loadingMore
+                    ? const SizedBox(
+                        width: 22, height: 22,
+                        child: CircularProgressIndicator(
+                            color: _kP, strokeWidth: 2),
+                      )
+                    : const SizedBox(height: 22),
+              ),
+            );
+          }
+          return Column(children: [
+            tileBuilder(items[i]),
+            if (i < items.length - 1)
+              Container(height: 0.5, color: _kBd),
+          ]);
+        },
+      );
+    }
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxH),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+            sw * 0.05, sh * 0.02, sw * 0.05,
+            sh * 0.02 + MediaQuery.viewInsetsOf(context).bottom),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Center(child: Container(
+            width: sw * 0.1, height: 3,
+            decoration: BoxDecoration(
+                color: _kBd, borderRadius: BorderRadius.circular(2)),
+          )),
+          SizedBox(height: sh * 0.022),
+
+          Row(children: [
+            Text(title, style: TextStyle(
+              fontSize: (sw * 0.042).clamp(14.0, 19.0),
+              fontWeight: FontWeight.w700, color: _kT1,
+            )),
+            const Spacer(),
+            GestureDetector(
+              onTap: onAll,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: sw * 0.035, vertical: sh * 0.008),
+                decoration: BoxDecoration(
+                  color: _kPBg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _kPBd, width: 0.5),
+                ),
+                child: Text('All', style: TextStyle(
+                  fontSize: (sw * 0.03).clamp(10.0, 13.0),
+                  color: _kP, fontWeight: FontWeight.w700,
+                )),
+              ),
+            ),
+          ]),
+          SizedBox(height: sh * 0.018),
+
+          TextField(
+            controller: controller,
+            autofocus: false,
+            onChanged: onSearch,
+            style: TextStyle(
+                fontSize: (sw * 0.035).clamp(12.0, 15.0), color: _kT1),
+            decoration: InputDecoration(
+              hintText: searchHint,
+              hintStyle: TextStyle(
+                  fontSize: (sw * 0.033).clamp(11.0, 14.0), color: _kT4),
+              prefixIcon: Icon(Icons.search_rounded,
+                  color: _kP, size: (sw * 0.045).clamp(16.0, 20.0)),
+              filled: true,
+              fillColor: const Color(0xFFF9FAFB),
+              contentPadding: EdgeInsets.symmetric(vertical: sh * 0.012),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(r),
+                  borderSide: const BorderSide(color: _kBd, width: 0.5)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(r),
+                  borderSide: const BorderSide(color: _kBd, width: 0.5)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(r),
+                  borderSide: const BorderSide(color: _kP, width: 1.5)),
+            ),
+          ),
+          SizedBox(height: sh * 0.015),
+
+          Flexible(child: body),
+        ]),
+      ),
+    );
+  }
+}
+
+class _PickerTile extends StatelessWidget {
+  const _PickerTile({
+    required this.title,
+    required this.subtitle,
+    required this.sw,
+    required this.sh,
+    required this.onTap,
+  });
+  final String title;
+  final String? subtitle;
+  final double sw, sh;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+            horizontal: sw * 0.01, vertical: sh * 0.014),
+        child: Row(children: [
+          Container(
+            width: (sw * 0.09).clamp(30.0, 40.0),
+            height: (sw * 0.09).clamp(30.0, 40.0),
+            decoration: BoxDecoration(
+              color: _kPBg, shape: BoxShape.circle,
+              border: Border.all(color: _kPBd, width: 0.5),
+            ),
+            child: Icon(Icons.person_outline_rounded,
+                size: (sw * 0.045).clamp(16.0, 22.0), color: _kP),
+          ),
+          SizedBox(width: sw * 0.03),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title, style: TextStyle(
+                fontSize: (sw * 0.034).clamp(12.0, 15.0),
+                fontWeight: FontWeight.w600, color: _kT1,
+              ), maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (subtitle != null && subtitle!.isNotEmpty) ...[
+                SizedBox(height: sh * 0.002),
+                Text(subtitle!, style: TextStyle(
+                  fontSize: (sw * 0.028).clamp(9.5, 12.0),
+                  color: _kT3,
+                ), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ],
+          )),
+          Icon(Icons.chevron_right_rounded,
+              size: (sw * 0.045).clamp(16.0, 20.0), color: _kT4),
+        ]),
+      ),
+    );
+  }
 }

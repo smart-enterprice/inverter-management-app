@@ -440,7 +440,15 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
     final isCancelled = item.status == 'CANCELLED';
     final isCompleted = item.status == 'COMPLETED' || item.status == 'DELIVERED';
     final orderStatus = (order.status ?? '').toUpperCase();
-    final isOrderLocked = orderStatus == 'PENDING' || orderStatus == 'REJECTED';
+    // Per-item actions are blocked when the order is awaiting confirmation
+    // or has reached any terminal state (REJECTED, COMPLETED, CANCELLED).
+    // DELIVERED is also terminal in the new contract: the order is signed
+    // off, so any still-pending line items cannot be progressed further.
+    final isOrderLocked = orderStatus == 'PENDING' ||
+        orderStatus == 'REJECTED' ||
+        orderStatus == 'COMPLETED' ||
+        orderStatus == 'CANCELLED' ||
+        orderStatus == 'DELIVERED';
     final maxCancellable = (item.qtyOrdered ?? 0) - (item.qtyDelivered ?? 0);
     final maxDeliverable =
         (item.qtyOrdered ?? 0) - (item.totalCancelledQty ?? 0);

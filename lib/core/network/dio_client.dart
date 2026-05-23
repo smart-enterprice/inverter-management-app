@@ -9,9 +9,26 @@ import '../../feature/authentication/screens/login_mobile_view.dart';
 
 final dioClientProvider = Provider<Dio>((ref) => DioClient.instance);
 class DioClient {
+  // ── Backends ────────────────────────────────────────────────────────────────
+  // Pick the one that matches where you're running. To switch, change the
+  // single `baseUrl` line at the bottom of this block.
+
+  // Only one is referenced at a time — the others are kept as documented
+  // switch-targets, so the lint that flags them as unused is silenced.
+  // ignore_for_file: unused_field
+  static const String _production     = 'https://api.smartenterprises.online/api/v1';
+  static const String _androidEmu     = 'http://10.0.2.2:1280/api/v1';     // Android emulator
+  static const String _iosSim         = 'http://localhost:1280/api/v1';    // iOS simulator
+  static const String _realDeviceLan  = 'http://192.168.29.68:1280/api/v1';// Physical phone over Wi-Fi
+  static const String _flutterWeb     = 'http://localhost:1280/api/v1';    // flutter run -d chrome
+
+  // 👇 ACTIVE URL — change this one line to switch environment.
+  static const String baseUrl = _realDeviceLan;
+
   static final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'https://api.smartenterprises.online/api/v1',
+      baseUrl: baseUrl,
+
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {'Content-Type': 'application/json'},

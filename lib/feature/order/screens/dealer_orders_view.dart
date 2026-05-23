@@ -5,6 +5,7 @@ import 'package:inverter_management_app/core/role/app_role.dart';
 import '../../../feature/order/model/order_model.dart';
 import '../../../widgets/circle_button.dart';
 import '../controller/order_controller.dart';
+import '../widgets/order_progress_bar.dart';
 import 'order_view_page.dart';
 
 // ── Zoho tokens ───────────────────────────────────────────────────────────────
@@ -216,21 +217,25 @@ class _DealerOrdersScreenState extends ConsumerState<DealerOrdersScreen> {
           SizedBox(height: sh * 0.012),
 
           // ── Orders list ───────────────────────────────────────────────────
-          Expanded(child: ordersAsync.when(
-              loading: () => const Center(
-                  child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5)),
-              error: (_, __) => _errorState(context, sw, sh),
-              data: (orders) {
-                final filtered = _filtered(orders);
-                if (filtered.isEmpty) return _emptyState(sw, sh);
-                return RefreshIndicator(color: _kP, backgroundColor: _kWhite,
-                    onRefresh: () async => ref.invalidate(ordersByDealerProvider(widget.dealerId)),
-                    child: ListView.separated(
-                        padding: EdgeInsets.fromLTRB(sw * 0.038, 0, sw * 0.038, sh * 0.04),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => SizedBox(height: sh * 0.012),
-                        itemBuilder: (_, i) => _OrderCard(order: filtered[i])));
-              })),
+          // Keep the list visible during refetch — only show the centered
+          // spinner when there's no cached data yet.
+          Expanded(child: Builder(builder: (_) {
+            final cached = ordersAsync.value;
+            if (cached == null) {
+              if (ordersAsync.hasError) return _errorState(context, sw, sh);
+              return const Center(
+                  child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5));
+            }
+            final filtered = _filtered(cached);
+            if (filtered.isEmpty) return _emptyState(sw, sh);
+            return RefreshIndicator(color: _kP, backgroundColor: _kWhite,
+                onRefresh: () async => ref.invalidate(ordersByDealerProvider(widget.dealerId)),
+                child: ListView.separated(
+                    padding: EdgeInsets.fromLTRB(sw * 0.038, 0, sw * 0.038, sh * 0.04),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => SizedBox(height: sh * 0.012),
+                    itemBuilder: (_, i) => _OrderCard(order: filtered[i])));
+          })),
         ])));
   }
 
@@ -281,6 +286,11 @@ class _OrderCard extends StatelessWidget {
     final status = order.status?.toUpperCase() ?? '';
     final st = _statusTokens(status);
     final pt = _priorityTokens(order.priority);
+    final progressBar = OrderProgressBar.maybeFor(
+      progress: order.progress,
+      status: order.status,
+      sw: sw, sh: sh,
+    );
 
     return GestureDetector(
         onTap: () => Navigator.push(context, MaterialPageRoute(
@@ -319,6 +329,11 @@ class _OrderCard extends StatelessWidget {
                     ]),
                     SizedBox(height: sh * 0.012),
                   ])),
+
+              if (progressBar != null) ...[
+                progressBar,
+                SizedBox(height: sh * 0.012),
+              ],
 
               // Bottom: priority + date + chevron
               Row(children: [

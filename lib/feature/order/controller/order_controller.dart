@@ -1,6 +1,7 @@
 // order_controller.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../feature/order/model/order_model.dart';
+import '../../../feature/order/model/production_summary_model.dart';
 import '../repository/order_repository.dart';
 
 // ─────────────────────────────────────────────
@@ -23,7 +24,15 @@ class PaginatedOrderParams {
   final String? status;
   final int page;
   final int limit;
-  const PaginatedOrderParams({this.status, required this.page, required this.limit});
+  final String? salesmanId;
+  final String? dealerId;
+  const PaginatedOrderParams({
+    this.status,
+    required this.page,
+    required this.limit,
+    this.salesmanId,
+    this.dealerId,
+  });
   bool get isAll => status == null || status == 'ALL';
 
   @override
@@ -31,9 +40,11 @@ class PaginatedOrderParams {
       other is PaginatedOrderParams &&
           other.status == status &&
           other.page == page &&
-          other.limit == limit;
+          other.limit == limit &&
+          other.salesmanId == salesmanId &&
+          other.dealerId == dealerId;
   @override
-  int get hashCode => Object.hash(status, page, limit);
+  int get hashCode => Object.hash(status, page, limit, salesmanId, dealerId);
 }
 
 class DateFilterParams {
@@ -43,6 +54,8 @@ class DateFilterParams {
   final String? deliveryEndDate;
   final int page;
   final int limit;
+  final String? salesmanId;
+  final String? dealerId;
 
   const DateFilterParams({
     this.startDate,
@@ -51,6 +64,8 @@ class DateFilterParams {
     this.deliveryEndDate,
     this.page = 1,
     this.limit = 20,
+    this.salesmanId,
+    this.dealerId,
   });
 
   DateFilterParams copyWith({
@@ -60,6 +75,8 @@ class DateFilterParams {
     String? deliveryEndDate,
     int? page,
     int? limit,
+    String? salesmanId,
+    String? dealerId,
   }) => DateFilterParams(
     startDate: startDate ?? this.startDate,
     endDate: endDate ?? this.endDate,
@@ -67,6 +84,8 @@ class DateFilterParams {
     deliveryEndDate: deliveryEndDate ?? this.deliveryEndDate,
     page: page ?? this.page,
     limit: limit ?? this.limit,
+    salesmanId: salesmanId ?? this.salesmanId,
+    dealerId: dealerId ?? this.dealerId,
   );
 
   @override
@@ -77,11 +96,21 @@ class DateFilterParams {
           other.deliveryStartDate == deliveryStartDate &&
           other.deliveryEndDate == deliveryEndDate &&
           other.page == page &&
-          other.limit == limit;
+          other.limit == limit &&
+          other.salesmanId == salesmanId &&
+          other.dealerId == dealerId;
 
   @override
-  int get hashCode =>
-      Object.hash(startDate, endDate, deliveryStartDate, deliveryEndDate, page, limit);
+  int get hashCode => Object.hash(
+        startDate,
+        endDate,
+        deliveryStartDate,
+        deliveryEndDate,
+        page,
+        limit,
+        salesmanId,
+        dealerId,
+      );
 }
 
 // ─────────────────────────────────────────────
@@ -95,6 +124,8 @@ final paginatedOrdersProvider = FutureProvider.autoDispose
     status: params.isAll ? null : params.status,
     page: params.page,
     limit: params.limit,
+    salesman: params.salesmanId,
+    dealer: params.dealerId,
   );
 });
 
@@ -116,6 +147,8 @@ final filteredOrdersProvider = FutureProvider.autoDispose
     deliveryEndDate: params.deliveryEndDate,
     page: params.page,
     limit: params.limit,
+    salesman: params.salesmanId,
+    dealer: params.dealerId,
   );
 });
 
@@ -135,6 +168,12 @@ final ordersByDealerProvider = FutureProvider.autoDispose
     .family<List<OrderModel>, String>((ref, dealerId) async {
   final repository = ref.watch(orderRepositoryProvider);
   return repository.getOrdersByDealer(dealerId);
+});
+
+final productionSummaryProvider =
+    FutureProvider.autoDispose<List<ProductionSummaryRow>>((ref) async {
+  final repository = ref.watch(orderRepositoryProvider);
+  return repository.getProductionSummary();
 });
 
 // ─────────────────────────────────────────────

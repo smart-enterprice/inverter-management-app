@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/const/icons.dart';
 import '../../core/role/app_role.dart';
+import '../../feature/analytics/presentation/screens/analytics_screen.dart';
 import '../../feature/brand/screens/brands_page.dart';
 import '../../feature/order/screens/order_create_page.dart';
+import '../../feature/order/screens/production_summary_screen.dart';
 import '../../feature/product/screens/products_screen.dart';
 import '../../feature/signup/screens/dealer/dealers_screen.dart';
 import '../../feature/signup/screens/user/users_screen.dart';
@@ -28,6 +30,17 @@ class RolePanel extends ConsumerWidget {
         bg: Color(0xFFEBF4FF),
         border: Color(0xFFBFD9F5),
         page: OrderCreatePage(),
+      ),
+    ),
+    _PanelEntry(
+      feature: AppFeature.viewProductionSummary,
+      card: QuickAccessCardData(
+        title: 'Production',
+        iconPath: AppIcons.box,
+        accent: Color(0xFFEA580C),
+        bg: Color(0xFFFFF7ED),
+        border: Color(0xFFFED7AA),
+        page: ProductionSummaryScreen(),
       ),
     ),
     _PanelEntry(
@@ -72,6 +85,17 @@ class RolePanel extends ConsumerWidget {
         bg: Color(0xFFEEF2FF),
         border: Color(0xFFC7D2FE),
         page: UsersScreen(),
+      ),
+    ),
+    _PanelEntry(
+      feature: AppFeature.viewAnalytics,
+      card: QuickAccessCardData(
+        title: 'Analytics',
+        iconPath: AppIcons.chart,
+        accent: Color(0xFF0F766E),
+        bg: Color(0xFFECFDF5),
+        border: Color(0xFFA7F3D0),
+        page: AnalyticsScreen(),
       ),
     ),
   ];

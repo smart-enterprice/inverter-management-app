@@ -44,6 +44,81 @@ final usersByRoleProvider =
   return ref.read(signupControllerProvider.notifier).getUsersByRole(role);
 });
 
+/// Active salesmen for filter pickers. Keyed by search + page so the picker
+/// can paginate independently of other consumers.
+class SalesmanPickerArg {
+  final String search;
+  final int page;
+  final int limit;
+  const SalesmanPickerArg({
+    required this.search,
+    this.page = 1,
+    this.limit = 30,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is SalesmanPickerArg &&
+      other.search == search &&
+      other.page == page &&
+      other.limit == limit;
+  @override
+  int get hashCode => Object.hash(search, page, limit);
+}
+
+final salesmanListProvider = FutureProvider.autoDispose
+    .family<List<UserModel>, SalesmanPickerArg>((ref, arg) async {
+  return ref.read(signupRepositoryProvider).getSalesmen(
+        search: arg.search.isEmpty ? null : arg.search,
+        page: arg.page,
+        limit: arg.limit,
+      );
+});
+
+/// Dealers for the order-filter picker. Re-keys on salesmanId+search+page so it
+/// stays independent from the main DealersScreen's [dealerListProvider].
+class DealerPickerArg {
+  final String? salesmanId;
+  final String search;
+  final int page;
+  final int limit;
+  const DealerPickerArg({
+    this.salesmanId,
+    required this.search,
+    this.page = 1,
+    this.limit = 30,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is DealerPickerArg &&
+      other.salesmanId == salesmanId &&
+      other.search == search &&
+      other.page == page &&
+      other.limit == limit;
+  @override
+  int get hashCode => Object.hash(salesmanId, search, page, limit);
+}
+
+final dealerPickerProvider = FutureProvider.autoDispose
+    .family<List<UserModel>, DealerPickerArg>((ref, arg) async {
+  final repo = ref.read(signupRepositoryProvider);
+  if (arg.salesmanId != null) {
+    return repo.getSalesmanDealers(
+      salesmanId: arg.salesmanId!,
+      search: arg.search.isEmpty ? null : arg.search,
+      page: arg.page,
+      limit: arg.limit,
+    );
+  }
+  return repo.getDealers(
+    search: arg.search.isEmpty ? null : arg.search,
+    status: 'active',
+    page: arg.page,
+    limit: arg.limit,
+  );
+});
+
 final currentUserProvider =
     FutureProvider.autoDispose<UserModel?>((ref) async {
   final prefs = await SharedPreferences.getInstance();

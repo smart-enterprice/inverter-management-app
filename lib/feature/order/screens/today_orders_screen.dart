@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/const/icons.dart';
 import '../controller/order_controller.dart';
 import '../../../feature/order/model/order_model.dart';
+import '../widgets/order_progress_bar.dart';
 import 'order_view_page.dart';
 import '../../../core/role/app_role.dart';
 
@@ -145,6 +146,46 @@ class _TodayOrdersScreenState extends ConsumerState<TodayOrdersScreen>
     ref.invalidate(filteredOrdersProvider(_delivParams(1)));
   }
 
+  // Renders either the cached list (preferred — never wipes the UI on
+  // re-fetch) or, only on initial load, the centered spinner / error.
+  Widget _buildBody({
+    required double sw,
+    required double sh,
+    required AsyncValue<List<OrderModel>> async$,
+    required List<OrderModel> cached,
+    required String emptyMsg,
+    required bool hasMore,
+    required bool loadingMore,
+    required Future<void> Function() onRefresh,
+    required Future<void> Function() onLoadMore,
+  }) {
+    if (cached.isEmpty) {
+      return async$.when(
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5)),
+        error: (e, _) => _ErrorView(sw: sw, sh: sh, message: 'Error: $e'),
+        data: (_) => _PaginatedList(
+          sw: sw, sh: sh,
+          orders: cached,
+          emptyMsg: emptyMsg,
+          hasMore: hasMore,
+          loadingMore: loadingMore,
+          onRefresh: onRefresh,
+          onLoadMore: onLoadMore,
+        ),
+      );
+    }
+    return _PaginatedList(
+      sw: sw, sh: sh,
+      orders: cached,
+      emptyMsg: emptyMsg,
+      hasMore: hasMore,
+      loadingMore: loadingMore,
+      onRefresh: onRefresh,
+      onLoadMore: onLoadMore,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.sizeOf(context).width;
@@ -206,52 +247,49 @@ class _TodayOrdersScreenState extends ConsumerState<TodayOrdersScreen>
           ])),
 
           // ── Body ───────────────────────────────────────────────────────────
+          // Only show the centered spinner when we have no cached data yet
+          // (initial load). On refetch/refresh, keep the existing list
+          // visible — RefreshIndicator already provides the refresh feedback.
           Expanded(child: isDelivery
 
           // ── Delivery role ──────────────────────────────────────────────
-              ? deliveryAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5)),
-              error: (e, _) => _ErrorView(sw: sw, sh: sh, message: 'Error: $e'),
-              data: (_) => _PaginatedList(
-                sw: sw, sh: sh,
-                orders: _deliveries,
-                emptyMsg: 'No deliveries scheduled today',
-                hasMore: _delivMore,
-                loadingMore: _delivLoadingMore,
-                onRefresh: _refreshDeliveries,
-                onLoadMore: _loadMoreDeliveries,
-              ))
-
-          // ── Admin / others ─────────────────────────────────────────────
-              : TabBarView(controller: _tabCtrl, children: [
-
-            // Tab 0 — Today's Orders
-            ordersAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5)),
-                error: (e, _) => _ErrorView(sw: sw, sh: sh, message: 'Error: $e'),
-                data: (_) => _PaginatedList(
+              ? _buildBody(
                   sw: sw, sh: sh,
-                  orders: _orders,
-                  emptyMsg: 'No orders placed today',
-                  hasMore: _ordersMore,
-                  loadingMore: _ordersLoadingMore,
-                  onRefresh: _refreshOrders,
-                  onLoadMore: _loadMoreOrders,
-                )),
-
-            // Tab 1 — Today's Deliveries
-            deliveryAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5)),
-                error: (e, _) => _ErrorView(sw: sw, sh: sh, message: 'Error: $e'),
-                data: (_) => _PaginatedList(
-                  sw: sw, sh: sh,
-                  orders: _deliveries,
+                  async$: deliveryAsync,
+                  cached: _deliveries,
                   emptyMsg: 'No deliveries scheduled today',
                   hasMore: _delivMore,
                   loadingMore: _delivLoadingMore,
                   onRefresh: _refreshDeliveries,
                   onLoadMore: _loadMoreDeliveries,
-                )),
+                )
+
+          // ── Admin / others ─────────────────────────────────────────────
+              : TabBarView(controller: _tabCtrl, children: [
+
+            // Tab 0 — Today's Orders
+            _buildBody(
+              sw: sw, sh: sh,
+              async$: ordersAsync,
+              cached: _orders,
+              emptyMsg: 'No orders placed today',
+              hasMore: _ordersMore,
+              loadingMore: _ordersLoadingMore,
+              onRefresh: _refreshOrders,
+              onLoadMore: _loadMoreOrders,
+            ),
+
+            // Tab 1 — Today's Deliveries
+            _buildBody(
+              sw: sw, sh: sh,
+              async$: deliveryAsync,
+              cached: _deliveries,
+              emptyMsg: 'No deliveries scheduled today',
+              hasMore: _delivMore,
+              loadingMore: _delivLoadingMore,
+              onRefresh: _refreshDeliveries,
+              onLoadMore: _loadMoreDeliveries,
+            ),
           ]),
           ),
         ])));
@@ -386,6 +424,11 @@ class _OrderCard extends StatelessWidget {
   @override Widget build(BuildContext context) {
     final st  = _ss(order.status);
     final pri = _priColor(order.priority);
+    final progressBar = OrderProgressBar.maybeFor(
+      progress: order.progress,
+      status: order.status,
+      sw: sw, sh: sh,
+    );
     return GestureDetector(onTap: onTap,
         child: Container(
             decoration: BoxDecoration(color: _kWhite,
@@ -426,6 +469,12 @@ class _OrderCard extends StatelessWidget {
                             fontSize: (sw*0.024).clamp(8.5,11),
                             fontWeight: FontWeight.w700, color: st.fg))),
                   ])),
+              if (progressBar != null)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                      sw*0.04, 0, sw*0.04, sw*0.028),
+                  child: progressBar,
+                ),
               Divider(height: 1, color: _kBd),
               Padding(padding: EdgeInsets.symmetric(
                   horizontal: sw*0.04, vertical: sw*0.028),

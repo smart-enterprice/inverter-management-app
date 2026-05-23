@@ -104,6 +104,10 @@ class OrderModel {
   final int? totalCancelledQty;
   final List<CancellationHistoryModel>? cancellationHistory;
 
+  // Partial-fulfillment snapshot, added by backend on list/detail endpoints.
+  // Nullable: older endpoints (or stale clients) may omit it.
+  final OrderProgress? progress;
+
   OrderModel({
     this.orderNumber,
     required this.dealerId,
@@ -129,6 +133,7 @@ class OrderModel {
     this.totalCancelledQty,
     this.cancellationHistory,
     this.reasonForCancellation,
+    this.progress,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -168,6 +173,9 @@ class OrderModel {
           .map((x) => CancellationHistoryModel.fromJson(x)))
           : [],
       reasonForCancellation: json["reason_for_cancellation"],
+      progress: json["progress"] is Map<String, dynamic>
+          ? OrderProgress.fromJson(json["progress"] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -256,6 +264,7 @@ class OrderModel {
     int? totalCancelledQty,
     List<CancellationHistoryModel>? cancellationHistory,
     String? reasonForCancellation,
+    OrderProgress? progress,
   }) {
     return OrderModel(
       orderNumber: orderNumber ?? this.orderNumber,
@@ -283,6 +292,56 @@ class OrderModel {
       cancellationHistory: cancellationHistory ?? this.cancellationHistory,
       reasonForCancellation:
       reasonForCancellation ?? this.reasonForCancellation,
+      progress: progress ?? this.progress,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// OrderProgress
+// ─────────────────────────────────────────────
+class OrderProgress {
+  final int qtyOrderedTotal;
+  final int qtyDeliveredTotal;
+  final int qtyCancelledTotal;
+  final int qtyInProductionTotal;
+  final int qtyPackedTotal;
+  final int qtyInvoicedTotal;
+  final int qtyShippedTotal;
+  final int qtyRemainingTotal;
+  final int itemsTotal;
+  final int itemsDelivered;
+  final int deliveredPercent;
+
+  const OrderProgress({
+    required this.qtyOrderedTotal,
+    required this.qtyDeliveredTotal,
+    required this.qtyCancelledTotal,
+    required this.qtyInProductionTotal,
+    required this.qtyPackedTotal,
+    required this.qtyInvoicedTotal,
+    required this.qtyShippedTotal,
+    required this.qtyRemainingTotal,
+    required this.itemsTotal,
+    required this.itemsDelivered,
+    required this.deliveredPercent,
+  });
+
+  factory OrderProgress.fromJson(Map<String, dynamic> json) {
+    int asInt(dynamic v) =>
+        v == null ? 0 : (v is int ? v : int.tryParse(v.toString()) ?? 0);
+    return OrderProgress(
+      qtyOrderedTotal:      asInt(json['qty_ordered_total']),
+      qtyDeliveredTotal:    asInt(json['qty_delivered_total']),
+      qtyCancelledTotal:    asInt(json['qty_cancelled_total']),
+      qtyInProductionTotal: asInt(json['qty_in_production_total']),
+      qtyPackedTotal:       asInt(json['qty_packed_total']),
+      qtyInvoicedTotal:     asInt(json['qty_invoiced_total']),
+      qtyShippedTotal:      asInt(json['qty_shipped_total']),
+      qtyRemainingTotal:    asInt(json['qty_remaining_total']),
+      itemsTotal:           asInt(json['items_total']),
+      itemsDelivered:       asInt(json['items_delivered']),
+      deliveredPercent:     asInt(json['delivered_percent']),
     );
   }
 }

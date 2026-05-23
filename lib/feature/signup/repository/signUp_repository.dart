@@ -68,6 +68,7 @@ class SignupRepository {
         'limit': limit,
         'role': 'ROLE_DEALER',
         'status': 'active',
+        'scope': 'ASSIGNED_ONLY',
         'includeDealers': true,
         'salesmanIds': salesmanId,
         if (search != null && search.isNotEmpty) 'search': search,
@@ -75,6 +76,27 @@ class SignupRepository {
       final response = await _dio.get('/employees', queryParameters: queryParams);
       final rawList = response.data['data']?['employees'] as List? ?? [];
       return rawList.map((e) => UserModel.fromJson(e)).toList();
+    });
+  }
+
+  Future<List<UserModel>> getSalesmen({
+    int page = 1,
+    int limit = 50,
+    String? search,
+  }) {
+    return guardDio(() async {
+      final queryParams = <String, dynamic>{
+        'page': page,
+        'limit': limit,
+        'role': 'ROLE_SALESMAN',
+        'status': 'active',
+        'includePassword': false,
+        if (search != null && search.isNotEmpty) 'search': search,
+      };
+      final response = await _dio.get('/employees', queryParameters: queryParams);
+      return (response.data['data']['employees'] as List)
+          .map((e) => UserModel.fromJson(e))
+          .toList();
     });
   }
 

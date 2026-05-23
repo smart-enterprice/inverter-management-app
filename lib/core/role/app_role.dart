@@ -114,6 +114,8 @@ class AppFeature {
   // Dashboard
   static const String viewDashboard     = 'view_dashboard';
   static const String viewReports       = 'view_reports';
+  static const String viewAnalytics     = 'view_analytics';
+  static const String viewProductionSummary = 'view_production_summary';
 
   // Create section
   static const String accessCreatePanel = 'access_create_panel';
@@ -155,6 +157,7 @@ class AppPermissions {
     AppRole.superAdmin: {
       AppFeature.viewCreator,
       AppFeature.viewAllOrders,
+      AppFeature.viewProductionSummary,
       AppFeature.createOrder,
       AppFeature.updateOrderStatus,
       AppFeature.cancelOrder,
@@ -184,6 +187,7 @@ class AppPermissions {
       AppFeature.manageDiscounts,
       AppFeature.viewDashboard,
       AppFeature.viewReports,
+      AppFeature.viewAnalytics,
       AppFeature.accessCreatePanel,
       AppFeature.accessControlPanel,
       AppFeature.discountCreate,
@@ -209,6 +213,7 @@ class AppPermissions {
     AppRole.admin: {
       AppFeature.viewCreator,
       AppFeature.viewAllOrders,
+      AppFeature.viewProductionSummary,
       AppFeature.createOrder,
       AppFeature.updateOrderStatus,
       AppFeature.cancelOrder,
@@ -238,6 +243,7 @@ class AppPermissions {
       AppFeature.manageDiscounts,
       AppFeature.viewDashboard,
       AppFeature.viewReports,
+      AppFeature.viewAnalytics,
       AppFeature.accessCreatePanel,
       AppFeature.accessControlPanel,
       AppFeature.discountCreate,
@@ -263,6 +269,7 @@ class AppPermissions {
     AppRole.manager: {
       AppFeature.viewCreator,
       AppFeature.viewAllOrders,
+      AppFeature.viewProductionSummary,
       AppFeature.createOrder,
       AppFeature.updateOrderStatus,
       AppFeature.cancelOrder,
@@ -290,6 +297,7 @@ class AppPermissions {
       AppFeature.manageDiscounts,
       AppFeature.viewDashboard,
       AppFeature.viewReports,
+      AppFeature.viewAnalytics,
       AppFeature.accessCreatePanel,
       AppFeature.accessControlPanel,
       // AppFeature.discountCreate,

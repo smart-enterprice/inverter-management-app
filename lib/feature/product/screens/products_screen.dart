@@ -245,27 +245,36 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
         required bool hasMore,
         required bool isFiltering,
       }) {
-    return productState.when(
-      // First-ever load: full spinner is OK because there's no list yet
-      loading: () => const Center(
+    // Keep the list visible during re-fetch — only show a full spinner on
+    // the very first load when there's no cached data yet.
+    final cached = productState.value;
+    if (cached == null) {
+      if (productState.hasError) return _bodyErrorView(sw, sh);
+      return const Center(
         child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5),
-      ),
+      );
+    }
+    return _buildProductsBody(
+        context, sw, sh, cached, hasMore: hasMore, isFiltering: isFiltering);
+  }
 
-      // Error: just show error in the body, header/chips stay visible
-      error: (err, _) => _bodyErrorView(sw, sh),
+  Widget _buildProductsBody(
+      BuildContext context, double sw, double sh,
+      List products, {
+        required bool hasMore,
+        required bool isFiltering,
+      }) {
+    // Filter change in flight + we still have old data → show overlay
+    if (isFiltering && products.isEmpty) {
+      // Filter change cleared the list — show body spinner
+      return const Center(
+        child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5),
+      );
+    }
 
-      data: (products) {
-        // Filter change in flight + we still have old data → show overlay
-        if (isFiltering && products.isEmpty) {
-          // Filter change cleared the list — show body spinner
-          return const Center(
-            child: CircularProgressIndicator(color: _kP, strokeWidth: 2.5),
-          );
-        }
+    if (products.isEmpty) return _emptyView(sw, sh);
 
-        if (products.isEmpty) return _emptyView(sw, sh);
-
-        return Stack(
+    return Stack(
           children: [
             RefreshIndicator(
               color: _kP,
@@ -328,8 +337,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               ),
           ],
         );
-      },
-    );
   }
 
   // ── Body error (no app bar — header/chips already rendered above) ────────
