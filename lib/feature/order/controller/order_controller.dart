@@ -237,4 +237,20 @@ class OrderController extends AsyncNotifier<List<OrderModel>> {
   }) {
     return _repo.getOrdersByDealer(dealerId, limit: limit);
   }
+
+  /// Append items to an existing order. Returns the freshly-fetched order so
+  /// the detail screen can update without a separate round-trip. Also
+  /// invalidates list/detail providers so they refetch lazily.
+  Future<OrderModel> addItemsToOrder(
+    String orderNumber,
+    List<Map<String, dynamic>> items,
+  ) async {
+    final updated = await _repo.addItemsToOrder(orderNumber, items);
+    ref.invalidate(orderByIdProvider(orderNumber));
+    ref.invalidate(recentOrdersProvider);
+    ref.invalidate(productionSummaryProvider);
+    // Refresh the master list so dashboard KPIs etc. catch up.
+    await getAllOrders();
+    return updated;
+  }
 }

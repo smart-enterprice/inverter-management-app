@@ -115,6 +115,34 @@ class OrderRepository {
     );
   }
 
+  /// Append new line items to an existing order.
+  ///
+  /// Wraps `POST /order-details/:orderNumber/items`. Server-side rules: order
+  /// must not be in DELIVERED / COMPLETED / CANCELLED / REJECTED, caller must
+  /// be the order's creator or have SUPER_ADMIN / ADMIN / MANAGER role.
+  ///
+  /// `items` is a list of payloads in the same shape as `order_details[]` on
+  /// create:
+  ///   { product_id, qty_ordered, delivery_date, is_product_scheme,
+  ///     dealer_discount_id?, discount_price? }
+  Future<OrderModel> addItemsToOrder(
+    String orderNumber,
+    List<Map<String, dynamic>> items,
+  ) {
+    return guardDio(() async {
+      final response = await _dio.post(
+        '/order-details/$orderNumber/items',
+        data: {'order_details': items},
+      );
+      // Backend returns `{ success, message, data: { order: {...} } }`.
+      final data = response.data['data'];
+      final orderJson = (data is Map && data['order'] != null)
+          ? data['order'] as Map<String, dynamic>
+          : (data as Map<String, dynamic>);
+      return OrderModel.fromJson(orderJson);
+    }, fallback: 'Add items failed');
+  }
+
   Future<List<ProductionSummaryRow>> getProductionSummary() {
     return guardDio(() async {
       final response = await _dio.get('/order-details/production-summary');

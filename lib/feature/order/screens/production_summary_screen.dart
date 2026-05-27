@@ -459,13 +459,23 @@ class _ProductCard extends StatelessWidget {
           ),
         ),
 
-        // ── Expanded dealer list ──────────────────────────────────────────
+        // ── Expanded dealer thread (Reddit-style: shop · phone → orders) ──
         if (expanded && hasDealers) ...[
           Container(height: 0.5, color: _kBdLite),
-          for (var i = 0; i < row.dealers.length; i++) ...[
-            if (i > 0) Container(height: 0.5, color: _kBdLite),
-            _DealerRow(d: row.dealers[i], sw: sw, sh: sh),
-          ],
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                sw * 0.04, sh * 0.012, sw * 0.04, sh * 0.014),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: List.generate(row.dealers.length, (i) {
+                return _DealerThread(
+                  d: row.dealers[i],
+                  isLast: i == row.dealers.length - 1,
+                  sw: sw, sh: sh,
+                );
+              }),
+            ),
+          ),
         ],
       ]),
     );
@@ -487,77 +497,200 @@ class _ProductCard extends StatelessWidget {
   ];
 }
 
-// ── Dealer row (inside expanded card) ─────────────────────────────────────────
-class _DealerRow extends StatelessWidget {
-  const _DealerRow({required this.d, required this.sw, required this.sh});
+// ─────────────────────────────────────────────────────────────────────────────
+// Reddit-style thread: Product → Dealer (shop · phone) → Orders (#ORD · qty)
+//
+// _DealerThread renders one dealer block:
+//   - a vertical line on the left
+//   - an L-elbow connecting to the dealer row
+//   - shop name + phone only (no person name, no town, no status chips)
+//   - nested orders[] below, each connected with its own thread line
+//
+// The vertical line stops at the elbow for the LAST dealer (and last order),
+// otherwise it extends to the bottom — same pattern Reddit uses.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _kLine    = Color(0xFFBFD9F5); // _kPBd — main thread line
+const _kLineSub = Color(0xFFD9E8F8); // softer line for nested orders
+
+class _DealerThread extends StatelessWidget {
+  const _DealerThread({
+    required this.d,
+    required this.isLast,
+    required this.sw,
+    required this.sh,
+  });
+
   final DealerProductionSummary d;
+  final bool isLast;
   final double sw, sh;
 
   @override
   Widget build(BuildContext context) {
-    final entries = <_CountEntry>[
-      if (d.production > 0) _CountEntry('PROD', d.production, _kProdFg),
-      if (d.packed     > 0) _CountEntry('PACK', d.packed,     _kPackFg),
-      if (d.invoice    > 0) _CountEntry('INV',  d.invoice,    _kInvFg),
-      if (d.shipped    > 0) _CountEntry('SHIP', d.shipped,    _kShipFg),
-    ];
-    final shop = d.shopName.isEmpty ? null : d.shopName;
-    final subParts = [
-      if (d.town.isNotEmpty) d.town,
-      if (d.employeePhone.isNotEmpty) d.employeePhone,
-    ];
+    // Visual constants for the thread layout.
+    const railX     = 8.0;  // x-position of the vertical rail
+    const elbowY    = 22.0; // y-position of the L-elbow
+    const elbowW    = 16.0; // horizontal stub length
+    const contentX  = 30.0; // content indent (past elbow + a touch of breathing)
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          sw * 0.038, sh * 0.012, sw * 0.038, sh * 0.012),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+    final shop = d.shopName.isEmpty ? '—' : d.shopName;
+    final town = d.town;
+
+    return IntrinsicHeight(
+      child: Stack(
         children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: Column(
+          // Vertical rail (top → bottom for non-last, top → elbow for last).
+          Positioned(
+            left: railX,
+            top: 0,
+            bottom: isLast ? null : 0,
+            child: Container(
+              width: 1,
+              height: isLast ? elbowY : null,
+              color: _kLine,
+            ),
+          ),
+          // L-elbow connecting rail to dealer row.
+          Positioned(
+            left: railX,
+            top: elbowY,
+            child: Container(width: elbowW, height: 1, color: _kLine),
+          ),
+
+          // Content (dealer header + nested orders).
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                contentX, sh * 0.012, 0, isLast ? 0 : sh * 0.014),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(d.dealerName.isEmpty ? '—' : d.dealerName,
-                    style: TextStyle(
-                      fontSize: (sw * 0.034).clamp(12.0, 14.5),
-                      fontWeight: FontWeight.w600, color: _kT2,
+                // ── Dealer row: shop name + phone (one short line) ────────
+                Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                  Icon(Icons.storefront_outlined,
+                      size: (sw * 0.038).clamp(13.0, 16.0), color: _kT3),
+                  SizedBox(width: sw * 0.018),
+                  Expanded(
+                    child: Text(
+                      shop,
+                      style: TextStyle(
+                        fontSize: (sw * 0.034).clamp(12.5, 14.5),
+                        fontWeight: FontWeight.w700,
+                        color: _kT1,
+                        letterSpacing: -0.1,
+                      ),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (shop != null) ...[
-                  SizedBox(height: sh * 0.002),
-                  Text(shop, style: TextStyle(
-                    fontSize: (sw * 0.028).clamp(9.5, 12.0),
-                    color: _kT3, fontWeight: FontWeight.w500,
-                  ), maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
-                if (subParts.isNotEmpty) ...[
-                  SizedBox(height: sh * 0.002),
-                  Text(subParts.join(' · '), style: TextStyle(
-                    fontSize: (sw * 0.026).clamp(9.0, 11.0),
-                    color: _kT4, fontWeight: FontWeight.w500,
-                  ), maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
+                  ),
+                  if (town.isNotEmpty) ...[
+                    SizedBox(width: sw * 0.02),
+                    Text(
+                      town,
+                      style: TextStyle(
+                        fontSize: (sw * 0.030).clamp(10.5, 12.5),
+                        fontWeight: FontWeight.w600,
+                        color: _kT3,
+                      ),
+                    ),
+                  ],
+                ]),
+
+                // ── Nested orders thread ─────────────────────────────────
+                if (d.orders.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: sh * 0.006),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: List.generate(d.orders.length, (i) {
+                        return _OrderThread(
+                          o: d.orders[i],
+                          isLast: i == d.orders.length - 1,
+                          sw: sw, sh: sh,
+                        );
+                      }),
+                    ),
+                  ),
               ],
-            )),
-            SizedBox(width: sw * 0.025),
-            Text(_fmt(d.totalQty), style: TextStyle(
-              fontSize: (sw * 0.034).clamp(11.5, 15.0),
-              fontWeight: FontWeight.w700, color: _kT2,
-              letterSpacing: -0.1,
-            )),
-          ]),
-          if (entries.isNotEmpty) ...[
-            SizedBox(height: sh * 0.008),
-            Wrap(
-              spacing: sw * 0.035,
-              runSpacing: sh * 0.003,
-              children: entries
-                  .map((e) => _CountInline(e: e, sw: sw, small: true))
-                  .toList(),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderThread extends StatelessWidget {
+  const _OrderThread({
+    required this.o,
+    required this.isLast,
+    required this.sw,
+    required this.sh,
+  });
+
+  final DealerOrderRef o;
+  final bool isLast;
+  final double sw, sh;
+
+  @override
+  Widget build(BuildContext context) {
+    const railX  = 4.0;
+    const elbowY = 11.0;
+    const elbowW = 12.0;
+    const contentX = 22.0;
+
+    return IntrinsicHeight(
+      child: Stack(
+        children: [
+          // Vertical rail
+          Positioned(
+            left: railX,
+            top: 0,
+            bottom: isLast ? null : 0,
+            child: Container(
+              width: 1,
+              height: isLast ? elbowY : null,
+              color: _kLineSub,
+            ),
+          ),
+          // Elbow
+          Positioned(
+            left: railX,
+            top: elbowY,
+            child: Container(width: elbowW, height: 1, color: _kLineSub),
+          ),
+          // Content
+          Padding(
+            padding: EdgeInsets.fromLTRB(contentX, 2, 0, 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.tag_rounded,
+                      size: (sw * 0.030).clamp(11.0, 13.0), color: _kP),
+                  SizedBox(width: sw * 0.012),
+                  Text(
+                    o.orderNumber.isEmpty ? '—' : o.orderNumber,
+                    style: TextStyle(
+                      fontSize: (sw * 0.028).clamp(10.5, 12.5),
+                      fontWeight: FontWeight.w600,
+                      color: _kT2,
+                      letterSpacing: 0.2,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ]),
+                Text(
+                  _fmt(o.qty),
+                  style: TextStyle(
+                    fontSize: (sw * 0.030).clamp(11.0, 13.0),
+                    fontWeight: FontWeight.w700,
+                    color: _kT1,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -573,15 +706,14 @@ class _CountEntry {
 }
 
 class _CountInline extends StatelessWidget {
-  const _CountInline({required this.e, required this.sw, this.small = false});
+  const _CountInline({required this.e, required this.sw});
   final _CountEntry e;
   final double sw;
-  final bool small;
 
   @override
   Widget build(BuildContext context) {
-    final dotSz = (sw * (small ? 0.014 : 0.016)).clamp(4.0, 7.0);
-    final valSz = (sw * (small ? 0.026 : 0.028)).clamp(9.0, 12.0);
+    final dotSz = (sw * 0.016).clamp(4.0, 7.0);
+    final valSz = (sw * 0.028).clamp(9.0, 12.0);
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Container(
         width: dotSz, height: dotSz,

@@ -66,9 +66,15 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/logo/smart_icon.png"
 
 flutter_native_splash:
+  # No top-level `image` — Android < 12 / iOS would render the launcher PNG
+  # at full pixel size, which caused the "huge icon then snaps to small"
+  # flash before the Dart SplashScreen takes over. Keeping the bg colour
+  # only means the user sees a solid blue boot screen, then the Dart
+  # splash slides in with the properly-sized circular logo. No size jump.
   color: "#185FA5"
-  image: "assets/logo/smart_icon.png"
   android_12:
+    # Android 12+ sizes this through the adaptive-icon system (constrained
+    # to ~192dp), so it visually matches the Dart splash's logo size.
     color: "#185FA5"
     image: "assets/logo/smart_icon.png"
   android: true

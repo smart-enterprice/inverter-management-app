@@ -23,7 +23,7 @@ class DioClient {
   static const String _flutterWeb     = 'http://localhost:1280/api/v1';    // flutter run -d chrome
 
   // 👇 ACTIVE URL — change this one line to switch environment.
-  static const String baseUrl = _realDeviceLan;
+  static const String baseUrl = _production;
 
   static final Dio _dio = Dio(
     BaseOptions(

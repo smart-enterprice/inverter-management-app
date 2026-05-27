@@ -7,6 +7,7 @@ import '../../signup/controller/signUp_controller.dart';
 import 'order_payment_history.dart';
 import '../controller/order_controller.dart';
 import '../../../feature/order/model/order_model.dart';
+import '../widgets/add_items_sheet.dart';
 
 // ── Design tokens (Zoho Books) ────────────────────────────────────────────────
 const _kP        = Color(0xFF185FA5); // primary blue
@@ -412,6 +413,51 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
             Expanded(child: Text('Order Items', style: TextStyle(
                 fontSize: (sw * 0.035).clamp(12.0, 16.0),
                 fontWeight: FontWeight.w700, color: _kT1))),
+            // Add Items — visible only when status + role allow it.
+            Consumer(builder: (_, ref, __) {
+              final user = ref.watch(currentUserProvider).asData?.value;
+              final allowed = canAddItemsToOrder(
+                order: o,
+                userRole: user?.role,
+                userId: user?.employeeId,
+              );
+              if (!allowed) return const SizedBox.shrink();
+              return Padding(
+                padding: EdgeInsets.only(right: sw * 0.02),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () async {
+                    final ok = await showAddItemsSheet(context, o);
+                    if (ok) {
+                      ref.invalidate(orderByIdProvider(o.orderNumber ?? ''));
+                    }
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: sw * 0.022, vertical: sw * 0.012),
+                    decoration: BoxDecoration(
+                      color: _kPBg,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: _kPBd, width: 0.5),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.add_rounded,
+                          size: (sw * 0.035).clamp(12.0, 15.0), color: _kP),
+                      SizedBox(width: sw * 0.008),
+                      Text(
+                        'Add',
+                        style: TextStyle(
+                          fontSize: (sw * 0.028).clamp(10.0, 12.0),
+                          fontWeight: FontWeight.w700,
+                          color: _kP,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ]),
+                  ),
+                ),
+              );
+            }),
             _Pill(sw: sw, label: '${o.orderDetails.length}',
                 fg: _kPurple, bg: _kPurpleBg, bd: _kPurpleBd),
           ]),

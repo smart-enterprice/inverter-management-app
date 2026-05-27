@@ -73,6 +73,10 @@ class DealerProductionSummary {
   final int shipped;
   final int totalQty;
 
+  /// Order-level remaining qty for this product × dealer, sorted by qty desc
+  /// on the backend. Clients must not re-sort.
+  final List<DealerOrderRef> orders;
+
   const DealerProductionSummary({
     required this.dealerId,
     required this.dealerName,
@@ -84,10 +88,12 @@ class DealerProductionSummary {
     required this.invoice,
     required this.shipped,
     required this.totalQty,
+    this.orders = const [],
   });
 
   factory DealerProductionSummary.fromJson(Map<String, dynamic> json) {
     final counts = (json['counts'] as Map?) ?? const {};
+    final rawOrders = (json['orders'] as List?) ?? const [];
     return DealerProductionSummary(
       dealerId: json['dealer_id']?.toString() ?? '',
       dealerName: json['dealer_name']?.toString() ?? '',
@@ -99,8 +105,26 @@ class DealerProductionSummary {
       invoice: _asInt(counts['INVOICE']),
       shipped: _asInt(counts['SHIPPED']),
       totalQty: _asInt(json['total_qty']),
+      orders: rawOrders
+          .whereType<Map<String, dynamic>>()
+          .map(DealerOrderRef.fromJson)
+          .toList(),
     );
   }
+}
+
+/// One order's remaining qty for a given product × dealer slot.
+class DealerOrderRef {
+  final String orderNumber;
+  final int qty;
+
+  const DealerOrderRef({required this.orderNumber, required this.qty});
+
+  factory DealerOrderRef.fromJson(Map<String, dynamic> json) =>
+      DealerOrderRef(
+        orderNumber: json['order_number']?.toString() ?? '',
+        qty: _asInt(json['qty']),
+      );
 }
 
 int _asInt(dynamic v) =>
