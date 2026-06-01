@@ -10,11 +10,14 @@
 // list of brands/products matches what the dealer can buy.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../brand/controller/brand_controller.dart';
 import '../../brand/model/brand_model.dart';
+import '../../discount/controller/discount_controller.dart';
+import '../../discount/model/dealer_discount_model.dart';
 import '../../product/controller/product_controller.dart';
 import '../../product/model/product_model.dart';
 import '../controller/order_controller.dart';
@@ -31,6 +34,12 @@ const _kT3      = Color(0xFF6B7280);
 const _kT4      = Color(0xFF9CA3AF);
 const _kRed     = Color(0xFFDC2626);
 const _kRedBg   = Color(0xFFFEF2F2);
+const _kAmber   = Color(0xFFB45309);
+const _kAmberBg = Color(0xFFFFFBEB);
+const _kAmberBd = Color(0xFFFCD28A);
+const _kGreen   = Color(0xFF0F6E56);
+const _kGreenBg = Color(0xFFEDFAF5);
+const _kGreenBd = Color(0xFF9FE0C5);
 
 /// Status set that blocks "Add Items". Mirrors the backend invariant.
 const _kFrozenStatuses = {
@@ -122,11 +131,19 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
       _serverError = null;
     });
     try {
-      final items = _drafts.map((d) => <String, dynamic>{
-        'product_id'       : d.product!.productId,
-        'qty_ordered'      : d.qty,
-        'delivery_date'    : DateFormat('yyyy-MM-dd').format(d.deliveryDate!),
-        'is_product_scheme': false,
+      final items = _drafts.map((d) {
+        final payload = <String, dynamic>{
+          'product_id'       : d.product!.productId,
+          'qty_ordered'      : d.qty,
+          'delivery_date'    : DateFormat('yyyy-MM-dd').format(d.deliveryDate!),
+          'is_product_scheme': false,
+        };
+        if (d.useDealerDiscount && d.dealerDiscount != null) {
+          payload['dealer_discount_id'] = d.dealerDiscount!.dealerDiscountId;
+        } else if (d.discountPrice > 0) {
+          payload['discount_price'] = d.discountPrice;
+        }
+        return payload;
       }).toList();
 
       // Final guard — never call the API with an empty items array.
@@ -399,12 +416,15 @@ class _DraftItem {
   ProductModel? product;
   int qty = 1;
   DateTime? deliveryDate;
+  DealerDiscountModel? dealerDiscount;
+  double discountPrice = 0;
+  bool useDealerDiscount = false;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // _ItemRow — Brand → Product cascade + qty + delivery date
 // ─────────────────────────────────────────────────────────────────────────────
-class _ItemRow extends ConsumerWidget {
+class _ItemRow extends ConsumerStatefulWidget {
   const _ItemRow({
     required this.sw,
     required this.sh,
@@ -427,11 +447,54 @@ class _ItemRow extends ConsumerWidget {
   final bool disabled;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final brandsAsync = ref.watch(dealerBrandsProvider(dealerId));
+  ConsumerState<_ItemRow> createState() => _ItemRowState();
+}
+
+class _ItemRowState extends ConsumerState<_ItemRow> {
+  late final TextEditingController _discCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _discCtrl = TextEditingController(
+      text: widget.draft.discountPrice > 0
+          ? widget.draft.discountPrice.toString()
+          : '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _discCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchDiscount(ProductModel product) async {
+    try {
+      final disc = await ref.read(dealerProductDiscountProvider({
+        'dealerId': widget.dealerId,
+        'productId': product.productId ?? '',
+      }).future);
+      if (!mounted) return;
+      widget.draft.dealerDiscount = disc;
+      widget.draft.useDealerDiscount = false;
+      widget.onChanged();
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = widget.sw;
+    final sh = widget.sh;
+    final draft = widget.draft;
+    final disabled = widget.disabled;
+
+    final brandsAsync = ref.watch(dealerBrandsProvider(widget.dealerId));
     final productsAsync = draft.brand?.brandName == null
         ? const AsyncValue<List<ProductModel>>.data([])
         : ref.watch(productByBrandProvider(draft.brand!.brandName));
+
+    final price = double.tryParse(draft.product?.price?.toString() ?? '0') ?? 0;
 
     return Container(
       padding: EdgeInsets.all(sw * 0.04),
@@ -454,7 +517,7 @@ class _ItemRow extends ConsumerWidget {
                 border: Border.all(color: _kPBd, width: 0.5),
               ),
               child: Text(
-                'Item ${index + 1}',
+                'Item ${widget.index + 1}',
                 style: const TextStyle(
                   color: _kP,
                   fontSize: 11,
@@ -464,15 +527,14 @@ class _ItemRow extends ConsumerWidget {
               ),
             ),
             const Spacer(),
-            if (canRemove)
+            if (widget.canRemove)
               IconButton(
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                    minWidth: 32, minHeight: 32),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 icon: Icon(Icons.delete_outline_rounded,
                     color: _kRed, size: (sw * 0.05).clamp(18.0, 22.0)),
-                onPressed: disabled ? null : onRemove,
+                onPressed: disabled ? null : widget.onRemove,
               ),
           ]),
           SizedBox(height: sh * 0.012),
@@ -500,7 +562,11 @@ class _ItemRow extends ConsumerWidget {
                   draft.brand = pick;
                   draft.model = null;
                   draft.product = null;
-                  onChanged();
+                  draft.dealerDiscount = null;
+                  draft.discountPrice = 0;
+                  draft.useDealerDiscount = false;
+                  _discCtrl.clear();
+                  widget.onChanged();
                 }
               },
             ),
@@ -531,13 +597,17 @@ class _ItemRow extends ConsumerWidget {
                 if (pick != null) {
                   draft.model = pick;
                   draft.product = null;
-                  onChanged();
+                  draft.dealerDiscount = null;
+                  draft.discountPrice = 0;
+                  draft.useDealerDiscount = false;
+                  _discCtrl.clear();
+                  widget.onChanged();
                 }
               },
             ),
           SizedBox(height: sh * 0.012),
 
-          // ── Product (depends on brand + model) ─────────────────────
+          // ── Product ────────────────────────────────────────────────
           _FieldLabel(label: 'Product'),
           if (draft.brand == null)
             const _HintRow(text: 'Pick a brand first')
@@ -546,8 +616,7 @@ class _ItemRow extends ConsumerWidget {
           else
             productsAsync.when(
               loading: () => const _LoadingRow(),
-              error: (_, __) =>
-                  const _ErrorRow(text: 'Products unavailable'),
+              error: (_, __) => const _ErrorRow(text: 'Products unavailable'),
               data: (products) {
                 final filtered = products
                     .where((p) => p.model == draft.model)
@@ -584,7 +653,12 @@ class _ItemRow extends ConsumerWidget {
                     );
                     if (pick != null) {
                       draft.product = pick;
-                      onChanged();
+                      draft.dealerDiscount = null;
+                      draft.discountPrice = 0;
+                      draft.useDealerDiscount = false;
+                      _discCtrl.clear();
+                      widget.onChanged();
+                      _fetchDiscount(pick);
                     }
                   },
                 );
@@ -604,7 +678,7 @@ class _ItemRow extends ConsumerWidget {
                     disabled: disabled,
                     onChange: (v) {
                       draft.qty = v;
-                      onChanged();
+                      widget.onChanged();
                     },
                   ),
                 ],
@@ -622,13 +696,139 @@ class _ItemRow extends ConsumerWidget {
                     disabled: disabled,
                     onPick: (d) {
                       draft.deliveryDate = d;
-                      onChanged();
+                      widget.onChanged();
                     },
                   ),
                 ],
               ),
             ),
           ]),
+
+          // ── Discount (only when product is selected) ───────────────
+          if (draft.product != null) ...[
+            SizedBox(height: sh * 0.012),
+            _FieldLabel(label: 'Discount'),
+            if (draft.dealerDiscount != null) ...[
+              Row(children: [
+                Expanded(
+                  child: _DiscToggle(
+                    sw: sw,
+                    label: 'Manual',
+                    selected: !draft.useDealerDiscount,
+                    onTap: disabled ? null : () {
+                      draft.useDealerDiscount = false;
+                      draft.discountPrice = 0;
+                      _discCtrl.clear();
+                      widget.onChanged();
+                    },
+                  ),
+                ),
+                SizedBox(width: sw * 0.02),
+                Expanded(
+                  child: _DiscToggle(
+                    sw: sw,
+                    label: 'Dealer',
+                    selected: draft.useDealerDiscount,
+                    onTap: disabled ? null : () {
+                      draft.useDealerDiscount = true;
+                      draft.discountPrice = 0;
+                      _discCtrl.clear();
+                      widget.onChanged();
+                    },
+                  ),
+                ),
+              ]),
+              SizedBox(height: sh * 0.008),
+            ],
+            if (!draft.useDealerDiscount) ...[
+              TextField(
+                controller: _discCtrl,
+                enabled: !disabled,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                ],
+                style: TextStyle(
+                  fontSize: (sw * 0.034).clamp(11.5, 15.0), color: _kT1),
+                decoration: InputDecoration(
+                  hintText: price > 0
+                      ? 'Max ₹${price.toStringAsFixed(0)}'
+                      : 'Discount amount (₹)',
+                  hintStyle: TextStyle(
+                      fontSize: (sw * 0.032).clamp(11.0, 14.0), color: _kT4),
+                  prefixIcon: Icon(Icons.local_offer_outlined,
+                      color: _kAmber,
+                      size: (sw * 0.045).clamp(15.0, 20.0)),
+                  filled: true,
+                  fillColor: _kBg,
+                  contentPadding: EdgeInsets.all(sw * 0.035),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                        (sw * 0.028).clamp(8.0, 12.0)),
+                    borderSide: const BorderSide(color: _kBd, width: 0.5),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                        (sw * 0.028).clamp(8.0, 12.0)),
+                    borderSide: const BorderSide(color: _kBd, width: 0.5),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                        (sw * 0.028).clamp(8.0, 12.0)),
+                    borderSide: const BorderSide(color: _kP, width: 1.5),
+                  ),
+                ),
+                onChanged: (v) {
+                  double val = double.tryParse(v) ?? 0;
+                  if (price > 0 && val > price) {
+                    val = price;
+                    _discCtrl.text = price.toStringAsFixed(0);
+                    _discCtrl.selection = TextSelection.fromPosition(
+                      TextPosition(offset: _discCtrl.text.length),
+                    );
+                  }
+                  draft.discountPrice = val;
+                  widget.onChanged();
+                },
+              ),
+              if (price > 0)
+                Padding(
+                  padding: EdgeInsets.only(top: sw * 0.01, left: sw * 0.01),
+                  child: Text(
+                    'Max discount: ₹${price.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: (sw * 0.026).clamp(9.0, 11.5),
+                      color: _kT4,
+                    ),
+                  ),
+                ),
+            ],
+            if (draft.useDealerDiscount && draft.dealerDiscount != null) ...[
+              Container(
+                padding: EdgeInsets.all(sw * 0.035),
+                decoration: BoxDecoration(
+                  color: _kGreenBg,
+                  borderRadius: BorderRadius.circular(
+                      (sw * 0.028).clamp(8.0, 12.0)),
+                  border: Border.all(color: _kGreenBd, width: 0.5),
+                ),
+                child: Row(children: [
+                  Icon(Icons.discount_outlined,
+                      color: _kGreen,
+                      size: (sw * 0.045).clamp(15.0, 20.0)),
+                  SizedBox(width: sw * 0.025),
+                  Text(
+                    '${draft.dealerDiscount!.isPercentage == false ? '₹' : ''}${draft.dealerDiscount!.discountValue}${draft.dealerDiscount!.isPercentage == true ? '%' : ''} off',
+                    style: TextStyle(
+                      fontSize: (sw * 0.036).clamp(12.0, 16.0),
+                      fontWeight: FontWeight.w700,
+                      color: _kGreen,
+                    ),
+                  ),
+                ]),
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -1209,6 +1409,51 @@ class _AddRowButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DiscToggle extends StatelessWidget {
+  const _DiscToggle({
+    required this.sw,
+    required this.label,
+    required this.selected,
+    this.onTap,
+  });
+  final double sw;
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: EdgeInsets.symmetric(vertical: sw * 0.025),
+      decoration: BoxDecoration(
+        color: selected ? _kAmberBg : _kBg,
+        borderRadius: BorderRadius.circular((sw * 0.025).clamp(8.0, 12.0)),
+        border: Border.all(
+          color: selected ? _kAmberBd : _kBd,
+          width: selected ? 1.0 : 0.5,
+        ),
+      ),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(
+          selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+          color: _kAmber,
+          size: (sw * 0.045).clamp(15.0, 20.0),
+        ),
+        SizedBox(width: sw * 0.015),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: (sw * 0.03).clamp(10.0, 13.0),
+            fontWeight: FontWeight.w700,
+            color: _kAmber,
+          ),
+        ),
+      ]),
+    ),
+  );
 }
 
 /// Cheap dashed-looking container — solid border with reduced opacity is

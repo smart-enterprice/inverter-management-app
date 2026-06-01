@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -572,6 +573,9 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
           TextFormField(
               controller: amountPaidController,
               keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
               style: TextStyle(
                   fontSize: (sw * 0.036).clamp(12.0, 16.0), color: _kT1),
               decoration: _inputDeco(sw, 'Enter amount',
@@ -669,17 +673,29 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
         SizedBox(height: sh * 0.008),
         TextFormField(
             initialValue: product.discountAmount?.toString() ?? '',
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+            ],
             style: TextStyle(
                 fontSize: (sw * 0.034).clamp(11.5, 15.0), color: _kT1),
-            decoration: _inputDeco(sw, 'Enter discount amount',
+            decoration: _inputDeco(
+                sw,
+                product.productPrice != null
+                    ? 'Max ₹${product.productPrice}'
+                    : 'Enter discount amount',
                 prefix: Icon(Icons.local_offer_outlined,
                     color: _kAmber, size: (sw * 0.045).clamp(15.0, 20.0))),
-            onChanged: (v) => setState(() {
-                  selectedProducts[index] = product.copyWith(
-                      discountAmount: num.tryParse(v),
-                      useDealerDiscount: false);
-                })),
+            onChanged: (v) {
+              num val = num.tryParse(v) ?? 0;
+              if (product.productPrice != null && val > product.productPrice!) {
+                val = product.productPrice!;
+              }
+              setState(() {
+                selectedProducts[index] = product.copyWith(
+                    discountAmount: val, useDealerDiscount: false);
+              });
+            }),
       ]);
     }
 
@@ -726,14 +742,27 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
         SizedBox(height: sh * 0.01),
         TextFormField(
             initialValue: product.discountAmount?.toString() ?? '',
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+            ],
             style: TextStyle(
                 fontSize: (sw * 0.034).clamp(11.5, 15.0), color: _kT1),
-            decoration: _inputDeco(sw, 'Enter amount'),
-            onChanged: (v) => setState(() {
-                  selectedProducts[index] =
-                      product.copyWith(discountAmount: num.tryParse(v) ?? 0);
-                })),
+            decoration: _inputDeco(
+                sw,
+                product.productPrice != null
+                    ? 'Max ₹${product.productPrice}'
+                    : 'Enter amount'),
+            onChanged: (v) {
+              num val = num.tryParse(v) ?? 0;
+              if (product.productPrice != null && val > product.productPrice!) {
+                val = product.productPrice!;
+              }
+              setState(() {
+                selectedProducts[index] =
+                    product.copyWith(discountAmount: val);
+              });
+            }),
       ],
       if (product.useDealerDiscount) ...[
         SizedBox(height: sh * 0.01),
