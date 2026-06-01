@@ -31,8 +31,6 @@ const _kGreen    = Color(0xFF0F6E56);
 const _kGreenBg  = Color(0xFFEDFAF5);
 const _kAmberTx  = Color(0xFFB45309); // amber-700
 const _kAmberIc  = Color(0xFFD97706); // amber-600
-const _kIndigoTx = Color(0xFF4338CA); // indigo-700
-const _kIndigoIc = Color(0xFF4F46E5); // indigo-600
 const _kGreenTx  = Color(0xFF047857); // emerald-700
 const _kGreenIc  = Color(0xFF059669); // emerald-600
 
@@ -987,18 +985,12 @@ List<_SubLineData> _orderSubLines(OrderModel order) {
   int countBy(String status) =>
       details.where((d) => (d.status ?? '').toUpperCase() == status).length;
 
-  final inProd       = countBy('PRODUCTION');
   final awaitInvoice = countBy('PACKED');
   final awaitShip    = countBy('INVOICE');
   final awaitDeliver = countBy('SHIPPED');
   final delivered    = countBy('DELIVERED');
   final completed    = countBy('COMPLETED');
 
-  if (inProd > 0) {
-    lines.add(_SubLineData(Icons.inventory_2_outlined,
-        _pluralItem(inProd, 'in production'),
-        _kIndigoTx, _kIndigoIc));
-  }
   if (awaitInvoice > 0) {
     lines.add(_SubLineData(Icons.description_outlined,
         _pluralItem(awaitInvoice, 'awaiting invoice'),
