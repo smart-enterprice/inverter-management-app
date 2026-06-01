@@ -10,6 +10,7 @@ import '../core/utils/navigation_service.dart';
 const _kP     = Color(0xFF185FA5);
 const _kWhite = Colors.white;
 const _kRed   = Color(0xFFDC2626);
+const _kBrand = Color(0xFF2B67FA); // logo square colour
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -20,7 +21,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() { super.initState(); _init(); }
 
-  static const _minSplashTime  = Duration(milliseconds: 1000);
+  static const _minSplashTime  = Duration(seconds: 2);
   static const _retryInterval  = Duration(seconds: 3);
 
   Future<void> _init() async {
@@ -91,26 +92,47 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         child: Stack(children: [
           // Centered logo + brand
           Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              width: (sw * 0.32).clamp(108.0, 156.0),
-              height: (sw * 0.32).clamp(108.0, 156.0),
-              decoration: BoxDecoration(
-                color: _kWhite,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
+            Builder(builder: (_) {
+              final disc = (sw * 0.32).clamp(108.0, 156.0);
+              final mark = disc * 0.62; // brand square inside the white disc
+              return Container(
+                width: disc,
+                height: disc,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _kWhite,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Container(
+                  width: mark,
+                  height: mark,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _kBrand,
+                    borderRadius: BorderRadius.circular(mark * 0.28),
                   ),
-                ],
-              ),
-              padding: EdgeInsets.all((sw * 0.05).clamp(16.0, 26.0)),
-              child: Image.asset(
-                'assets/logo/smart_icon.png',
-                fit: BoxFit.contain,
-              ),
-            ),
+                  // S glyph sized to ~44% of the square height, matching the
+                  // logo's proportions (cap-height ≈ 0.71 × fontSize, so
+                  // fontSize ≈ 0.44 / 0.71 × mark ≈ 0.62 × mark).
+                  child: Text(
+                    'S',
+                    style: TextStyle(
+                      color: _kWhite,
+                      fontWeight: FontWeight.w800,
+                      fontSize: mark * 0.62,
+                      height: 1.0,
+                    ),
+                  ),
+                ),
+              );
+            }),
             SizedBox(height: sh * 0.035),
             Text('Smart Enterprises', style: TextStyle(
               fontSize: (sw * 0.062).clamp(22.0, 30.0),

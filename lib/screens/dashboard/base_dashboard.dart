@@ -1,18 +1,15 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/core/const/snackbar.dart';
 import 'package:inverter_management_app/feature/authentication/controller/login_controller.dart';
 import 'package:inverter_management_app/feature/authentication/screens/login_mobile_view.dart';
 import 'package:inverter_management_app/feature/order/controller/order_controller.dart';
 import 'package:inverter_management_app/feature/order/screens/order_view_page.dart';
-import 'package:inverter_management_app/feature/signup/controller/signUp_controller.dart';
+import 'package:inverter_management_app/feature/signup/controller/signup_controller.dart';
 import 'package:inverter_management_app/widgets/data_card.dart';
 
 import '../../feature/notification/provider/notification_provider.dart';
 // import '../../feature/notification/screens/notification_screen.dart'; // hidden bell
-import '../../main.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const _kP          = Color(0xFF185FA5);
@@ -59,36 +56,11 @@ class _BaseDashboardState extends ConsumerState<BaseDashboard>
     )..forward();
     _fade = CurvedAnimation(parent: _anim, curve: Curves.easeOut);
 
-    // ── FCM listeners ──────────────────────────────────────
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      final notification = message.notification;
-      final android = message.notification?.android;
-      if (notification != null && android != null) {
-        flutterLocalNotificationsPlugin.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              channel.id,
-              channel.name,
-              channelDescription: channel.description,
-              icon: '@mipmap/ic_launcher',
-            ),
-          ),
-        );
-      }
-    });
-
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('Opened from notification: ${message.data}');
-    });
-
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
-      if (message != null) {
-        debugPrint('Opened from terminated: ${message.data}');
-      }
-    });
+    // NOTE: FCM is handled centrally by FcmService (initialized via
+    // notificationProvider, which this screen keeps alive below). The
+    // dashboard previously registered its OWN onMessage listener that also
+    // called flutterLocalNotificationsPlugin.show(), so every foreground push
+    // was displayed twice. Removed — FcmService is the single owner now.
   }
 
   @override

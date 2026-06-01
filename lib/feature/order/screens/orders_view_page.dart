@@ -6,7 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import '../../../core/const/icons.dart';
 import '../../../core/role/app_role.dart';
-import '../../signup/controller/signUp_controller.dart';
+import '../../signup/controller/signup_controller.dart';
 import '../../signup/model/user_model.dart';
 import '../controller/order_controller.dart';
 import '../../../feature/order/model/order_model.dart';

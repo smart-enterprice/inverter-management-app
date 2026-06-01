@@ -148,9 +148,18 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
         return;
       }
 
+      final orderNumber = widget.order.orderNumber;
+      if (orderNumber == null || orderNumber.isEmpty) {
+        setState(() {
+          _serverError = 'Order number is missing — cannot add items.';
+          _submitting  = false;
+        });
+        return;
+      }
+
       await ref
           .read(orderControllerProvider.notifier)
-          .addItemsToOrder(widget.order.orderNumber ?? '', items);
+          .addItemsToOrder(orderNumber, items);
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -473,7 +482,18 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
       widget.draft.dealerDiscount = disc;
       widget.draft.useDealerDiscount = false;
       widget.onChanged();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Dealer discount fetch failed: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Could not load dealer discount — continuing without it.'),
+          backgroundColor: _kRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override

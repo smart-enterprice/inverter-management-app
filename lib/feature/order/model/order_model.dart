@@ -646,11 +646,11 @@ class OrderDetailsModel {
         DealerDiscountModel? dealerDiscount,
       }) {
     return OrderDetailsModel(
-      productId: product.productId!,
-      productBrand: product.brand!,
+      productId: product.productId ?? '',
+      productBrand: product.brand ?? '',
       productName: product.productName.toString(),
       productModel: product.model.toString(),
-      productType: product.productType!,
+      productType: product.productType ?? '',
       productPrice: product.price?.toInt(),
       qtyOrdered: 1,
       isProductScheme: false,

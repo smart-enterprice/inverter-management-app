@@ -293,8 +293,12 @@ class _OrderCard extends StatelessWidget {
     );
 
     return GestureDetector(
-        onTap: () => Navigator.push(context, MaterialPageRoute(
-            builder: (_) => OrderViewPage(orderNumber: order.orderNumber!))),
+        onTap: () {
+          final id = order.orderNumber;
+          if (id == null || id.isEmpty) return;
+          Navigator.push(context, MaterialPageRoute(
+              builder: (_) => OrderViewPage(orderNumber: id)));
+        },
         child: Container(
             padding: EdgeInsets.all((sw * 0.04).clamp(12.0, 20.0)),
             decoration: BoxDecoration(color: _kWhite,

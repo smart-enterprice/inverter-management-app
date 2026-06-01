@@ -305,11 +305,15 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                     product: p,
                     sw: sw,
                     sh: sh,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => ProductDetailsScreen(
-                                productId: p.productId!))),
+                    onTap: () {
+                      final id = p.productId;
+                      if (id == null || id.isEmpty) return;
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  ProductDetailsScreen(productId: id)));
+                    },
                   );
                 },
               ),

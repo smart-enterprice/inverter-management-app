@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:curl_logger_dio_interceptor/curl_logger_dio_interceptor.dart';
 import 'package:flutter/foundation.dart';
 import '../utils/navigation_service.dart';
+import '../utils/secure_store.dart';
 import '../../feature/authentication/screens/login_mobile_view.dart';
 
 
@@ -38,8 +39,7 @@ class DioClient {
     ..interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final prefs = await SharedPreferences.getInstance();
-          final token = prefs.getString('token');
+          final token = await SecureStore.getToken();
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
@@ -51,8 +51,8 @@ class DioClient {
         onError: (DioException error, handler) async {
           if (error.response?.statusCode == 401) {
             // Clear all stored credentials
+            await SecureStore.clearToken();
             final prefs = await SharedPreferences.getInstance();
-            await prefs.remove('token');
             await prefs.remove('user_role');
             await prefs.remove('user_id');
             await prefs.remove('is_logged_in');

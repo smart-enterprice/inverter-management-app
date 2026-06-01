@@ -6,8 +6,8 @@ import 'package:inverter_management_app/feature/signup/screens/user/sign_up_scre
 import 'package:inverter_management_app/feature/signup/screens/user/user_view_screen.dart';
 import '../../model/user_model.dart';
 import '../../../../widgets/circle_button.dart';
-import '../../controller/signUp_controller.dart';
-import '../../repository/signUp_repository.dart';
+import '../../controller/signup_controller.dart';
+import '../../repository/signup_repository.dart';
 
 // ── Zoho Books design tokens (mirrored from DealersScreen) ────────────────────
 const _kP        = Color(0xFF185FA5);
@@ -310,10 +310,13 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             avatarBg:   c.$1,
             avatarBd:   c.$2,
             avatarFg:   c.$3,
-            onTap: () => Navigator.push(ctx,
-                MaterialPageRoute(
-                    builder: (_) =>
-                        UserViewScreen(userId: user.employeeId!))),
+            onTap: () {
+              final id = user.employeeId;
+              if (id == null || id.isEmpty) return;
+              Navigator.push(ctx,
+                  MaterialPageRoute(
+                      builder: (_) => UserViewScreen(userId: id)));
+            },
           );
         },
       ),

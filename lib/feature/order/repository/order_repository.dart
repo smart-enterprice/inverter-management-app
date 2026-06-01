@@ -107,10 +107,19 @@ class OrderRepository {
 
   Future<void> updateOrderPayment(OrderModel order) {
     return guardDio(
-      () => _dio.put(
-        '/order-details/status/${order.orderNumber}',
-        data: order.toUpdatePaymentJson(),
-      ),
+      () async {
+        final response = await _dio.put(
+          '/order-details/status/${order.orderNumber}',
+          data: order.toUpdatePaymentJson(),
+        );
+        final body = response.data;
+        if (body is Map<String, dynamic> && body['success'] == false) {
+          throw AppException(
+            body['message']?.toString() ?? 'Update payment failed',
+            statusCode: response.statusCode,
+          );
+        }
+      },
       fallback: 'Update payment failed',
     );
   }

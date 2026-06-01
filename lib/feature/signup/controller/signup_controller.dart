@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../model/user_model.dart';
 import '../../../core/network/app_exception.dart';
-import '../repository/signUp_repository.dart';
+import '../repository/signup_repository.dart';
 
 // ─────────────────────────────────────────────
 // Providers

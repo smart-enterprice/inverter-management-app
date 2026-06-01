@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/role/app_role.dart';
+import '../../../core/utils/secure_store.dart';
 import '../../notification/service/fcm_service.dart';
 import '../../../feature/authentication/model/login_model.dart';
 import '../../../core/network/app_exception.dart';
@@ -16,9 +17,8 @@ AsyncNotifierProvider<LoginController, LoginResult?>(
 // ─── Notifier ────────────────────────────────────────────────────────────────
 
 class LoginController extends AsyncNotifier<LoginResult?> {
-  // Keys
+  // Keys (token lives in SecureStore, not here)
   static const _roleKey     = 'user_role';
-  static const _tokenKey    = 'token';
   static const _userIdKey   = 'user_id';
   static const _loggedInKey = 'is_logged_in';
 
@@ -93,7 +93,7 @@ class LoginController extends AsyncNotifier<LoginResult?> {
 
   Future<bool>    isLoggedIn()  => _getBool(_loggedInKey);
   Future<String?> getUserRole() => _getString(_roleKey);
-  Future<String?> getToken()    => _getString(_tokenKey);
+  Future<String?> getToken()    => SecureStore.getToken();
 
   // ── Private helpers ─────────────────────────────────────────────────────────
 
@@ -108,8 +108,8 @@ class LoginController extends AsyncNotifier<LoginResult?> {
 
     final prefs = await SharedPreferences.getInstance();
     await Future.wait([
+      SecureStore.setToken(token),
       prefs.setString(_roleKey,     role),
-      prefs.setString(_tokenKey,    token),
       prefs.setBool(_loggedInKey,   true),
       if (id != null) prefs.setString(_userIdKey, id),
     ]);
@@ -124,8 +124,8 @@ class LoginController extends AsyncNotifier<LoginResult?> {
   Future<void> _clearUserData() async {
     final prefs = await SharedPreferences.getInstance();
     await Future.wait([
+      SecureStore.clearToken(),
       prefs.remove(_roleKey),
-      prefs.remove(_tokenKey),
       prefs.remove(_loggedInKey),
       prefs.remove(_userIdKey),
     ]);

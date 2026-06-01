@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../model/user_model.dart';
-import '../../controller/signUp_controller.dart';
+import '../../controller/signup_controller.dart';
 import '../../../../core/role/app_role.dart';
 import '../../../../widgets/circle_button.dart';
 

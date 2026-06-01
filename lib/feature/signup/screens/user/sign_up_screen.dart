@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../../widgets/circle_button.dart';
-import '../../controller/signUp_controller.dart';
+import '../../controller/signup_controller.dart';
 import '../../model/user_model.dart';
 
 // ── Zoho Books design tokens (mirrored from AddDealerScreen) ──────────────────

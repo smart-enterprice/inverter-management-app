@@ -7,7 +7,7 @@ import '../../../core/const/icons.dart';
 import '../../../feature/brand/model/brand_model.dart';
 import '../../signup/model/user_model.dart';
 import '../../../widgets/circle_button.dart';
-import '../../signup/controller/signUp_controller.dart';
+import '../../signup/controller/signup_controller.dart';
 import '../controller/brand_controller.dart';
 
 // ── Zoho Books design tokens ──────────────────────────────────────────────────
@@ -211,7 +211,7 @@ class _DetailViewState extends ConsumerState<_DetailView> {
 
   // ── Creator ─────────────────────────────────────────────────────────────
   Widget _creatorCard(double sw, double sh, UserModel? user) {
-    final init = user != null ? (user.employeeName ?? 'U')[0].toUpperCase() : '?';
+    final init = user != null ? user.employeeName[0].toUpperCase() : '?';
     return _Section(sw: sw, icon: Icons.person_outline_rounded, iconBg: _kBg,
         iconColor: _kT1, title: 'Created By',
         child: user == null
@@ -223,14 +223,14 @@ class _DetailViewState extends ConsumerState<_DetailView> {
                   fontSize: (sw * 0.04).clamp(14.0, 20.0), fontWeight: FontWeight.w800, color: _kP))),
           SizedBox(width: sw * 0.035),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(user.employeeName ?? 'Unknown', style: TextStyle(
+            Text(user.employeeName, style: TextStyle(
                 fontSize: (sw * 0.036).clamp(12.0, 16.0), fontWeight: FontWeight.w700, color: _kT1)),
             SizedBox(height: sw * 0.006),
-            Text(user.employeeEmail ?? '', style: TextStyle(
+            Text(user.employeeEmail, style: TextStyle(
                 fontSize: (sw * 0.029).clamp(10.0, 13.0), color: _kP, fontWeight: FontWeight.w500)),
             SizedBox(height: sw * 0.006),
             _Pill(sw: sw,
-                label: (user.role ?? '').replaceAll('ROLE_', '').replaceAll('_', ' ').toLowerCase(),
+                label: user.role.replaceAll('ROLE_', '').replaceAll('_', ' ').toLowerCase(),
                 fg: _kP, bg: _kPBg, bd: _kPBd),
           ])),
         ]));

@@ -200,13 +200,16 @@ class _BrandsScreenState extends ConsumerState<BrandsScreen> {
                       brandName:  brand.brandName,
                       modelCount: brand.brandModels.length,
                       isActive:   isActive,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => BrandDetailsScreen(
-                              brandId: brand.brandId!),
-                        ),
-                      ),
+                      onTap: () {
+                        final id = brand.brandId;
+                        if (id == null || id.isEmpty) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BrandDetailsScreen(brandId: id),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

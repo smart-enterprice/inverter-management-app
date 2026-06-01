@@ -14,7 +14,10 @@ class FcmService {
   factory FcmService() => _instance;
   FcmService._internal();
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  // Lazy: `FirebaseMessaging.instance` calls `Firebase.app()`, which throws if
+  // Firebase isn't initialised yet. Constructing FcmService (e.g. on logout)
+  // must not require Firebase, so resolve the instance only on first use.
+  late final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final LocalNotificationService _localNotif = LocalNotificationService();
 
   final StreamController<NotificationModel> _notificationController =

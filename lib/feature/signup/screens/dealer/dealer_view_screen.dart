@@ -14,7 +14,7 @@ import '../../../brand/controller/brand_controller.dart';
 import '../../../discount/controller/discount_controller.dart';
 import '../../../discount/screens/discount_create.dart';
 import '../../../order/screens/dealer_orders_view.dart';
-import '../../controller/signUp_controller.dart';
+import '../../controller/signup_controller.dart';
 
 final dealerProvider = FutureProvider.family<UserModel, String>((ref, id) async {
   return ref.read(signupControllerProvider.notifier).getEmployeeById(id);
@@ -125,8 +125,8 @@ class _DealerViewState extends ConsumerState<DealerView> {
                               onEdit: () => _editPersonalInfo(context, dealer),
                               rows: [
                                 ('Name', dealer.employeeName.replaceAll('_', ' ')),
-                                ('Email', dealer.employeeEmail ?? 'N/A'),
-                                ('Phone', dealer.employeePhone ?? 'N/A'),
+                                ('Email', dealer.employeeEmail),
+                                ('Phone', dealer.employeePhone),
                               ]),
                           SizedBox(height: sh * 0.012),
 
@@ -134,7 +134,7 @@ class _DealerViewState extends ConsumerState<DealerView> {
                           _infoSection(sw, Icons.location_on_outlined, 'Address',
                               onEdit: () => _editAddress(context, dealer),
                               rows: [
-                                ('Street', dealer.address ?? 'N/A'),
+                                ('Street', dealer.address),
                                 ('District', dealer.district ?? 'N/A'),
                                 ('Town', dealer.town ?? 'N/A'),
                               ]),
@@ -155,7 +155,7 @@ class _DealerViewState extends ConsumerState<DealerView> {
 
   // ── Profile card ────────────────────────────────────────────────────────
   Widget _profileCard(double sw, double sh, UserModel d) {
-    final init = (d.employeeName ?? 'U').trim().split(' ').take(2)
+    final init = d.employeeName.trim().split(' ').take(2)
         .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '').join();
     return Container(
         margin: EdgeInsets.symmetric(horizontal: sw * 0.038, vertical: sw * 0.02),
@@ -186,7 +186,7 @@ class _DealerViewState extends ConsumerState<DealerView> {
                 color: _kT1, letterSpacing: -0.3)),
             SizedBox(height: sw * 0.012),
             Row(children: [
-              _Pill(label: formatRole(d.role ?? 'N/A'), fg: _kP, bg: _kPBg, bd: _kPBd),
+              _Pill(label: formatRole(d.role), fg: _kP, bg: _kPBg, bd: _kPBd),
               SizedBox(width: sw * 0.02),
               Flexible(child: Text(d.employeeId ?? '', overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: (sw * 0.028).clamp(9.5, 12.5), color: _kT4))),
@@ -345,7 +345,7 @@ class _DealerViewState extends ConsumerState<DealerView> {
     final emailC = TextEditingController(text: d.employeeEmail);
     final phoneC = TextEditingController(text: d.employeePhone);
     final fk = GlobalKey<FormState>();
-    _sheet(ctx, 'Edit Personal Info', d.employeeName ?? '',
+    _sheet(ctx, 'Edit Personal Info', d.employeeName,
         child: Form(key: fk, child: Column(children: [
           _sheetField(nameC, 'Full Name', Icons.person_outline,
               validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),

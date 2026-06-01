@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../signup/model/user_model.dart';
-import '../../../signup/repository/signUp_repository.dart';
+import '../../../signup/repository/signup_repository.dart';
 import '../../application/date_range_provider.dart';
 import '_tokens.dart';
 

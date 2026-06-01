@@ -8,8 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/const/role.dart';
 import '../../model/user_model.dart';
 import '../../../../widgets/circle_button.dart';
-import '../../controller/signUp_controller.dart';
-import '../dealer/dealerAssignmentScreen.dart';
+import '../../controller/signup_controller.dart';
+import '../dealer/dealer_assignment_screen.dart';
 
 // ── Design tokens (mirrors DealerView exactly) ────────────────────────────────
 const _kP       = Color(0xFF185FA5);
@@ -99,9 +99,9 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
                               rows: [
                                 ('ID',    user.employeeId ?? 'N/A'),
                                 ('Name',  user.employeeName.replaceAll('_', ' ')),
-                                ('Email', user.employeeEmail ?? 'N/A'),
-                                ('Phone', user.employeePhone ?? 'N/A'),
-                                ('Role',  formatRole(user.role ?? 'N/A')),
+                                ('Email', user.employeeEmail),
+                                ('Phone', user.employeePhone),
+                                ('Role',  formatRole(user.role)),
                               ]),
                           SizedBox(height: sh * 0.012),
 
@@ -110,7 +110,7 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
                               onEdit: () => _editAddress(context, user),
                               featureGuard: AppFeature.handleUser,
                               rows: [
-                                ('Address', user.address ?? 'N/A'),
+                                ('Address', user.address),
                               ]),
                           SizedBox(height: sh * 0.012),
                           if (user.role == 'ROLE_SALESMAN') ...[
@@ -163,7 +163,7 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
 
   // ── Profile card ────────────────────────────────────────────────────────
   Widget _profileCard(double sw, double sh, UserModel d) {
-    final init = (d.employeeName ?? 'U').trim().split(' ').take(2)
+    final init = d.employeeName.trim().split(' ').take(2)
         .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '').join();
     return Container(
         margin: EdgeInsets.symmetric(horizontal: sw * 0.038, vertical: sw * 0.02),
@@ -194,7 +194,7 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
                 color: _kT1, letterSpacing: -0.3)),
             SizedBox(height: sw * 0.012),
             Row(children: [
-              _Pill(label: formatRole(d.role ?? 'N/A'), fg: _kP, bg: _kPBg, bd: _kPBd),
+              _Pill(label: formatRole(d.role), fg: _kP, bg: _kPBg, bd: _kPBd),
               SizedBox(width: sw * 0.02),
               Flexible(child: Text(d.employeeId ?? '', overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: (sw * 0.028).clamp(9.5, 12.5), color: _kT4))),
@@ -213,13 +213,13 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
           _actionBtn(sw: sw, icon: Icons.call_outlined, label: 'Call',
               color: _kP, bg: _kPBg,
-              onTap: () => _makeCall(d.employeePhone ?? '')),
+              onTap: () => _makeCall(d.employeePhone)),
           _actionBtn(sw: sw, icon: Icons.email_outlined, label: 'Email',
               color: _kGreen, bg: _kGreenBg,
-              onTap: () => _sendEmail(d.employeeEmail ?? '')),
+              onTap: () => _sendEmail(d.employeeEmail)),
           _actionBtn(sw: sw, icon: Icons.chat_bubble_outline_rounded, label: 'WhatsApp',
               color: const Color(0xFF25D366), bg: const Color(0xFFEAFAF1),
-              onTap: () => _sendWhatsApp(d.employeePhone ?? '', d.employeeName ?? '')),
+              onTap: () => _sendWhatsApp(d.employeePhone, d.employeeName)),
         ]));
   }
 
@@ -317,7 +317,7 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
                           _handleW(),
                           Text('Edit Personal Info', style: TextStyle(
                               fontSize: (sw * 0.045).clamp(15.0, 21.0), fontWeight: FontWeight.w800, color: _kT1)),
-                          Text(d.employeeName ?? '', style: TextStyle(
+                          Text(d.employeeName, style: TextStyle(
                               fontSize: (sw * 0.032).clamp(11.0, 14.0), color: _kT4)),
                           SizedBox(height: sw * 0.05),
 
@@ -428,7 +428,7 @@ class _UserViewScreenState extends ConsumerState<UserViewScreen> {
   void _editAddress(BuildContext ctx, UserModel d) {
     final addrC = TextEditingController(text: d.address);
     final fk = GlobalKey<FormState>();
-    _sheet(ctx, 'Edit Address', d.employeeName ?? '',
+    _sheet(ctx, 'Edit Address', d.employeeName,
         child: Form(key: fk, child: Column(children: [
           _sheetField(addrC, 'Enter full address', Icons.home_outlined, maxLines: 3,
               validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null),

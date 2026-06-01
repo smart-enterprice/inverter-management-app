@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:inverter_management_app/core/role/app_role.dart';
-import 'package:inverter_management_app/feature/signup/controller/signUp_controller.dart';
+import 'package:inverter_management_app/feature/signup/controller/signup_controller.dart';
 import 'package:inverter_management_app/feature/signup/screens/dealer/dealer_view_screen.dart';
 import 'package:inverter_management_app/feature/signup/screens/dealer/dealers_sign_up_screen.dart';
 import '../../model/user_model.dart';

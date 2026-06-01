@@ -108,7 +108,7 @@ class PaymentHistoryPage extends StatelessWidget {
         .reversed
         .toList();
 
-    final totalPaid = order.amountPaid ?? 0;
+    final totalPaid = order.amountPaid;
     final totalDue  = order.amountDue  ?? 0;
     final cashTotal = entries
         .where((e) => e.method == 'CASH')

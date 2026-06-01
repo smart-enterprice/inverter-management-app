@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:inverter_management_app/core/role/app_role.dart';
 import '../../../widgets/circle_button.dart';
-import '../../signup/controller/signUp_controller.dart';
+import '../../signup/controller/signup_controller.dart';
 import 'order_payment_history.dart';
 import '../controller/order_controller.dart';
 import '../../../feature/order/model/order_model.dart';
@@ -1003,7 +1003,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
         onUpdate: (amount, type) async {
           await ref.read(orderControllerProvider.notifier).updatePaymentOrder(
               order.copyWith(amountPaid: amount, paymentType: type));
-          ref.invalidate(orderByIdProvider(order.orderNumber!));
+          ref.invalidate(orderByIdProvider(widget.orderNumber));
           if (mounted) _snack('Payment updated', _kGreen);
         },
       ),
@@ -1019,7 +1019,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
           await ref.read(orderControllerProvider.notifier)
               .updateOrder(order.copyWith(
               status: status, reasonForCancellation: reason));
-          ref.invalidate(orderByIdProvider(order.orderNumber!));
+          ref.invalidate(orderByIdProvider(widget.orderNumber));
           if (mounted) _snack(_successMsg(status), _kGreen);
         },
       ),
@@ -1036,7 +1036,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
           await _updateItemStatus(item: item,
               productionCompleted: production,
               packingCompleted: packing, status: status);
-          ref.invalidate(orderByIdProvider(order.orderNumber!));
+          ref.invalidate(orderByIdProvider(widget.orderNumber));
           if (mounted) _snack('Status updated', _kGreen);
         },
       ),
@@ -1052,7 +1052,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
         onConfirm: (reason) async {
           await _updateItemStatus(
               item: item, status: 'CANCELLED', reasonForCancellation: reason);
-          ref.invalidate(orderByIdProvider(order.orderNumber!));
+          ref.invalidate(orderByIdProvider(widget.orderNumber));
           if (mounted) _snack('Item cancelled', _kRed);
         },
       ),

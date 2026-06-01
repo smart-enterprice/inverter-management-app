@@ -7,7 +7,7 @@ import '../../../../core/utils/password_generator.dart';
 import '../../model/user_model.dart';
 import '../../../../widgets/circle_button.dart';
 import '../../../brand/controller/brand_controller.dart';
-import '../../controller/signUp_controller.dart';
+import '../../controller/signup_controller.dart';
 
 // ── Zoho tokens ───────────────────────────────────────────────────────────────
 const _kP       = Color(0xFF185FA5);

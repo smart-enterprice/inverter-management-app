@@ -14,8 +14,8 @@ import '../../../widgets/circle_button.dart';
 import '../../brand/controller/brand_controller.dart';
 import '../../discount/controller/discount_controller.dart';
 import '../../product/controller/product_controller.dart';
-import '../../signup/controller/signUp_controller.dart';
-import '../../signup/repository/signUp_repository.dart';
+import '../../signup/controller/signup_controller.dart';
+import '../../signup/repository/signup_repository.dart';
 import '../controller/order_controller.dart';
 
 // ── Zoho Books design tokens ──────────────────────────────────────────────────
@@ -208,8 +208,11 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
               enabled: selectedDealer != null,
               onTap: selectedDealer == null
                   ? null
-                  : () =>
-                      _showBrandDialog(context, selectedDealer!.employeeId!)),
+                  : () {
+                      final empId = selectedDealer!.employeeId;
+                      if (empId == null || empId.isEmpty) return;
+                      _showBrandDialog(context, empId);
+                    }),
           SizedBox(height: sh * 0.01),
           _SelectorTile(
               sw: sw,
@@ -892,7 +895,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     final sw = MediaQuery.sizeOf(context).width;
     final sh = MediaQuery.sizeOf(context).height;
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (ctx) => Consumer(
         // ← Consumer here, not inside content
@@ -979,6 +982,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
         },
       ),
     );
+    searchController.dispose();
   }
 
   Future<void> _showSalesmanDialog(BuildContext context) async {
@@ -986,7 +990,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     final sw = MediaQuery.sizeOf(context).width;
     final sh = MediaQuery.sizeOf(context).height;
     final future = ref.read(usersByRoleProvider('ROLE_SALESMAN').future);
-    showDialog(
+    await showDialog(
         context: context,
         builder: (ctx) => FutureBuilder<List<UserModel>>(
             future: future,
@@ -1067,6 +1071,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                 })),
                       ])));
             }));
+    searchController.dispose();
   }
 
   Future<void> _showModelDialog(BuildContext context) async {
@@ -1085,7 +1090,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     ]..sort();
     final query = ValueNotifier('');
     if (!context.mounted) return;
-    showDialog(
+    await showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
             backgroundColor: _kWhite,
@@ -1141,6 +1146,8 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                 });
                           })),
                 ]))));
+    searchController.dispose();
+    query.dispose();
   }
 
   Future<void> _showProductDialog(
@@ -1170,7 +1177,7 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     final query = ValueNotifier('');
     final selectedModel = ValueNotifier<String>('All');
     if (!context.mounted) return;
-    showDialog(
+    await showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
             backgroundColor: _kWhite,
@@ -1289,18 +1296,25 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                                 trailing: added ? const Icon(Icons.check_circle, color: _kGreen) : null,
                                                 onTap: () async {
                                                   DealerDiscountModel? discount;
-                                                  try {
-                                                    discount = await ref.read(
-                                                        dealerProductDiscountProvider({
-                                                      'dealerId':
-                                                          selectedDealer!
-                                                              .employeeId!,
-                                                      'productId': p.productId!,
-                                                    }).future);
-                                                  } catch (e) {
-                                                    debugPrint(
-                                                        'Discount fetch: $e');
+                                                  final dealerId =
+                                                      selectedDealer?.employeeId;
+                                                  final prodId = p.productId;
+                                                  if (dealerId != null &&
+                                                      dealerId.isNotEmpty &&
+                                                      prodId != null &&
+                                                      prodId.isNotEmpty) {
+                                                    try {
+                                                      discount = await ref.read(
+                                                          dealerProductDiscountProvider({
+                                                        'dealerId': dealerId,
+                                                        'productId': prodId,
+                                                      }).future);
+                                                    } catch (e) {
+                                                      debugPrint(
+                                                          'Discount fetch: $e');
+                                                    }
                                                   }
+                                                  if (!mounted) return;
                                                   setState(() {
                                                     selectedProducts.add(
                                                         OrderDetailsModel
@@ -1315,6 +1329,9 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
                                 });
                           })),
                 ]))));
+    searchController.dispose();
+    query.dispose();
+    selectedModel.dispose();
   }
 
   // ── Dialog helpers ────────────────────────────────────────────────────────
@@ -1452,6 +1469,23 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
       return;
     }
+    final dealerId = selectedDealer?.employeeId;
+    final salesmanId = selectedSalesman?.employeeId;
+    if (dealerId == null || salesmanId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Row(children: [
+            Icon(Icons.warning_amber_rounded, color: _kWhite),
+            SizedBox(width: 12),
+            Expanded(
+                child: Text(
+                    'Selected dealer or salesman is missing an ID. Please re-select.')),
+          ]),
+          backgroundColor: _kRed,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+      return;
+    }
     setState(() => isCreatingOrder = true);
     try {
       final processedProducts = selectedProducts.map((p) {
@@ -1471,10 +1505,10 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
       }).toList();
 
       final order = OrderModel(
-          dealerId: selectedDealer!.employeeId!,
+          dealerId: dealerId,
           priority: selectedPriority,
           orderNote: orderNoteController.text,
-          salesmanId: selectedSalesman!.employeeId!,
+          salesmanId: salesmanId,
           paymentType: paymentMethod,
           amountPaid: amountPaid,
           orderDetails: processedProducts);
