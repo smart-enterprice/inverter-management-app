@@ -55,16 +55,9 @@ bool canAddItemsToOrder({
 }) {
   final status = (order.status ?? '').toUpperCase();
   if (_kFrozenStatuses.contains(status)) return false;
-  if (userRole == 'ROLE_SUPER_ADMIN' ||
+  return userRole == 'ROLE_SUPER_ADMIN' ||
       userRole == 'ROLE_ADMIN' ||
-      userRole == 'ROLE_MANAGER') {
-    return true;
-  }
-  // Creator can also add items.
-  if (userId != null && order.createdBy != null && userId == order.createdBy) {
-    return true;
-  }
-  return false;
+      userRole == 'ROLE_MANAGER';
 }
 
 /// Open the bottom sheet. Returns true on a successful submit so callers can
