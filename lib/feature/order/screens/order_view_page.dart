@@ -729,7 +729,7 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
           if (isCompleted) SizedBox(height: sw * 0.02),
           Row(children: [
             Expanded(child: RoleGuard(
-              feature: AppFeature.updateOrderStatus,
+              feature: AppFeature.updateDeliveredQty,
               child: _ActionBtn(sw: sw, label: 'Delivery Qty',
                   icon: Icons.local_shipping_outlined, color: _kGreen,
                   onTap: () => _showDeliveryQtyDialog(

@@ -68,11 +68,12 @@ class AppFeature {
   AppFeature._();
 
   // Orders
-  static const String viewAllOrders     = 'view_all_orders';
-  static const String createOrder       = 'create_order';
-  static const String updateOrderStatus = 'update_order_status';
-  static const String cancelOrder       = 'cancel_order';
-  static const String updatePayment     = 'update_payment';
+  static const String viewAllOrders       = 'view_all_orders';
+  static const String createOrder         = 'create_order';
+  static const String updateOrderStatus   = 'update_order_status';
+  static const String cancelOrder         = 'cancel_order';
+  static const String updatePayment       = 'update_payment';
+  static const String updateDeliveredQty  = 'update_delivered_qty';
 
   // Products & Brands
   static const String viewProducts      = 'view_products';
@@ -162,6 +163,7 @@ class AppPermissions {
       AppFeature.updateOrderStatus,
       AppFeature.cancelOrder,
       AppFeature.updatePayment,
+      AppFeature.updateDeliveredQty,
       AppFeature.viewPrice,
       AppFeature.viewCostPrice,
       AppFeature.updateStatus,
@@ -218,6 +220,7 @@ class AppPermissions {
       AppFeature.updateOrderStatus,
       AppFeature.cancelOrder,
       AppFeature.updatePayment,
+      AppFeature.updateDeliveredQty,
       AppFeature.viewProducts,
       AppFeature.viewPrice,
       AppFeature.viewCostPrice,
@@ -274,6 +277,7 @@ class AppPermissions {
       AppFeature.updateOrderStatus,
       AppFeature.cancelOrder,
       AppFeature.updatePayment,
+      AppFeature.updateDeliveredQty,
       AppFeature.viewProducts,
       AppFeature.viewPrice,
       AppFeature.viewPriceHistory,
@@ -362,6 +366,7 @@ class AppPermissions {
       AppFeature.viewStock,
       AppFeature.updateStock,
       AppFeature.updateOrderStatus,
+      AppFeature.updateDeliveredQty,
       AppFeature.viewProducts,
       AppFeature.viewBrands,
       AppFeature.viewDealerBasic,
@@ -379,6 +384,7 @@ class AppPermissions {
       AppFeature.viewAllOrders,
       AppFeature.updateOrderStatus,
       AppFeature.updatePayment,
+      AppFeature.updateDeliveredQty,
       AppFeature.viewPrice,
       AppFeature.viewPriceHistory,
       AppFeature.viewStock,
@@ -401,6 +407,7 @@ class AppPermissions {
     AppRole.delivery: {
       AppFeature.viewAllOrders,
       AppFeature.updateOrderStatus,
+      AppFeature.updateDeliveredQty,
       // order status updates
       AppFeature.deliveredCompleted,
 
