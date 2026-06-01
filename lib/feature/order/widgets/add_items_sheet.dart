@@ -292,8 +292,9 @@ class _AddItemsSheetState extends ConsumerState<_AddItemsSheet> {
             ),
 
             // ── Footer actions (Edit Personal Info style) ────────────────
+            const Divider(height: 1, thickness: 0.5, color: _kBd),
             Padding(
-              padding: EdgeInsets.fromLTRB(hPad, 0, hPad, sw * 0.06),
+              padding: EdgeInsets.fromLTRB(hPad, sw * 0.04, hPad, sw * 0.06),
               child: Row(children: [
                 Expanded(
                   child: OutlinedButton(
@@ -704,10 +705,35 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
             ),
           ]),
 
-          // ── Discount (only when product is selected) ───────────────
+          // ── Price + Discount (only when product is selected) ──────
           if (draft.product != null) ...[
             SizedBox(height: sh * 0.012),
-            _FieldLabel(label: 'Discount'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _FieldLabel(label: 'Discount'),
+                if (price > 0)
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: sw * 0.025, vertical: sw * 0.01),
+                    decoration: BoxDecoration(
+                      color: _kPBg,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: _kPBd, width: 0.5),
+                    ),
+                    child: Text(
+                      'Price: ₹${price.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: (sw * 0.028).clamp(9.5, 12.0),
+                        fontWeight: FontWeight.w700,
+                        color: _kP,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            SizedBox(height: sh * 0.008),
+
             if (draft.dealerDiscount != null) ...[
               Row(children: [
                 Expanded(

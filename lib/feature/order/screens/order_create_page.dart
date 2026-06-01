@@ -665,11 +665,34 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
     if (discount == null) {
       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         SizedBox(height: sh * 0.015),
-        Text('Manual Discount',
-            style: TextStyle(
-                fontSize: (sw * 0.03).clamp(10.0, 13.0),
-                fontWeight: FontWeight.w600,
-                color: _kT1)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Manual Discount',
+                style: TextStyle(
+                    fontSize: (sw * 0.03).clamp(10.0, 13.0),
+                    fontWeight: FontWeight.w600,
+                    color: _kT1)),
+            if (product.productPrice != null)
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: sw * 0.025, vertical: sw * 0.01),
+                decoration: BoxDecoration(
+                  color: _kPBg,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: _kPBd, width: 0.5),
+                ),
+                child: Text(
+                  'Price: ₹${product.productPrice}',
+                  style: TextStyle(
+                    fontSize: (sw * 0.028).clamp(9.5, 12.0),
+                    fontWeight: FontWeight.w700,
+                    color: _kP,
+                  ),
+                ),
+              ),
+          ],
+        ),
         SizedBox(height: sh * 0.008),
         TextFormField(
             initialValue: product.discountAmount?.toString() ?? '',
@@ -701,11 +724,34 @@ class _OrderCreatePageState extends ConsumerState<OrderCreatePage> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       SizedBox(height: sh * 0.015),
-      Text('Discount',
-          style: TextStyle(
-              fontSize: (sw * 0.03).clamp(10.0, 13.0),
-              fontWeight: FontWeight.w600,
-              color: _kT1)),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Discount',
+              style: TextStyle(
+                  fontSize: (sw * 0.03).clamp(10.0, 13.0),
+                  fontWeight: FontWeight.w600,
+                  color: _kT1)),
+          if (product.productPrice != null)
+            Container(
+              padding: EdgeInsets.symmetric(
+                  horizontal: sw * 0.025, vertical: sw * 0.01),
+              decoration: BoxDecoration(
+                color: _kPBg,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: _kPBd, width: 0.5),
+              ),
+              child: Text(
+                'Price: ₹${product.productPrice}',
+                style: TextStyle(
+                  fontSize: (sw * 0.028).clamp(9.5, 12.0),
+                  fontWeight: FontWeight.w700,
+                  color: _kP,
+                ),
+              ),
+            ),
+        ],
+      ),
       SizedBox(height: sh * 0.01),
       Row(children: [
         Expanded(

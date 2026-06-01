@@ -546,13 +546,37 @@ class _OrderViewPageState extends ConsumerState<OrderViewPage> {
           )),
           RoleGuard(
             feature: AppFeature.viewPrice,
-            child: Text(
-                item.totalProductPrice != null
-                    ? '₹${_fmt(item.totalProductPrice)}'
-                    : '₹${_fmt(item.productPrice)}',
-                style: TextStyle(
-                    fontSize: (sw * 0.036).clamp(12.0, 16.0),
-                    fontWeight: FontWeight.w800, color: _kT1)),
+            child: Builder(builder: (context) {
+              final discountAmt = item.dealerDiscountAmount ?? 0;
+              final hasDiscount = discountAmt > 0 && item.unitProductPrice != null;
+              final afterDiscountPrice = hasDiscount
+                  ? (item.unitProductPrice! - discountAmt)
+                  : item.unitProductPrice;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (hasDiscount)
+                    Text(
+                      '₹${_fmt(item.unitProductPrice)}',
+                      style: TextStyle(
+                        fontSize: (sw * 0.027).clamp(9.5, 12.0),
+                        fontWeight: FontWeight.w500,
+                        color: _kT4,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  Text(
+                    '₹${_fmt(afterDiscountPrice)}',
+                    style: TextStyle(
+                      fontSize: (sw * 0.036).clamp(12.0, 16.0),
+                      fontWeight: FontWeight.w800,
+                      color: hasDiscount ? _kGreen : _kT1,
+                    ),
+                  ),
+                ],
+              );
+            }),
           ),
         ]),
         SizedBox(height: sw * 0.025),
