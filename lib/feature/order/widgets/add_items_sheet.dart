@@ -43,7 +43,7 @@ const _kGreenBd = Color(0xFF9FE0C5);
 
 /// Status set that blocks "Add Items". Mirrors the backend invariant.
 const _kFrozenStatuses = {
-  'DELIVERED', 'COMPLETED', 'CANCELLED', 'REJECTED',
+  'PENDING', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'REJECTED',
 };
 
 /// Returns true iff the current caller may add items to this order.
