@@ -44,7 +44,6 @@ class SignupRepository {
         'page': page,
         'limit': limit,
         'role': 'ROLE_DEALER',
-        'includePassword': false,
         'includeDealers': true,
         if (search != null && search.isNotEmpty) 'search': search,
         if (status != null && status.isNotEmpty) 'status': status,
@@ -90,7 +89,6 @@ class SignupRepository {
         'limit': limit,
         'role': 'ROLE_SALESMAN',
         'status': 'active',
-        'includePassword': false,
         if (search != null && search.isNotEmpty) 'search': search,
       };
       final response = await _dio.get('/employees', queryParameters: queryParams);
