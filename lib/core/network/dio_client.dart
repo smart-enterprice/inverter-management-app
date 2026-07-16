@@ -17,7 +17,7 @@ class DioClient {
   // Only one is referenced at a time — the others are kept as documented
   // switch-targets, so the lint that flags them as unused is silenced.
   // ignore_for_file: unused_field
-  static const String _production     = 'https://api.smartenterprises.online/api/v1';
+  static const String _production     = 'https://api.warriorpower.in/api/v1';
   static const String _androidEmu     = 'http://10.0.2.2:1280/api/v1';     // Android emulator
   static const String _iosSim         = 'http://localhost:1280/api/v1';    // iOS simulator
   static const String _realDeviceLan  = 'http://192.168.29.68:1280/api/v1';// Physical phone over Wi-Fi
